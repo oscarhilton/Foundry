@@ -35,7 +35,6 @@ const SHELF_OUTPUT_STATE: FoundryOutputState = {
   githubActivity: null,
   musicNote: null,
   musicVelocity: null,
-  displayText: null,
   lcdText: null,
   lcdTexts: {},
   sensorTemp: null,

@@ -69,7 +69,7 @@ describe("ChainParser", () => {
 
   it("warns when multiple visual outputs are present", () => {
     const chain = parseChain(
-      withCore("output/light", "output/display"),
+      withCore("output/light", "output/lcd"),
     );
     expect(
       chain.warnings.some((w) => w.includes("Multiple visual outputs")),
@@ -472,14 +472,14 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("shows weather on display when display is in weather-dial-light chain", () => {
+  it("shows weather on LCD when LCD is in weather-dial-light chain", () => {
     engine.setChain(
       withCore(
         "identity/london",
         "identity/weather",
         "control/dial",
         "output/light",
-        "output/display",
+        "output/lcd",
       ),
     );
     engine.start();
@@ -487,43 +487,41 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.displayText).toBe("18°C 40%");
+    expect(state.lcdText).toBe("12°C 45% 50% 40%");
     expect(state.lightBrightness).toBeGreaterThan(0.1);
 
     engine.destroy();
   });
 
-  it("shows temperature on display when display is in temperature chain", () => {
-    engine.setChain(
-      withCore("identity/tokyo", "sensor/temperature", "output/display"),
-    );
+  it("shows temperature on LCD when LCD is in temperature chain", () => {
+    engine.setChain(withCore("sensor/temperature", "output/lcd"));
     engine.start();
 
     const state = engine.getOutputState();
-    expect(state.displayText).toMatch(/^\d+°C$/);
+    expect(state.lcdText).toMatch(/^\d+°C$/);
 
     engine.destroy();
   });
 
-  it("shows temperature on display for temperature-light chain", () => {
+  it("shows temperature on LCD for temperature-light chain", () => {
     engine.setChain(
-      withCore("sensor/temperature", "output/display", "output/light"),
+      withCore("sensor/temperature", "output/lcd", "output/light"),
     );
     engine.start();
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("temperature-light");
-    expect(state.displayText).toMatch(/^\d+°C$/);
+    expect(state.lcdText).toMatch(/^\d+°C$/);
 
     engine.destroy();
   });
 
-  it("prefers temperature over github on display when both are in chain", () => {
+  it("concatenates temperature and github on LCD when both are in chain", () => {
     engine.setChain(
       withCore(
         "source/github",
         "sensor/temperature",
-        "output/display",
+        "output/lcd",
         "output/light",
       ),
     );
@@ -531,7 +529,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("temperature-light");
-    expect(state.displayText).toMatch(/^\d+°C$/);
+    expect(state.lcdText).toMatch(/^\d+°C \d+\/hr$/);
 
     engine.destroy();
   });

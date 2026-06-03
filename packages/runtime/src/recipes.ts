@@ -8,7 +8,7 @@ import {
   hasButtonControl,
   hasCalmModifier,
   hasChimeOutput,
-  hasDisplayOutput,
+  hasLcdOutput,
   hasLightOutput,
   hasMotionSensor,
   hasMusicOutput,
@@ -96,15 +96,15 @@ export const RECIPES: Recipe[] = [
       ),
   },
   {
-    id: "github-display",
-    name: "GitHub Display",
-    description: "GitHub activity on e-ink display",
+    id: "github-lcd",
+    name: "GitHub LCD",
+    description: "GitHub activity on backlit LCD",
     match: (chain) =>
       powered(
         chain,
         () =>
           chain.cubes.some((c) => c.definition.id === "source/github") &&
-          hasDisplayOutput(chain) &&
+          hasLcdOutput(chain) &&
           !hasLightOutput(chain) &&
           !hasTemperatureSensor(chain) &&
           !hasWeatherSource(chain),
@@ -134,7 +134,7 @@ export const RECIPES: Recipe[] = [
         () =>
           chain.cubes.some((c) => c.definition.id === "source/github") &&
           hasLightOutput(chain) &&
-          !hasDisplayOutput(chain),
+          !hasLcdOutput(chain),
       ),
   },
 ];

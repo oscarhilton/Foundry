@@ -160,7 +160,6 @@ const defaultOutputState = (): FoundryOutputState => ({
   githubActivity: null,
   musicNote: null,
   musicVelocity: null,
-  displayText: null,
   lcdText: null,
   lcdTexts: {},
   sensorTemp: null,

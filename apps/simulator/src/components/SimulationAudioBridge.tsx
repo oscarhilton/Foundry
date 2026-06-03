@@ -15,7 +15,6 @@ export function SimulationAudioBridge() {
   const prevPowered = useRef(outputState.powered);
   const prevMotion = useRef(outputState.motionDetected);
   const prevDialPosition = useRef(outputState.dialPosition);
-  const prevDisplayText = useRef(outputState.displayText);
   const prevLcdTexts = useRef(outputState.lcdTexts);
   const prevMusicNote = useRef<number | null>(null);
   const seenSignalIds = useRef(new Set<string>());
@@ -23,7 +22,6 @@ export function SimulationAudioBridge() {
   const markChime = useEffectTimestamps((s) => s.markChime);
   const markButton = useEffectTimestamps((s) => s.markButton);
   const markMotion = useEffectTimestamps((s) => s.markMotion);
-  const markDisplayChange = useEffectTimestamps((s) => s.markDisplayChange);
   const markLcdChange = useEffectTimestamps((s) => s.markLcdChange);
   const markMusicNote = useEffectTimestamps((s) => s.markMusicNote);
   const markPowered = useEffectTimestamps((s) => s.markPowered);
@@ -78,13 +76,6 @@ export function SimulationAudioBridge() {
     }
     prevMotion.current = outputState.motionDetected;
   }, [outputState.motionDetected, audioUnlocked, soundEnabled, markMotion]);
-
-  useEffect(() => {
-    if (outputState.displayText !== prevDisplayText.current) {
-      markDisplayChange();
-    }
-    prevDisplayText.current = outputState.displayText;
-  }, [outputState.displayText, markDisplayChange]);
 
   useEffect(() => {
     const serialized = JSON.stringify(outputState.lcdTexts);

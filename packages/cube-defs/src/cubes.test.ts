@@ -8,8 +8,8 @@ import {
 } from "@foundry/cube-defs";
 
 describe("Cube definitions", () => {
-  it("defines 18 cubes including Core", () => {
-    expect(CUBE_DEFINITIONS.length).toBe(18);
+  it("defines 17 cubes including Core", () => {
+    expect(CUBE_DEFINITIONS.length).toBe(17);
   });
 
   it("validates all cube definitions", () => {
@@ -27,7 +27,6 @@ describe("Cube definitions", () => {
       "control/button",
       "control/slider",
       "output/music",
-      "output/display",
       "output/lcd",
       "sensor/temperature",
     ];
@@ -50,7 +49,6 @@ describe("Cube definitions", () => {
     expect(isAudioOutput("output/music")).toBe(true);
     expect(isAudioOutput("output/chime")).toBe(true);
     expect(isVisualOutput("output/light")).toBe(true);
-    expect(isVisualOutput("output/display")).toBe(true);
     expect(isVisualOutput("output/lcd")).toBe(true);
     expect(isAudioOutput("output/light")).toBe(false);
   });

@@ -75,7 +75,6 @@ Namespace: `{domain}/{signal}[/{variant}]`
 | `output/light/brightness` | number | Final light brightness 0–1 |
 | `output/chime/trigger` | boolean | Chime fire event |
 | `output/music/note` | number | MIDI note number |
-| `output/display/text` | string | E-ink display text |
 | `output/lcd/text` | string | Backlit LCD text |
 | `core/power` | string | Power source and level, e.g. `PWR USB 100%` or `BAT 87%` |
 
@@ -130,7 +129,7 @@ Left-to-right pipeline:
 1. **Sources** — place, weather, github, time
 2. **Modifiers** — calm, random, threshold
 3. **Controls** — dial, slider, button
-4. **Outputs** — light, music, chime, display, lcd
+4. **Outputs** — light, music, chime, lcd
 
 **Conflict rule:** nearest control to output binds first.
 
@@ -140,7 +139,7 @@ Outputs are split into two modalities (see `outputModality` on cube descriptors)
 
 | Modality | Cubes | Conflict rule |
 |----------|-------|---------------|
-| **Visual** | Light, Display, LCD | Only the **last** visual output in the chain is active |
+| **Visual** | Light, LCD | Only the **last** visual output in the chain is active |
 | **Audio** | Music, Chime | Can run in parallel with visual outputs; only the **first** cube of each audio type is active |
 
 Audio and visual outputs do not conflict — a chain may include both Light and Music. Signal `source` fields use the target cube's instance id (e.g. music notes publish with the Music cube's id).

@@ -50,7 +50,6 @@ export function ChainStrip({ layout }: ChainStripProps) {
       chimeFiredAt: s.chimeFiredAt,
       buttonFiredAt: s.buttonFiredAt,
       motionFiredAt: s.motionFiredAt,
-      displayChangedAt: s.displayChangedAt,
       lcdChangedAt: s.lcdChangedAt,
       musicNoteFiredAt: s.musicNoteFiredAt,
       lastMusicNote: s.lastMusicNote,
@@ -102,7 +101,6 @@ export function ChainStrip({ layout }: ChainStripProps) {
     | "isPrimaryDial"
     | "isPrimaryChime"
     | "isPrimaryMusic"
-    | "isPrimaryDisplay"
     | "isPrimaryButton"
     | "isPrimarySlider"
     | "lcdText"
@@ -301,7 +299,6 @@ export function ChainStrip({ layout }: ChainStripProps) {
                   dialHintPulse: isPrimaryDial && dialHintEligible,
                   isPrimaryChime: cube.instanceId === firstId(chain, "output/chime"),
                   isPrimaryMusic: cube.instanceId === firstId(chain, "output/music"),
-                  isPrimaryDisplay: cube.instanceId === firstId(chain, "output/display"),
                   lcdText: outputState.lcdTexts[cube.instanceId] ?? null,
                   isPrimaryButton: cube.instanceId === firstId(chain, "control/button"),
                   isPrimarySlider: cube.instanceId === firstId(chain, "control/slider"),

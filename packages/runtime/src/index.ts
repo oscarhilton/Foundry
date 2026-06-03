@@ -2,7 +2,6 @@ import type { ChainCubeInput, ParsedChain } from "./chain-parser.js";
 import {
   parseChain,
   isChainPowered,
-  hasDisplayOutput,
   hasLcdOutput,
   hasLcdSignalModules,
   hasMotionSensor,
@@ -14,11 +13,7 @@ import type { RecipeContext } from "./recipes.js";
 import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
 import {
-  formatGithub,
   formatPowerBattery,
-  formatTemp,
-  formatTime,
-  formatWeather,
   resolveLcdTextForWindow,
 } from "./output-formatters.js";
 import {
@@ -61,7 +56,6 @@ export interface FoundryOutputState {
   githubActivity: number | null;
   musicNote: number | null;
   musicVelocity: number | null;
-  displayText: string | null;
   lcdText: string | null;
   lcdTexts: Record<string, string>;
   sensorTemp: number | null;
@@ -137,7 +131,6 @@ export class FoundryEngine {
       githubActivity: null,
       musicNote: null,
       musicVelocity: null,
-      displayText: null,
       lcdText: null,
       lcdTexts: {},
       sensorTemp: null,
@@ -462,7 +455,6 @@ export class FoundryEngine {
 
     if (!this.context) {
       this.resetOutputs();
-      this.syncDisplayFromChain();
       this.syncLcdFromChain();
       return;
     }
@@ -508,14 +500,10 @@ export class FoundryEngine {
         this.setMusicOutput(note, velocity);
         break;
       }
-      case "github-display": {
-        break;
-      }
       default:
         break;
     }
 
-    this.syncDisplayFromChain();
     this.syncLcdFromChain();
   }
 
@@ -530,50 +518,6 @@ export class FoundryEngine {
       sliderPosition: this.outputState.sliderPosition,
       lightBrightness: this.outputState.lightBrightness,
     };
-  }
-
-  private resolveDisplayText(): string | null {
-    if (!this.parsed) return null;
-
-    const chain = this.parsed;
-    const recipeId = this.context?.recipe.id;
-    const fmt = this.formatState();
-
-    switch (recipeId) {
-      case "temperature-light":
-        return formatTemp(fmt.sensorTemp);
-      case "london-weather-light":
-      case "weather-dial-light":
-        return formatWeather(fmt.weatherTemp, fmt.weatherRain);
-      case "github-display":
-        return formatGithub(fmt.githubActivity);
-      case "time-calm-light":
-        return formatTime(fmt.timeHour);
-      default:
-        break;
-    }
-
-    if (hasTemperatureSensor(chain)) return formatTemp(fmt.sensorTemp);
-    if (hasWeatherSource(chain)) return formatWeather(fmt.weatherTemp, fmt.weatherRain);
-    if (chain.cubes.some((c) => c.definition.id === "source/github")) {
-      return formatGithub(fmt.githubActivity);
-    }
-    if (hasTimeSource(chain)) return formatTime(fmt.timeHour);
-
-    return null;
-  }
-
-  private syncDisplayFromChain(): void {
-    if (!this.parsed?.powered || !hasDisplayOutput(this.parsed)) {
-      return;
-    }
-
-    const text = this.resolveDisplayText();
-    if (text !== null) {
-      this.setDisplayText(text);
-    } else {
-      this.outputState.displayText = null;
-    }
   }
 
   private syncCorePower(): void {
@@ -636,7 +580,6 @@ export class FoundryEngine {
     this.outputState.lightBrightness = 0.02;
     this.outputState.musicNote = null;
     this.outputState.musicVelocity = null;
-    this.outputState.displayText = null;
     this.outputState.lcdText = null;
     this.outputState.lcdTexts = {};
     this.outputState.chimeTriggered = false;
@@ -665,15 +608,6 @@ export class FoundryEngine {
       this.context?.musicInstanceId ?? this.context?.outputInstanceId ?? "runtime";
     this.router.publish("output/music/note", note, source);
     this.router.publish("output/music/velocity", velocity, source);
-  }
-
-  private setDisplayText(text: string): void {
-    this.outputState.displayText = text;
-    this.router.publish(
-      "output/display/text",
-      text,
-      this.context?.outputInstanceId ?? "runtime",
-    );
   }
 
   private fireChime(): void {
