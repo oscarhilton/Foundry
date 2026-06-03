@@ -6,6 +6,7 @@ export interface OutputFormatState {
   githubActivity: number | null;
   dialPosition: number;
   sliderPosition: number;
+  lightBrightness: number;
 }
 
 export function formatTime(timeHour: number | null | undefined): string {
@@ -41,6 +42,14 @@ export function formatControlPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+export function formatPowerBattery(
+  source: "usb" | "battery",
+  percent: number,
+): string {
+  const pct = Math.round(Math.max(0, Math.min(100, percent)));
+  return source === "usb" ? `PWR USB ${pct}%` : `BAT ${pct}%`;
+}
+
 export function combineLine(
   primary: string,
   secondary: string,
@@ -58,7 +67,12 @@ export interface LcdSegmentContext {
   hasTimeSource: boolean;
   hasDial: boolean;
   hasSlider: boolean;
+  hasPlace: boolean;
   placeLabel: string | null;
+  hasCalm: boolean;
+  hasRandom: boolean;
+  hasButton: boolean;
+  hasLight: boolean;
 }
 
 export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
@@ -73,7 +87,11 @@ export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
   if (ctx.hasTimeSource) segments.push(formatTime(fmt.timeHour));
   if (ctx.hasDial) segments.push(formatControlPercent(fmt.dialPosition));
   if (ctx.hasSlider) segments.push(formatControlPercent(fmt.sliderPosition));
-  if (ctx.placeLabel && segments.length === 0) segments.push(ctx.placeLabel);
+  if (ctx.hasPlace && ctx.placeLabel) segments.push(ctx.placeLabel);
+  if (ctx.hasCalm) segments.push("CALM");
+  if (ctx.hasRandom) segments.push("RND");
+  if (ctx.hasButton) segments.push("BTN");
+  if (ctx.hasLight) segments.push(formatControlPercent(fmt.lightBrightness));
 
   return segments;
 }

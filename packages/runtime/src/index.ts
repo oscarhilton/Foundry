@@ -4,6 +4,7 @@ import {
   isChainPowered,
   hasDisplayOutput,
   hasLcdOutput,
+  hasLcdSignalModules,
   hasMotionSensor,
   hasTemperatureSensor,
   hasWeatherSource,
@@ -15,6 +16,7 @@ import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/m
 import {
   distributeSegmentsToLcds,
   formatGithub,
+  formatPowerBattery,
   formatTemp,
   formatTime,
   formatWeather,
@@ -58,6 +60,8 @@ export interface FoundryOutputState {
   lcdTexts: Record<string, string>;
   sensorTemp: number | null;
   timeHour: number | null;
+  powerSource: "usb" | "battery";
+  batteryPercent: number;
 }
 
 export interface CoreDebugSnapshot {
@@ -130,6 +134,8 @@ export class FoundryEngine {
       lcdTexts: {},
       sensorTemp: null,
       timeHour: null,
+      powerSource: "usb",
+      batteryPercent: 100,
     };
   }
 
@@ -181,6 +187,18 @@ export class FoundryEngine {
     this.sliderPosition = Math.max(0, Math.min(1, value));
     this.router.publish("control/slider", this.sliderPosition, "ui/slider");
     this.recalculateOutputs();
+  }
+
+  setPowerSource(source: "usb" | "battery"): void {
+    this.outputState.powerSource = source;
+    this.syncCorePower();
+    this.syncLcdFromChain();
+  }
+
+  setBatteryPercent(percent: number): void {
+    this.outputState.batteryPercent = Math.max(0, Math.min(100, percent));
+    this.syncCorePower();
+    this.syncLcdFromChain();
   }
 
   getDialPosition(): number {
@@ -350,6 +368,7 @@ export class FoundryEngine {
     );
 
     this.recalculateOutputs();
+    this.syncCorePower();
   }
 
   private applyRandom(value: number): number {
@@ -432,6 +451,7 @@ export class FoundryEngine {
       githubActivity: this.outputState.githubActivity,
       dialPosition: this.outputState.dialPosition,
       sliderPosition: this.outputState.sliderPosition,
+      lightBrightness: this.outputState.lightBrightness,
     };
   }
 
@@ -476,7 +496,12 @@ export class FoundryEngine {
       hasTimeSource: hasTimeSource(chain),
       hasDial: chain.cubes.some((c) => c.definition.id === "control/dial"),
       hasSlider: chain.cubes.some((c) => c.definition.id === "control/slider"),
+      hasPlace: chain.place !== undefined,
       placeLabel: chain.place?.definition.label ?? null,
+      hasCalm: chain.cubes.some((c) => c.definition.id === "modifier/calm"),
+      hasRandom: chain.cubes.some((c) => c.definition.id === "modifier/random"),
+      hasButton: chain.cubes.some((c) => c.definition.id === "control/button"),
+      hasLight: chain.cubes.some((c) => c.definition.id === "output/light"),
     };
   }
 
@@ -493,6 +518,16 @@ export class FoundryEngine {
     }
   }
 
+  private syncCorePower(): void {
+    if (!this.outputState.powered) return;
+
+    const text = formatPowerBattery(
+      this.outputState.powerSource,
+      this.outputState.batteryPercent,
+    );
+    this.router.publish("core/power", text, "core");
+  }
+
   private syncLcdFromChain(): void {
     if (!this.parsed?.powered || !hasLcdOutput(this.parsed)) {
       return;
@@ -500,15 +535,22 @@ export class FoundryEngine {
 
     const chain = this.parsed;
     const lcdOutputs = chain.cubes.filter((c) => c.definition.id === "output/lcd");
-    const ctx = this.lcdSegmentContext();
     const texts: Record<string, string> = {};
 
-    if (hasMotionSensor(chain) && this.outputState.motionDetected) {
+    if (!hasLcdSignalModules(chain)) {
+      const text = formatPowerBattery(
+        this.outputState.powerSource,
+        this.outputState.batteryPercent,
+      );
+      for (const lcd of lcdOutputs) {
+        texts[lcd.instanceId] = text;
+      }
+    } else if (hasMotionSensor(chain) && this.outputState.motionDetected) {
       for (const lcd of lcdOutputs) {
         texts[lcd.instanceId] = "MOTION";
       }
     } else {
-      const segments = resolveLcdSegments(ctx);
+      const segments = resolveLcdSegments(this.lcdSegmentContext());
       const distributed = distributeSegmentsToLcds(segments, lcdOutputs.length);
       lcdOutputs.forEach((lcd, index) => {
         texts[lcd.instanceId] = distributed[index] ?? "--";
@@ -596,5 +638,6 @@ export {
   RECIPES,
   MockAdapters,
   fetchLiveWeather,
+  formatPowerBattery,
 };
 export type { SignalMessage, ChainCubeInput, ParsedChain, RecipeContext };

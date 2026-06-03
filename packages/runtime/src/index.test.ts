@@ -6,7 +6,9 @@ import {
   smoothValue,
   matchRecipe,
   isChainPowered,
+  type SignalMessage,
 } from "./index.js";
+import { formatPowerBattery } from "./output-formatters.js";
 
 const CORE = "core/core";
 
@@ -214,6 +216,16 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("shows power status on LCD for Core + LCD only chain", () => {
+    engine.setChain(withCore("output/lcd"));
+    engine.start();
+
+    const state = engine.getOutputState();
+    expect(state.lcdText).toBe("PWR USB 100%");
+
+    engine.destroy();
+  });
+
   it("shows time on LCD for time preset chain", () => {
     engine.setChain(withCore("source/time", "output/lcd"));
     engine.start();
@@ -242,7 +254,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const state = engine.getOutputState();
-    expect(state.lcdText).toBe("18°C 40%");
+    expect(state.lcdText).toBe("18°C 40% London");
 
     engine.destroy();
   });
@@ -262,7 +274,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toBe("18°C 40% 50%");
+    expect(state.lcdText).toBe("18°C 40% 50% London 40%");
 
     engine.destroy();
   });
@@ -323,7 +335,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("temperature-light");
-    expect(state.lcdText).toMatch(/^\d+°C \d+\/hr$/);
+    expect(state.lcdText).toMatch(/^\d+°C \d+\/hr \d+%$/);
 
     engine.destroy();
   });
@@ -494,5 +506,41 @@ describe("FoundryEngine", () => {
     expect(state.displayText).toMatch(/^\d+°C$/);
 
     engine.destroy();
+  });
+
+  it("formats battery power label", () => {
+    expect(formatPowerBattery("usb", 100)).toBe("PWR USB 100%");
+    expect(formatPowerBattery("battery", 87)).toBe("BAT 87%");
+  });
+
+  it("shows battery on LCD when power source is battery", () => {
+    engine.setChain(withCore("output/lcd"));
+    engine.start();
+    engine.setPowerSource("battery");
+    engine.setBatteryPercent(87);
+
+    expect(engine.getOutputState().lcdText).toBe("BAT 87%");
+
+    engine.destroy();
+  });
+
+  it("publishes core/power on chain bind", () => {
+    const messages: SignalMessage[] = [];
+    const powerEngine = new FoundryEngine({
+      onSignal: (msg) => messages.push(msg),
+    });
+    powerEngine.setChain(withCore("output/lcd"));
+    powerEngine.start();
+
+    const powerMsg = messages.find((m) => m.topic === "core/power");
+    expect(powerMsg?.value).toBe("PWR USB 100%");
+    expect(powerMsg?.source).toBe("core");
+
+    powerEngine.setPowerSource("battery");
+    powerEngine.setBatteryPercent(72);
+    const batteryMsg = messages.filter((m) => m.topic === "core/power").pop();
+    expect(batteryMsg?.value).toBe("BAT 72%");
+
+    powerEngine.destroy();
   });
 });

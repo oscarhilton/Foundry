@@ -75,24 +75,33 @@ Namespace: `{domain}/{signal}[/{variant}]`
 | `output/music/note` | number | MIDI note number |
 | `output/display/text` | string | E-ink display text |
 | `output/lcd/text` | string | Backlit LCD text |
+| `core/power` | string | Power source and level, e.g. `PWR USB 100%` or `BAT 87%` |
 
 #### LCD text priority
 
-When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/text` on every signal update using physical-first priority:
+When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/text` on every signal update. Each non-core module in the chain contributes a segment in **decreasing priority** (highest first):
 
-1. **Motion** — `MOTION` while `sensor/motion` is active
+1. **Motion** — `MOTION` while `sensor/motion` is active (broadcast to all LCDs; overrides spread)
 2. **Temperature sensor** — `16°C`
 3. **Weather** — `18°C 40%`
 4. **GitHub** — `14/hr`
 5. **Time** — `14:32`
-6. **Dial / Slider** — dial preferred, e.g. `65%`
+6. **Dial / Slider** — e.g. `65%`
 7. **Place** — place label, e.g. `London`
+8. **Calm modifier** — `CALM`
+9. **Random modifier** — `RND`
+10. **Button** — `BTN`
+11. **Light output** — brightness as `45%`
 
-All available segments are concatenated into one message. LCD content is independent of the active behaviour recipe.
+LCD content is independent of the active behaviour recipe.
+
+#### Core-only LCD chains
+
+When the chain contains only **Core + LCD** (no other signal modules), all LCDs show power status: `PWR USB 100%` when USB-powered, or `BAT 87%` on battery. State is exposed as `powerSource` (`usb` | `battery`) and `batteryPercent` (0–100) on `FoundryOutputState`. The Core publishes `core/power` with the same formatted string whenever power state changes or the chain rebinds.
 
 #### Multiple LCD cubes
 
-When a chain has **one** `output/lcd`, all segments are concatenated on that module (e.g. `16°C 18°C 40% 14:32`). The simulator word-wraps medium-length text and horizontally scrolls overflow.
+When a chain has **one** `output/lcd`, all segments are concatenated on that module (e.g. `16°C 18°C 40% 14:32 London`). The simulator word-wraps medium-length text and horizontally scrolls overflow.
 
 When a chain has **two or more** LCDs, segments are spread left-to-right — one segment per LCD when there are enough modules; when there are more segments than LCDs, segments are grouped into buckets and concatenated per LCD. Extra LCDs show `--`.
 

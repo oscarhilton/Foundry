@@ -58,6 +58,8 @@ export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
       lcdTexts: {},
       sensorTemp: null,
       timeHour: null,
+      powerSource: "usb",
+      batteryPercent: 100,
     },
     animTime,
     recipeActive: false,

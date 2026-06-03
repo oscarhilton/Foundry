@@ -1,3 +1,4 @@
+import { formatPowerBattery } from "@foundry/runtime";
 import { useSimulatorStore } from "../store";
 
 function formatValue(value: unknown): string {
@@ -12,10 +13,16 @@ export function CoreDebugPanel() {
   const chain = useSimulatorStore((s) => s.chain);
   const outputState = useSimulatorStore((s) => s.outputState);
   const signalLog = useSimulatorStore((s) => s.signalLog);
+  const setPowerSource = useSimulatorStore((s) => s.setPowerSource);
+  const setBatteryPercent = useSimulatorStore((s) => s.setBatteryPercent);
 
   if (!showCoreDebug) return null;
 
   const discovered = snapshot?.discovered ?? [];
+  const powerLabel = formatPowerBattery(
+    outputState.powerSource,
+    outputState.batteryPercent,
+  );
 
   return (
     <>
@@ -46,7 +53,7 @@ export function CoreDebugPanel() {
             <h3 className="text-xs font-medium uppercase tracking-wider text-foundry-muted mb-2">
               Power bus
             </h3>
-            <div className="flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-3 text-sm flex-wrap">
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   outputState.powered
@@ -56,10 +63,69 @@ export function CoreDebugPanel() {
               >
                 {outputState.powered ? "POWERED" : "UNPOWERED"}
               </span>
+              <span className="font-mono text-xs px-2 py-0.5 rounded border border-foundry-border bg-gray-50">
+                {powerLabel}
+              </span>
               <span className="text-foundry-muted">
-                Core ×{outputState.coreCount} · {chain.length} cubes · USB · WiFi
+                Core ×{outputState.coreCount} · {chain.length} cubes · WiFi
               </span>
             </div>
+            {outputState.powered && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-foundry-muted w-14">Source</span>
+                  <div className="flex rounded-lg border border-foundry-border overflow-hidden text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setPowerSource("usb")}
+                      className={`px-3 py-1.5 transition-colors ${
+                        outputState.powerSource === "usb"
+                          ? "bg-[#1D3557] text-white"
+                          : "bg-white hover:bg-gray-50"
+                      }`}
+                    >
+                      USB
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPowerSource("battery")}
+                      className={`px-3 py-1.5 transition-colors border-l border-foundry-border ${
+                        outputState.powerSource === "battery"
+                          ? "bg-[#1D3557] text-white"
+                          : "bg-white hover:bg-gray-50"
+                      }`}
+                    >
+                      Battery
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="battery-percent"
+                    className="text-xs text-foundry-muted w-14 shrink-0"
+                  >
+                    Level
+                  </label>
+                  <input
+                    id="battery-percent"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={outputState.batteryPercent}
+                    onChange={(e) => setBatteryPercent(Number(e.target.value))}
+                    className="flex-1 accent-[#1D3557]"
+                  />
+                  <span className="text-xs font-mono w-10 text-right tabular-nums">
+                    {outputState.batteryPercent}%
+                  </span>
+                </div>
+                <p className="text-[10px] text-foundry-muted">
+                  Publishes <code className="font-mono">core/power</code> · Core
+                  + LCD chains mirror this on the LCD
+                </p>
+              </div>
+            )}
           </section>
 
           <section>

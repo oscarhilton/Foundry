@@ -70,6 +70,9 @@ export interface SimulatorState {
   reorderChain: (fromIndex: number, toIndex: number) => void;
   setDialPosition: (value: number) => void;
   setSliderPosition: (value: number) => void;
+  setPowerSource: (source: "usb" | "battery") => void;
+  setBatteryPercent: (percent: number) => void;
+  togglePowerSource: () => void;
   triggerMotion: () => void;
   triggerButton: () => void;
   toggleAdvanced: () => void;
@@ -108,6 +111,8 @@ const defaultOutputState = (): FoundryOutputState => ({
   lcdTexts: {},
   sensorTemp: null,
   timeHour: null,
+  powerSource: "usb",
+  batteryPercent: 100,
 });
 
 export const useSimulatorStore = create<SimulatorState>((set, get) => ({
@@ -218,6 +223,29 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       outputState: eng.getOutputState(),
       coreDebugSnapshot: eng.getCoreDebugSnapshot(),
     });
+  },
+
+  setPowerSource: (source) => {
+    getEngine().setPowerSource(source);
+    const eng = getEngine();
+    set({
+      outputState: eng.getOutputState(),
+      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
+    });
+  },
+
+  setBatteryPercent: (percent) => {
+    getEngine().setBatteryPercent(percent);
+    const eng = getEngine();
+    set({
+      outputState: eng.getOutputState(),
+      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
+    });
+  },
+
+  togglePowerSource: () => {
+    const current = get().outputState.powerSource;
+    get().setPowerSource(current === "usb" ? "battery" : "usb");
   },
 
   triggerMotion: () => {

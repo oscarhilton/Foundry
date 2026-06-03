@@ -184,6 +184,12 @@ export function hasLcdOutput(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "output/lcd");
 }
 
+export function hasLcdSignalModules(chain: ParsedChain): boolean {
+  return chain.cubes.some(
+    (c) => c.definition.role !== "core" && c.definition.id !== "output/lcd",
+  );
+}
+
 export function hasButtonControl(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "control/button");
 }
