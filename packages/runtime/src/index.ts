@@ -28,6 +28,7 @@ import {
   weatherToBrightness,
   type SignalMessage,
 } from "./signal-router.js";
+import { perlin1D, perlin2D, perlinNormalized1D } from "./perlin.js";
 
 export interface FoundryEngineOptions {
   onSignal?: (message: SignalMessage) => void;
@@ -60,6 +61,8 @@ export interface FoundryOutputState {
   lcdTexts: Record<string, string>;
   sensorTemp: number | null;
   timeHour: number | null;
+  modifierRandom: number | null;
+  modifierCalmNoise: number | null;
   powerSource: "usb" | "battery";
   batteryPercent: number;
 }
@@ -97,6 +100,7 @@ export class FoundryEngine {
   private smoothedRain = 0.3;
   private lastMotion = false;
   private chimeCount = 0;
+  private noiseTime = 0;
   private outputState: FoundryOutputState;
   private timeTimer?: ReturnType<typeof setInterval>;
   private tempTimer?: ReturnType<typeof setInterval>;
@@ -135,6 +139,8 @@ export class FoundryEngine {
       lcdTexts: {},
       sensorTemp: null,
       timeHour: null,
+      modifierRandom: null,
+      modifierCalmNoise: null,
       powerSource: "usb",
       batteryPercent: 100,
     };
@@ -443,8 +449,37 @@ export class FoundryEngine {
 
   private applyRandom(value: number): number {
     if (!this.context?.useRandom) return value;
-    const jitter = (Math.random() - 0.5) * 0.15;
+    const jitter = perlin1D(this.noiseTime * 2.5) * 0.15;
     return Math.max(0, Math.min(1, value + jitter));
+  }
+
+  private syncModifierNoise(): void {
+    if (!this.parsed?.powered || !this.context) {
+      this.outputState.modifierRandom = null;
+      this.outputState.modifierCalmNoise = null;
+      return;
+    }
+
+    this.noiseTime += 0.016;
+
+    const { useRandom, useCalm } = this.context;
+
+    if (useRandom) {
+      const normalized = perlinNormalized1D(this.noiseTime * 2.5);
+      this.outputState.modifierRandom = normalized;
+      const source =
+        this.context.randomInstanceId ?? this.context.outputInstanceId ?? "runtime";
+      this.router.publish("modifier/random", normalized, source);
+    } else {
+      this.outputState.modifierRandom = null;
+    }
+
+    if (useCalm) {
+      this.outputState.modifierCalmNoise =
+        perlin1D(this.noiseTime * 0.35) * 0.5 + 0.5;
+    } else {
+      this.outputState.modifierCalmNoise = null;
+    }
   }
 
   private recalculateOutputs(): void {
@@ -504,6 +539,7 @@ export class FoundryEngine {
         break;
     }
 
+    this.syncModifierNoise();
     this.syncLcdFromChain();
   }
 
@@ -583,6 +619,8 @@ export class FoundryEngine {
     this.outputState.lcdText = null;
     this.outputState.lcdTexts = {};
     this.outputState.chimeTriggered = false;
+    this.outputState.modifierRandom = null;
+    this.outputState.modifierCalmNoise = null;
   }
 
   private setLightBrightness(value: number): void {
@@ -646,5 +684,8 @@ export {
   formatPowerBattery,
   resolvePlaceProfile,
   hourFractionInTimezone,
+  perlin1D,
+  perlin2D,
+  perlinNormalized1D,
 };
 export type { SignalMessage, ChainCubeInput, ParsedChain, RecipeContext, PlaceProfile };

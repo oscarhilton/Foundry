@@ -164,6 +164,8 @@ const defaultOutputState = (): FoundryOutputState => ({
   lcdTexts: {},
   sensorTemp: null,
   timeHour: null,
+  modifierRandom: null,
+  modifierCalmNoise: null,
   powerSource: "usb",
   batteryPercent: 100,
 });

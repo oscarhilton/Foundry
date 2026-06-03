@@ -41,6 +41,8 @@ const SHELF_OUTPUT_STATE: FoundryOutputState = {
   lcdTexts: {},
   sensorTemp: null,
   timeHour: null,
+  modifierRandom: null,
+  modifierCalmNoise: null,
   powerSource: "usb",
   batteryPercent: 100,
 };

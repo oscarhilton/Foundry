@@ -164,6 +164,48 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("uses Perlin noise for random modifier and publishes modifier/random", () => {
+    const signals: SignalMessage[] = [];
+    const randomEngine = new FoundryEngine({
+      onSignal: (msg) => signals.push({ ...msg }),
+    });
+    randomEngine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "modifier/random",
+        "output/light",
+      ),
+    );
+    randomEngine.start();
+    randomEngine.mockAdapters.setWeather({ temp: 20, rain: 0.1 });
+
+    const state1 = randomEngine.getOutputState();
+    expect(state1.modifierRandom).not.toBeNull();
+    expect(signals.some((s) => s.topic === "modifier/random")).toBe(true);
+
+    const b1 = state1.lightBrightness;
+    randomEngine.mockAdapters.setWeather({ temp: 20, rain: 0.11 });
+    const b2 = randomEngine.getOutputState().lightBrightness;
+    expect(Math.abs(b1 - b2)).toBeLessThan(0.2);
+
+    randomEngine.destroy();
+  });
+
+  it("exposes calm Perlin noise while keeping smoothed rain path", () => {
+    engine.setChain(
+      withCore("identity/london", "identity/weather", "modifier/calm", "output/light"),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.8 });
+
+    const state = engine.getOutputState();
+    expect(state.modifierCalmNoise).not.toBeNull();
+    expect(state.lightBrightness).toBeGreaterThan(0.05);
+
+    engine.destroy();
+  });
+
   it("stays unpowered without Core", () => {
     engine.setChain(
       makeChain("identity/london", "identity/weather", "output/light"),

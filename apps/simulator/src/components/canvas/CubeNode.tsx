@@ -295,10 +295,22 @@ function CubeNodeInner({
       return <TimeVisual hour={outputState.timeHour} animTime={animTime} />;
     }
     if (id === "modifier/random") {
-      return <RandomVisual animTime={animTime} active={recipeActive && powered} />;
+      return (
+        <RandomVisual
+          animTime={animTime}
+          active={recipeActive && powered}
+          noiseValue={outputState.modifierRandom}
+        />
+      );
     }
     if (id === "modifier/calm") {
-      return <CalmVisual animTime={animTime} active={recipeActive && powered} />;
+      return (
+        <CalmVisual
+          animTime={animTime}
+          active={recipeActive && powered}
+          noiseValue={outputState.modifierCalmNoise}
+        />
+      );
     }
     if (id === "source/github") {
       return (

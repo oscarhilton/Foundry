@@ -154,6 +154,7 @@ export interface RecipeContext {
   lightInstanceId?: string;
   musicInstanceId?: string;
   chimeInstanceId?: string;
+  randomInstanceId?: string;
 }
 
 export function buildRecipeContext(chain: ParsedChain): RecipeContext | null {
@@ -174,5 +175,6 @@ export function buildRecipeContext(chain: ParsedChain): RecipeContext | null {
     lightInstanceId: getPrimaryOutput(chain, "output/light")?.instanceId,
     musicInstanceId: getPrimaryAudioOutput(chain, "output/music")?.instanceId,
     chimeInstanceId: getPrimaryAudioOutput(chain, "output/chime")?.instanceId,
+    randomInstanceId: getPrimaryOutput(chain, "modifier/random")?.instanceId,
   };
 }
