@@ -89,25 +89,25 @@ function getStatusLed(
     case "output/light":
       return {
         color: COLORS.ledYellow,
-        active: isPrimary.light && outputState.lightBrightness > 0.1,
+        active: Boolean(isPrimary.light && outputState.lightBrightness > 0.1),
         pulse: outputState.lightBrightness,
       };
     case "output/chime":
       return {
         color: COLORS.ledPurple,
-        active: isPrimary.chime && outputState.chimeTriggered,
+        active: Boolean(isPrimary.chime && outputState.chimeTriggered),
         pulse,
       };
     case "output/music":
       return {
         color: COLORS.ledBlue,
-        active: isPrimary.music && outputState.musicNote !== null,
+        active: Boolean(isPrimary.music && outputState.musicNote !== null),
         pulse,
       };
     case "control/button":
       return {
         color: COLORS.ledRed,
-        active: isPrimary.button && outputState.buttonPressed,
+        active: Boolean(isPrimary.button && outputState.buttonPressed),
         pulse: 1,
       };
     case "sensor/motion":

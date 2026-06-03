@@ -1,8 +1,8 @@
 import { useRef } from "react";
-import { Circle, Group, Line } from "react-konva";
+import { Circle, Line } from "react-konva";
 import { COLORS } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
-import { decayPulse, lerp, warmGlowColor } from "../animations";
+import { lerp, warmGlowColor } from "../animations";
 
 interface LightVisualProps {
   brightness: number;

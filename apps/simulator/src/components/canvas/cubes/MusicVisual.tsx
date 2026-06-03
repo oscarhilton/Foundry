@@ -1,6 +1,5 @@
 import { Rect } from "react-konva";
 import { COLORS } from "../design-tokens";
-import { CUBE_SIZE } from "../layout";
 import { decayPulse } from "../animations";
 
 interface MusicVisualProps {

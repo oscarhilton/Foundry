@@ -1,5 +1,4 @@
 import { Rect } from "react-konva";
-import { CUBE_SIZE } from "../layout";
 
 interface GitHubVisualProps {
   activity: number | null;
