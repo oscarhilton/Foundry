@@ -15,7 +15,7 @@ import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
 import {
   formatPowerBattery,
-  resolveLcdTextForWindow,
+  resolveLcdTextsForChain,
 } from "./output-formatters.js";
 import {
   defaultLiveWeatherCoords,
@@ -601,18 +601,7 @@ export class FoundryEngine {
         texts[lcd.instanceId] = "MOTION";
       }
     } else {
-      let windowStart = 0;
-      for (const lcd of lcdOutputs) {
-        const lcdIndex = chain.cubes.findIndex(
-          (c) => c.instanceId === lcd.instanceId,
-        );
-        const windowCubes = chain.cubes.slice(windowStart, lcdIndex);
-        texts[lcd.instanceId] = resolveLcdTextForWindow(
-          windowCubes,
-          this.formatState(),
-        );
-        windowStart = lcdIndex + 1;
-      }
+      Object.assign(texts, resolveLcdTextsForChain(chain, this.formatState()));
     }
 
     this.outputState.lcdTexts = texts;

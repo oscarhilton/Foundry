@@ -448,7 +448,7 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("concatenates temp and weather on first LCD with empty second window", () => {
+  it("splits temp and weather across consecutive LCDs", () => {
     engine.setChain([
       { instanceId: "temp", definitionId: "sensor/temperature" },
       { instanceId: "weather", definitionId: "identity/weather" },
@@ -460,13 +460,13 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const { lcdTexts } = engine.getOutputState();
-    expect(lcdTexts.lcd1).toMatch(/^\d+°C 18°C 40%$/);
-    expect(lcdTexts.lcd2).toBe("--");
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
+    expect(lcdTexts.lcd2).toBe("18°C 40%");
 
     engine.destroy();
   });
 
-  it("concatenates all segments on first LCD when modules precede only one LCD", () => {
+  it("splits upstream segments one per LCD when modules precede an LCD cluster", () => {
     engine.setChain([
       { instanceId: "temp", definitionId: "sensor/temperature" },
       { instanceId: "weather", definitionId: "identity/weather" },
@@ -480,9 +480,9 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const { lcdTexts } = engine.getOutputState();
-    expect(lcdTexts.lcd1).toMatch(/^\d+°C 18°C 40% \d{2}:\d{2}$/);
-    expect(lcdTexts.lcd2).toBe("--");
-    expect(lcdTexts.lcd3).toBe("--");
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
+    expect(lcdTexts.lcd2).toBe("18°C 40%");
+    expect(lcdTexts.lcd3).toMatch(/^\d{2}:\d{2}$/);
 
     engine.destroy();
   });
@@ -523,6 +523,67 @@ describe("FoundryEngine", () => {
     expect(lcdTexts.lcd1).toMatch(/18°C 40%/);
     expect(lcdTexts.lcd2).toMatch(/\d{2}:\d{2}/);
     expect(lcdTexts.lcd2).toMatch(/%/);
+
+    engine.destroy();
+  });
+
+  it("shares weather dial and light across LCD cluster with random backfill", () => {
+    engine.setChain([
+      { instanceId: "london", definitionId: "identity/london" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "dial", definitionId: "control/dial" },
+      { instanceId: "light", definitionId: "output/light" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "lcd3", definitionId: "output/lcd" },
+      { instanceId: "lcd4", definitionId: "output/lcd" },
+      { instanceId: "random", definitionId: "modifier/random" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 21, rain: 0.68 });
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toBe("12°C 45%");
+    expect(lcdTexts.lcd2).toBe("50%");
+    expect(lcdTexts.lcd3).toMatch(/^\d+%$/);
+    expect(lcdTexts.lcd4).toMatch(/^RND \d+%$/);
+
+    engine.destroy();
+  });
+
+  it("backfills empty LCD slots from downstream modules", () => {
+    engine.setChain([
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "random", definitionId: "modifier/random" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toMatch(/^RND \d+%$/);
+    expect(lcdTexts.lcd2).toBe("--");
+
+    engine.destroy();
+  });
+
+  it("drops extra suffix segments when fewer empty LCD slots remain", () => {
+    engine.setChain([
+      { instanceId: "london", definitionId: "identity/london" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "random", definitionId: "modifier/random" },
+      { instanceId: "calm", definitionId: "modifier/calm" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toBe("12°C 45%");
+    expect(lcdTexts.lcd2).toMatch(/^CALM \d+%$/);
 
     engine.destroy();
   });

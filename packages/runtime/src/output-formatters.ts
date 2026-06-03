@@ -1,4 +1,4 @@
-import type { ParsedChainSlot } from "./chain-parser.js";
+import type { ParsedChain, ParsedChainSlot } from "./chain-parser.js";
 import type { PlaceProfile } from "./place-profile.js";
 import {
   hourFractionInTimezone,
@@ -220,4 +220,95 @@ export function distributeSegmentsToLcds(
     result.push(chunk.length > 0 ? concatLcdSegments(chunk) : "--");
   }
   return result;
+}
+
+interface LcdWindow {
+  instanceId: string;
+  chainIndex: number;
+  segments: string[];
+}
+
+function isSignalCube(cube: ParsedChainSlot): boolean {
+  return cube.definition.role !== "core" && cube.definition.id !== "output/lcd";
+}
+
+function segmentsForWindowCubes(
+  cubes: ParsedChainSlot[],
+  fmt: OutputFormatState,
+): string[] {
+  if (!cubes.some(isSignalCube)) return [];
+  return resolveLcdSegments(buildLcdSegmentContext(cubes, fmt));
+}
+
+function computeLcdWindows(
+  chain: ParsedChain,
+  fmt: OutputFormatState,
+): LcdWindow[] {
+  const lcdOutputs = chain.cubes.filter((c) => c.definition.id === "output/lcd");
+  let windowStart = 0;
+  const windows: LcdWindow[] = [];
+
+  for (const lcd of lcdOutputs) {
+    const chainIndex = chain.cubes.findIndex(
+      (c) => c.instanceId === lcd.instanceId,
+    );
+    const windowCubes = chain.cubes.slice(windowStart, chainIndex);
+    windows.push({
+      instanceId: lcd.instanceId,
+      chainIndex,
+      segments: segmentsForWindowCubes(windowCubes, fmt),
+    });
+    windowStart = chainIndex + 1;
+  }
+
+  return windows;
+}
+
+function suffixSegmentsForCluster(
+  chain: ParsedChain,
+  lastChainIndex: number,
+  fmt: OutputFormatState,
+): string[] {
+  const suffixCubes = chain.cubes
+    .slice(lastChainIndex + 1)
+    .filter(isSignalCube);
+  return segmentsForWindowCubes(suffixCubes, fmt);
+}
+
+export function resolveLcdTextsForChain(
+  chain: ParsedChain,
+  fmt: OutputFormatState,
+): Record<string, string> {
+  const windows = computeLcdWindows(chain, fmt);
+  const texts: Record<string, string> = {};
+
+  let i = 0;
+  while (i < windows.length) {
+    let j = i + 1;
+    while (j < windows.length && windows[j]!.segments.length === 0) {
+      j++;
+    }
+
+    const clusterSize = j - i;
+    const upstreamSegments = windows[i]!.segments;
+    const distributed = distributeSegmentsToLcds(upstreamSegments, clusterSize);
+    const backfill = suffixSegmentsForCluster(
+      chain,
+      windows[j - 1]!.chainIndex,
+      fmt,
+    );
+
+    let backfillIdx = 0;
+    for (let k = 0; k < clusterSize; k++) {
+      let text = distributed[k] ?? "--";
+      if (text === "--" && backfillIdx < backfill.length) {
+        text = backfill[backfillIdx++]!;
+      }
+      texts[windows[i + k]!.instanceId] = text;
+    }
+
+    i = j;
+  }
+
+  return texts;
 }

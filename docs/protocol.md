@@ -104,9 +104,15 @@ When the chain contains only **Core + LCD** (no other signal modules), all LCDs 
 
 When a chain has **one** `output/lcd`, all segments from modules before that LCD are concatenated on it (e.g. `16°C 18°C 40% 14:32 London`). The simulator word-wraps medium-length text and horizontally scrolls overflow.
 
-When a chain has **two or more** LCDs, each LCD shows only the modules in its **positional window** — the cubes after the previous LCD (or chain start) up to before this LCD. Core is never in a window. To put different data on different LCDs, **interleave** modules and LCDs in chain order.
+When a chain has **two or more** LCDs, the Core resolves text using the **left-hand rule** (modules only affect LCDs to their right) plus **positional windows** and **load sharing**:
 
-Example: `Tokyo, Time, LCD, London, Weather, LCD` → LCD1 = `Tokyo 07:03`, LCD2 = `12°C 45%` (London weather from place profile). An LCD with no modules in its window shows `--`.
+1. **Positional windows** — each LCD initially collects segments from modules after the previous LCD (or chain start) up to before this LCD. Core is never in a window.
+2. **Load sharing** — when consecutive LCDs share one upstream window (later LCDs in the run have empty windows), segments are distributed across that run — one segment per LCD when possible, rather than concatenating everything on the first screen.
+3. **Backfill** — after load sharing, any `--` slots in the run are filled left-to-right from modules **after** the run (e.g. Random trailing an LCD cluster). Extra suffix segments are dropped when there are fewer empty slots than segments.
+
+**Interleaved** chains keep strict windows: `Tokyo, Time, LCD, London, Weather, LCD` → LCD1 = `Tokyo 07:03`, LCD2 = `12°C 45%` (London weather from place profile).
+
+**Clustered** LCDs share upstream load: `Weather, Dial, Light, LCD, LCD, LCD, LCD, Random` → LCD1 = `12°C 45%`, LCD2 = `50%`, LCD3 = `72%`, LCD4 = `RND 68%`.
 
 Each LCD receives its own `output/lcd/text` publish with `source` set to that LCD's instance id. State is exposed as `lcdTexts: Record<instanceId, string>`; `lcdText` mirrors the first LCD for compatibility.
 
@@ -154,7 +160,7 @@ Place cubes (`identity/london`, `identity/tokyo`) carry `lat`, `lon`, and `timez
 
 Swapping London for Tokyo changes weather character and local time immediately on chain rebind.
 
-When a **Time cube** is also in the chain with LCD output, each place in that LCD's window contributes a **local time segment** (e.g. `London 14:30`, `Tokyo 22:30`), computed from that place's timezone. Without a Time cube in the window, place cubes contribute their city name only. A single LCD concatenates all segments from its window; multiple LCDs each reflect only the modules since the previous LCD.
+When a **Time cube** is also in the chain with LCD output, each place in that LCD's window contributes a **local time segment** (e.g. `London 14:30`, `Tokyo 22:30`), computed from that place's timezone. Without a Time cube in the window, place cubes contribute their city name only. A single LCD concatenates all segments from its window; multiple LCDs use positional windows with load sharing across consecutive LCD runs (see **Multiple LCD cubes** above).
 
 ## Behaviour Recipes
 
