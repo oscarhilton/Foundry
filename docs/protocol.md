@@ -90,6 +90,14 @@ When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/t
 
 LCD content is independent of the active behaviour recipe — composite chains (e.g. Weather + Dial + Light + LCD) still update the LCD from the highest-priority available source.
 
+#### Multiple LCD cubes
+
+When a chain has **one** `output/lcd`, segments are combined on a single line (e.g. `16°C 14:32`).
+
+When a chain has **two or more** LCDs, segments are assigned left-to-right in priority order — one segment per LCD. Extra LCDs show `--`. Each LCD receives its own `output/lcd/text` publish with `source` set to that LCD's instance id. State is also exposed as `lcdTexts: Record<instanceId, string>`; `lcdText` mirrors the first LCD for compatibility.
+
+While motion is active, **all** LCDs broadcast `MOTION`; when motion clears, the split layout is restored.
+
 ### Message shape
 
 ```typescript

@@ -310,6 +310,86 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("splits temp and weather across two LCDs", () => {
+    engine.setChain([
+      { instanceId: "temp", definitionId: "sensor/temperature" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
+    expect(lcdTexts.lcd2).toBe("18°C 40%");
+
+    engine.destroy();
+  });
+
+  it("splits temp, weather, and time across three LCDs", () => {
+    engine.setChain([
+      { instanceId: "temp", definitionId: "sensor/temperature" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "time", definitionId: "source/time" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "lcd3", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
+    expect(lcdTexts.lcd2).toBe("18°C 40%");
+    expect(lcdTexts.lcd3).toMatch(/^\d{2}:\d{2}$/);
+
+    engine.destroy();
+  });
+
+  it("shows placeholder on extra LCDs when segments run out", () => {
+    engine.setChain([
+      { instanceId: "temp", definitionId: "sensor/temperature" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
+    expect(lcdTexts.lcd2).toBe("--");
+
+    engine.destroy();
+  });
+
+  it("broadcasts MOTION to all LCDs then restores split", () => {
+    engine.setChain([
+      { instanceId: "motion", definitionId: "sensor/motion" },
+      { instanceId: "temp", definitionId: "sensor/temperature" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    engine.mockAdapters.triggerMotion(true);
+    let { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toBe("MOTION");
+    expect(lcdTexts.lcd2).toBe("MOTION");
+
+    engine.mockAdapters.triggerMotion(false);
+    lcdTexts = engine.getOutputState().lcdTexts;
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
+    expect(lcdTexts.lcd2).toBe("18°C 40%");
+
+    engine.destroy();
+  });
+
   it("shows weather on display when display is in weather-dial-light chain", () => {
     engine.setChain(
       withCore(

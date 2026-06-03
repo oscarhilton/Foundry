@@ -37,7 +37,7 @@ export interface CubeVisualState {
   isPrimaryChime?: boolean;
   isPrimaryMusic?: boolean;
   isPrimaryDisplay?: boolean;
-  isPrimaryLcd?: boolean;
+  lcdText?: string | null;
   isPrimaryButton?: boolean;
   isPrimarySlider?: boolean;
 }
@@ -258,10 +258,10 @@ export function CubeNode({
         />
       );
     }
-    if (id === "output/lcd" && visualState.isPrimaryLcd) {
+    if (id === "output/lcd" && visualState.lcdText != null) {
       return (
         <LcdVisual
-          text={outputState.lcdText}
+          text={visualState.lcdText}
           animTime={animTime}
           lcdChangedAt={effects.lcdChangedAt}
         />

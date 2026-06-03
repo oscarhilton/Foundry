@@ -13,13 +13,13 @@ import type { RecipeContext } from "./recipes.js";
 import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
 import {
-  combineLine,
-  formatControlPercent,
+  combineSegmentsForSingleLcd,
   formatGithub,
   formatTemp,
   formatTime,
   formatWeather,
-  formatWeatherCompact,
+  resolveLcdSegments,
+  type LcdSegmentContext,
 } from "./output-formatters.js";
 import {
   SignalRouter,
@@ -55,6 +55,7 @@ export interface FoundryOutputState {
   musicVelocity: number | null;
   displayText: string | null;
   lcdText: string | null;
+  lcdTexts: Record<string, string>;
   sensorTemp: number | null;
   timeHour: number | null;
 }
@@ -126,6 +127,7 @@ export class FoundryEngine {
       musicVelocity: null,
       displayText: null,
       lcdText: null,
+      lcdTexts: {},
       sensorTemp: null,
       timeHour: null,
     };
@@ -464,47 +466,18 @@ export class FoundryEngine {
     return null;
   }
 
-  private resolveLcdText(): string | null {
-    if (!this.parsed) return null;
-
-    const chain = this.parsed;
-    const fmt = this.formatState();
-
-    if (hasMotionSensor(chain) && this.outputState.motionDetected) {
-      return "MOTION";
-    }
-
-    const hasTime = hasTimeSource(chain);
-    const timeStr = hasTime ? formatTime(fmt.timeHour) : null;
-    const hasDial = chain.cubes.some((c) => c.definition.id === "control/dial");
-    const hasSlider = chain.cubes.some((c) => c.definition.id === "control/slider");
-    const hasGithub = chain.cubes.some((c) => c.definition.id === "source/github");
-
-    if (hasTemperatureSensor(chain)) {
-      const primary = formatTemp(fmt.sensorTemp);
-      return timeStr ? combineLine(primary, timeStr) : primary;
-    }
-
-    if (hasWeatherSource(chain)) {
-      if (timeStr) {
-        return combineLine(formatWeatherCompact(fmt.weatherTemp), timeStr);
-      }
-      return formatWeather(fmt.weatherTemp, fmt.weatherRain);
-    }
-
-    if (hasGithub) {
-      const primary = formatGithub(fmt.githubActivity);
-      return timeStr ? combineLine(primary, timeStr) : primary;
-    }
-
-    if (hasTime) return formatTime(fmt.timeHour);
-
-    if (hasDial) return formatControlPercent(fmt.dialPosition);
-    if (hasSlider) return formatControlPercent(fmt.sliderPosition);
-
-    if (chain.place) return chain.place.definition.label;
-
-    return null;
+  private lcdSegmentContext(): LcdSegmentContext {
+    const chain = this.parsed!;
+    return {
+      fmt: this.formatState(),
+      hasTemperatureSensor: hasTemperatureSensor(chain),
+      hasWeatherSource: hasWeatherSource(chain),
+      hasGithub: chain.cubes.some((c) => c.definition.id === "source/github"),
+      hasTimeSource: hasTimeSource(chain),
+      hasDial: chain.cubes.some((c) => c.definition.id === "control/dial"),
+      hasSlider: chain.cubes.some((c) => c.definition.id === "control/slider"),
+      placeLabel: chain.place?.definition.label ?? null,
+    };
   }
 
   private syncDisplayFromChain(): void {
@@ -525,11 +498,34 @@ export class FoundryEngine {
       return;
     }
 
-    const text = this.resolveLcdText();
-    if (text !== null) {
-      this.setLcdText(text);
+    const chain = this.parsed;
+    const lcdOutputs = chain.cubes.filter((c) => c.definition.id === "output/lcd");
+    const ctx = this.lcdSegmentContext();
+    const texts: Record<string, string> = {};
+
+    if (hasMotionSensor(chain) && this.outputState.motionDetected) {
+      for (const lcd of lcdOutputs) {
+        texts[lcd.instanceId] = "MOTION";
+      }
+    } else if (lcdOutputs.length === 1) {
+      const combined = combineSegmentsForSingleLcd(ctx);
+      if (combined !== null) {
+        texts[lcdOutputs[0].instanceId] = combined;
+      }
     } else {
-      this.outputState.lcdText = null;
+      const segments = resolveLcdSegments(ctx);
+      lcdOutputs.forEach((lcd, index) => {
+        texts[lcd.instanceId] = segments[index] ?? "--";
+      });
+    }
+
+    this.outputState.lcdTexts = texts;
+    this.outputState.lcdText = lcdOutputs[0]
+      ? (texts[lcdOutputs[0].instanceId] ?? null)
+      : null;
+
+    for (const [instanceId, text] of Object.entries(texts)) {
+      this.router.publish("output/lcd/text", text, instanceId);
     }
   }
 
@@ -539,6 +535,7 @@ export class FoundryEngine {
     this.outputState.musicVelocity = null;
     this.outputState.displayText = null;
     this.outputState.lcdText = null;
+    this.outputState.lcdTexts = {};
     this.outputState.chimeTriggered = false;
   }
 
@@ -566,11 +563,6 @@ export class FoundryEngine {
   private setDisplayText(text: string): void {
     this.outputState.displayText = text;
     this.router.publish("output/display/text", text, "runtime");
-  }
-
-  private setLcdText(text: string): void {
-    this.outputState.lcdText = text;
-    this.router.publish("output/lcd/text", text, "runtime");
   }
 
   private fireChime(): void {

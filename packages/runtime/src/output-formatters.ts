@@ -49,3 +49,60 @@ export function combineLine(
   const combined = `${primary} ${secondary}`;
   return combined.length <= maxLen ? combined : primary;
 }
+
+export interface LcdSegmentContext {
+  fmt: OutputFormatState;
+  hasTemperatureSensor: boolean;
+  hasWeatherSource: boolean;
+  hasGithub: boolean;
+  hasTimeSource: boolean;
+  hasDial: boolean;
+  hasSlider: boolean;
+  placeLabel: string | null;
+}
+
+export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
+  const { fmt } = ctx;
+  const segments: string[] = [];
+
+  if (ctx.hasTemperatureSensor) segments.push(formatTemp(fmt.sensorTemp));
+  if (ctx.hasWeatherSource) {
+    segments.push(formatWeather(fmt.weatherTemp, fmt.weatherRain));
+  }
+  if (ctx.hasGithub) segments.push(formatGithub(fmt.githubActivity));
+  if (ctx.hasTimeSource) segments.push(formatTime(fmt.timeHour));
+  if (ctx.hasDial) segments.push(formatControlPercent(fmt.dialPosition));
+  if (ctx.hasSlider) segments.push(formatControlPercent(fmt.sliderPosition));
+  if (ctx.placeLabel && segments.length === 0) segments.push(ctx.placeLabel);
+
+  return segments;
+}
+
+export function combineSegmentsForSingleLcd(ctx: LcdSegmentContext): string | null {
+  const { fmt } = ctx;
+  const timeStr = ctx.hasTimeSource ? formatTime(fmt.timeHour) : null;
+
+  if (ctx.hasTemperatureSensor) {
+    const primary = formatTemp(fmt.sensorTemp);
+    return timeStr ? combineLine(primary, timeStr) : primary;
+  }
+
+  if (ctx.hasWeatherSource) {
+    if (timeStr) {
+      return combineLine(formatWeatherCompact(fmt.weatherTemp), timeStr);
+    }
+    return formatWeather(fmt.weatherTemp, fmt.weatherRain);
+  }
+
+  if (ctx.hasGithub) {
+    const primary = formatGithub(fmt.githubActivity);
+    return timeStr ? combineLine(primary, timeStr) : primary;
+  }
+
+  if (ctx.hasTimeSource) return formatTime(fmt.timeHour);
+  if (ctx.hasDial) return formatControlPercent(fmt.dialPosition);
+  if (ctx.hasSlider) return formatControlPercent(fmt.sliderPosition);
+  if (ctx.placeLabel) return ctx.placeLabel;
+
+  return null;
+}

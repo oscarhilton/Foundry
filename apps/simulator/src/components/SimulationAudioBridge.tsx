@@ -15,7 +15,7 @@ export function SimulationAudioBridge() {
   const prevPowered = useRef(outputState.powered);
   const prevMotion = useRef(outputState.motionDetected);
   const prevDisplayText = useRef(outputState.displayText);
-  const prevLcdText = useRef(outputState.lcdText);
+  const prevLcdTexts = useRef(outputState.lcdTexts);
   const prevMusicNote = useRef<number | null>(null);
   const seenSignalIds = useRef(new Set<string>());
 
@@ -78,11 +78,12 @@ export function SimulationAudioBridge() {
   }, [outputState.displayText, markDisplayChange]);
 
   useEffect(() => {
-    if (outputState.lcdText !== prevLcdText.current) {
+    const serialized = JSON.stringify(outputState.lcdTexts);
+    if (serialized !== JSON.stringify(prevLcdTexts.current)) {
       markLcdChange();
     }
-    prevLcdText.current = outputState.lcdText;
-  }, [outputState.lcdText, markLcdChange]);
+    prevLcdTexts.current = outputState.lcdTexts;
+  }, [outputState.lcdTexts, markLcdChange]);
 
   useEffect(() => {
     const note = outputState.musicNote;
