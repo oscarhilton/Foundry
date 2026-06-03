@@ -32,6 +32,23 @@ function getEngine(): FoundryEngine {
   return engine;
 }
 
+let shareToastTimer: ReturnType<typeof setTimeout> | undefined;
+
+function syncRecipeTiming(
+  get: () => SimulatorState,
+  set: (partial: Partial<SimulatorState>) => void,
+  recipeName: string | null,
+) {
+  const prev = get().recipeActiveSince;
+  const hadRecipe = prev !== null;
+  const hasRecipe = recipeName !== null;
+  if (hasRecipe && !hadRecipe) {
+    set({ recipeActiveSince: Date.now() });
+  } else if (!hasRecipe && hadRecipe) {
+    set({ recipeActiveSince: null });
+  }
+}
+
 function syncEngine(get: () => SimulatorState, set: (partial: Partial<SimulatorState>) => void) {
   const e = getEngine();
   e.setChain(get().chain.map((c) => ({
@@ -46,6 +63,15 @@ function syncEngine(get: () => SimulatorState, set: (partial: Partial<SimulatorS
     warnings: state.warnings,
     coreDebugSnapshot: e.getCoreDebugSnapshot(),
   });
+  syncRecipeTiming(get, set, state.activeRecipeName);
+  if (state.activeRecipeName && get().onboarding.flowHintActive) {
+    set({ onboarding: { ...get().onboarding, flowHintActive: false } });
+  }
+}
+
+export interface OnboardingState {
+  flowHintActive: boolean;
+  hasUsedDial: boolean;
 }
 
 export interface SimulatorState {
@@ -54,14 +80,21 @@ export interface SimulatorState {
   outputState: FoundryOutputState;
   activeRecipeName: string | null;
   warnings: string[];
+  productMode: boolean;
   showAdvanced: boolean;
   showCoreDebug: boolean;
+  showAllPresets: boolean;
+  showExtendedCubes: boolean;
+  showValidationPanel: boolean;
   coreDebugSnapshot: CoreDebugSnapshot | null;
   useLiveWeather: boolean;
   selectedPresetId: string | null;
   layoutVersion: number;
   audioUnlocked: boolean;
   soundEnabled: boolean;
+  shareToast: string | null;
+  onboarding: OnboardingState;
+  recipeActiveSince: number | null;
 
   init: () => void;
   loadPreset: (presetId: string) => void;
@@ -75,16 +108,22 @@ export interface SimulatorState {
   togglePowerSource: () => void;
   triggerMotion: () => void;
   triggerButton: () => void;
+  toggleProductMode: () => void;
   toggleAdvanced: () => void;
   toggleCoreDebug: () => void;
   openCoreDebug: () => void;
   closeCoreDebug: () => void;
   toggleLiveWeather: () => void;
+  toggleAllPresets: () => void;
+  toggleExtendedCubes: () => void;
+  toggleValidationPanel: () => void;
+  dismissFlowHint: () => void;
   exportChain: () => string;
   importChain: (json: string) => void;
   tick: () => void;
   setAudioUnlocked: (unlocked: boolean) => void;
   toggleSound: () => void;
+  showShareToast: (message: string) => void;
 }
 
 const defaultOutputState = (): FoundryOutputState => ({
@@ -121,14 +160,23 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   outputState: defaultOutputState(),
   activeRecipeName: null,
   warnings: [],
+  productMode: typeof window !== "undefined"
+    ? !new URLSearchParams(window.location.search).has("builder")
+    : true,
   showAdvanced: false,
   showCoreDebug: false,
+  showAllPresets: false,
+  showExtendedCubes: false,
+  showValidationPanel: false,
   coreDebugSnapshot: null,
   useLiveWeather: false,
   selectedPresetId: null,
   layoutVersion: 0,
   audioUnlocked: false,
   soundEnabled: true,
+  shareToast: null,
+  onboarding: { flowHintActive: false, hasUsedDial: false },
+  recipeActiveSince: null,
 
   init: () => {
     const e = getEngine();
@@ -183,11 +231,19 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   },
 
   addCubeToChain: (definitionId, index) => {
+    const wasEmpty = get().chain.length === 0;
     const cube = { instanceId: nextId(), definitionId };
     const chain = [...get().chain];
     const insertAt = index ?? chain.length;
     chain.splice(insertAt, 0, cube);
-    set({ chain, selectedPresetId: null, layoutVersion: get().layoutVersion + 1 });
+    set({
+      chain,
+      selectedPresetId: null,
+      layoutVersion: get().layoutVersion + 1,
+      onboarding: wasEmpty
+        ? { ...get().onboarding, flowHintActive: true }
+        : get().onboarding,
+    });
     syncEngine(get, set);
   },
 
@@ -208,11 +264,17 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   },
 
   setDialPosition: (value) => {
+    const prev = get().outputState.dialPosition;
     getEngine().setDialPosition(value);
     const eng = getEngine();
+    const onboarding = get().onboarding;
     set({
       outputState: eng.getOutputState(),
       coreDebugSnapshot: eng.getCoreDebugSnapshot(),
+      onboarding:
+        !onboarding.hasUsedDial && Math.abs(value - prev) > 0.02
+          ? { ...onboarding, hasUsedDial: true }
+          : onboarding,
     });
   },
 
@@ -266,7 +328,33 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     });
   },
 
+  toggleProductMode: () => {
+    const next = !get().productMode;
+    set({
+      productMode: next,
+      showAdvanced: next ? false : get().showAdvanced,
+      showCoreDebug: next ? false : get().showCoreDebug,
+      showValidationPanel: next ? false : get().showValidationPanel,
+    });
+  },
+
   toggleAdvanced: () => set({ showAdvanced: !get().showAdvanced }),
+
+  toggleAllPresets: () => set({ showAllPresets: !get().showAllPresets }),
+
+  toggleExtendedCubes: () => set({ showExtendedCubes: !get().showExtendedCubes }),
+
+  toggleValidationPanel: () =>
+    set({ showValidationPanel: !get().showValidationPanel }),
+
+  dismissFlowHint: () =>
+    set({ onboarding: { ...get().onboarding, flowHintActive: false } }),
+
+  showShareToast: (message) => {
+    if (shareToastTimer) clearTimeout(shareToastTimer);
+    set({ shareToast: message });
+    shareToastTimer = setTimeout(() => set({ shareToast: null }), 3000);
+  },
 
   toggleCoreDebug: () => set({ showCoreDebug: !get().showCoreDebug }),
 
@@ -348,4 +436,4 @@ export function getDefinition(definitionId: string): CubeDefinition | undefined 
   return getCubeDefinition(definitionId);
 }
 
-export { PRESET_CHAINS, getCubesByCategory } from "@foundry/cube-defs";
+export { PRESET_CHAINS, STARTER_CUBE_IDS, HERO_PRESET_IDS, getCubesByCategory } from "@foundry/cube-defs";

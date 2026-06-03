@@ -1,23 +1,11 @@
 import { useRef, useState } from "react";
 import { Group, Text } from "react-konva";
 import type Konva from "konva";
-import { CUBE_DEFINITIONS } from "@foundry/cube-defs";
+import { CUBE_DEFINITIONS, STARTER_CUBE_IDS } from "@foundry/cube-defs";
+import { useSimulatorStore } from "../../store";
 import { getShelfSlotPosition, type StageLayout } from "./layout";
 import { CubeNode, type CubeVisualState } from "./CubeNode";
 import { tweenTo } from "./animations";
-
-const ROW1_IDS = new Set([
-  "identity/london",
-  "identity/tokyo",
-  "identity/weather",
-  "source/time",
-  "modifier/calm",
-  "modifier/random",
-  "source/github",
-  "control/dial",
-  "control/button",
-  "control/slider",
-]);
 
 interface CubeShelfProps {
   layout: StageLayout;
@@ -26,12 +14,21 @@ interface CubeShelfProps {
 }
 
 export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
+  const productMode = useSimulatorStore((s) => s.productMode);
+  const showExtendedCubes = useSimulatorStore((s) => s.showExtendedCubes);
+  const toggleExtendedCubes = useSimulatorStore((s) => s.toggleExtendedCubes);
+
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const homeRefs = useRef<Map<string, { x: number; y: number }>>(new Map());
   const nodeRefs = useRef<Map<string, Konva.Group>>(new Map());
 
-  const row1 = CUBE_DEFINITIONS.filter((c) => ROW1_IDS.has(c.id));
-  const row2 = CUBE_DEFINITIONS.filter((c) => !ROW1_IDS.has(c.id));
+  const showStarterOnly = productMode && !showExtendedCubes;
+  const visibleCubes = showStarterOnly
+    ? CUBE_DEFINITIONS.filter((c) => STARTER_CUBE_IDS.has(c.id))
+    : CUBE_DEFINITIONS;
+
+  const row1 = visibleCubes.filter((_, i) => i < Math.ceil(visibleCubes.length / 2));
+  const row2 = visibleCubes.filter((_, i) => i >= Math.ceil(visibleCubes.length / 2));
 
   const visualState: CubeVisualState = {
     outputState: {
@@ -108,16 +105,35 @@ export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
       );
     });
 
+  const hintText = showStarterOnly
+    ? "Starter kit — drag onto the chain · order matters, read left to right"
+    : "Cubes — drag onto the chain above";
+
   return (
     <Group>
       <Text
         x={40}
         y={layout.shelfRow1Y - 24}
-        text="Cubes — drag onto the chain above"
+        text={hintText}
         fontSize={11}
         fill="#9CA3AF"
         fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
       />
+      {productMode && (
+        <Group
+          onClick={toggleExtendedCubes}
+          onTap={toggleExtendedCubes}
+        >
+          <Text
+            x={layout.width - 140}
+            y={layout.shelfRow1Y - 24}
+            text={showExtendedCubes ? "Starter kit ↑" : "More cubes →"}
+            fontSize={11}
+            fill="#457B9D"
+            fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
+          />
+        </Group>
+      )}
       {renderRow(row1, 0)}
       {renderRow(row2, 1)}
     </Group>

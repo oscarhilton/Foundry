@@ -9,12 +9,14 @@ interface DialVisualProps {
   dialPosition: number;
   onDialChange: (value: number) => void;
   animTime: number;
+  hintPulse?: boolean;
 }
 
 export function DialVisual({
   dialPosition,
   onDialChange,
   animTime,
+  hintPulse = false,
 }: DialVisualProps) {
   const cx = CUBE_SIZE / 2;
   const cy = 50;
@@ -47,6 +49,8 @@ export function DialVisual({
     onDialChange(t);
   };
 
+  const hintGlow = hintPulse ? 0.35 + Math.sin(animTime * 0.006) * 0.25 : 0;
+
   return (
     <Group
       ref={groupRef}
@@ -57,6 +61,16 @@ export function DialVisual({
       }}
       onTouchMove={handleDrag}
     >
+      {hintPulse && (
+        <Circle
+          x={cx}
+          y={cy}
+          radius={knobR + 8}
+          stroke="#F4A261"
+          strokeWidth={2}
+          opacity={hintGlow}
+        />
+      )}
       <Text
         x={cx - 28}
         y={cy - 4}

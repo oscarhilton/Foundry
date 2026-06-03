@@ -14,6 +14,7 @@ export function SimulationAudioBridge() {
   const prevLayoutVersion = useRef(layoutVersion);
   const prevPowered = useRef(outputState.powered);
   const prevMotion = useRef(outputState.motionDetected);
+  const prevDialPosition = useRef(outputState.dialPosition);
   const prevDisplayText = useRef(outputState.displayText);
   const prevLcdTexts = useRef(outputState.lcdTexts);
   const prevMusicNote = useRef<number | null>(null);
@@ -61,6 +62,16 @@ export function SimulationAudioBridge() {
     }
     prevPowered.current = outputState.powered;
   }, [outputState.powered, audioUnlocked, soundEnabled, markPowered]);
+
+  useEffect(() => {
+    if (
+      Math.abs(outputState.dialPosition - prevDialPosition.current) > 0.015 &&
+      outputState.powered
+    ) {
+      if (audioUnlocked && soundEnabled) simulationAudio.playDialTick();
+    }
+    prevDialPosition.current = outputState.dialPosition;
+  }, [outputState.dialPosition, outputState.powered, audioUnlocked, soundEnabled]);
 
   useEffect(() => {
     if (outputState.motionDetected && !prevMotion.current) {

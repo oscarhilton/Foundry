@@ -23,9 +23,10 @@ export function LightVisual({ brightness, animTime }: LightVisualProps) {
   );
 
   const b = Math.max(0.02, Math.min(1, displayBrightness.current));
+  const breathe = b > 0.08 ? 1 + Math.sin(animTime * 0.0012) * 0.04 : 1;
   const flicker =
     b > 0.7 ? 1 + Math.sin(animTime * 0.012) * 0.04 * (b - 0.7) : 1;
-  const warmed = b * flicker;
+  const warmed = b * flicker * breathe;
 
   if (Math.abs(brightness - prevBrightness.current) > 0.01) {
     prevBrightness.current = brightness;

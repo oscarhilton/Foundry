@@ -40,6 +40,8 @@ export interface CubeVisualState {
   lcdText?: string | null;
   isPrimaryButton?: boolean;
   isPrimarySlider?: boolean;
+  isInactiveLight?: boolean;
+  dialHintPulse?: boolean;
 }
 
 interface CubeNodeProps {
@@ -159,7 +161,9 @@ export function CubeNode({
   const { outputState, animTime, recipeActive, powered, inChain } = visualState;
   const id = definition.id;
   const showPowered = !inChain || powered;
-  const targetOpacity = (inChain && !powered ? 0.35 : opacity) * (dragScale !== 1 ? 0.95 : 1);
+  const inactiveOutput = visualState.isInactiveLight === true;
+  const baseOpacity = inactiveOutput ? 0.42 : opacity;
+  const targetOpacity = (inChain && !powered ? 0.35 : baseOpacity) * (dragScale !== 1 ? 0.95 : 1);
 
   const displayOpacity = useRef(targetOpacity);
   const lastFrame = useRef(animTime);
@@ -188,10 +192,13 @@ export function CubeNode({
   const renderVisual = () => {
     if (inChain && !powered && id !== "core/core") return null;
 
-    if (id === "output/light" && visualState.isPrimaryLight) {
-      return (
-        <LightVisual brightness={outputState.lightBrightness} animTime={animTime} />
-      );
+    if (id === "output/light") {
+      if (visualState.isPrimaryLight) {
+        return (
+          <LightVisual brightness={outputState.lightBrightness} animTime={animTime} />
+        );
+      }
+      return <LightVisual brightness={0.03} animTime={animTime} />;
     }
     if (id === "control/dial" && visualState.isPrimaryDial && onDialChange) {
       return (
@@ -199,6 +206,7 @@ export function CubeNode({
           dialPosition={outputState.dialPosition}
           onDialChange={onDialChange}
           animTime={animTime}
+          hintPulse={visualState.dialHintPulse}
         />
       );
     }

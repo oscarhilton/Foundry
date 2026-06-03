@@ -6,6 +6,8 @@ import { getStageLayout, isNearChainStrip, findNearestChainSlot, CUBE_SIZE } fro
 import { ChainStrip } from "./ChainStrip";
 import { CubeShelf } from "./CubeShelf";
 
+const DEMO_MOTION_INTERVAL_MS = 60_000;
+
 export function FoundryStage() {
   const { width, height } = useStageSize();
   const layout = getStageLayout(width, height);
@@ -15,6 +17,15 @@ export function FoundryStage() {
   const tick = useSimulatorStore((s) => s.tick);
   const addCubeToChain = useSimulatorStore((s) => s.addCubeToChain);
   const chain = useSimulatorStore((s) => s.chain);
+  const productMode = useSimulatorStore((s) => s.productMode);
+  const outputState = useSimulatorStore((s) => s.outputState);
+  const triggerMotion = useSimulatorStore((s) => s.triggerMotion);
+
+  const hasMotion = chain.some((c) => c.definitionId === "sensor/motion");
+  const ambientTint =
+    outputState.powered && outputState.lightBrightness > 0.05
+      ? Math.min(0.08, outputState.lightBrightness * 0.06)
+      : 0;
 
   useEffect(() => {
     init();
@@ -35,6 +46,18 @@ export function FoundryStage() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  useEffect(() => {
+    if (!productMode || !hasMotion || !outputState.powered) return;
+
+    const pulse = () => {
+      triggerMotion();
+      setTimeout(() => triggerMotion(), 1500);
+    };
+
+    const id = setInterval(pulse, DEMO_MOTION_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [productMode, hasMotion, outputState.powered, triggerMotion]);
+
   const onDropToChain = useCallback(
     (definitionId: string, x: number, y: number) => {
       if (!isNearChainStrip(x + CUBE_SIZE / 2, y + CUBE_SIZE / 2, layout)) {
@@ -52,10 +75,12 @@ export function FoundryStage() {
     [layout, chain.length, addCubeToChain],
   );
 
+  const bgFill = ambientTint > 0 ? `rgb(${245 + ambientTint * 80}, ${245 + ambientTint * 40}, ${244})` : "#f5f5f4";
+
   return (
     <Stage width={width} height={height}>
       <Layer>
-        <Rect x={0} y={0} width={width} height={height} fill="#f5f5f4" />
+        <Rect x={0} y={0} width={width} height={height} fill={bgFill} />
         <ChainStrip layout={layout} animTime={animTime} />
         <CubeShelf layout={layout} animTime={animTime} onDropToChain={onDropToChain} />
       </Layer>

@@ -195,6 +195,24 @@ class SimulationAudio {
     osc.start(t);
     osc.stop(t + 0.3);
   }
+
+  playDialTick(): void {
+    const ctx = this.getCtx();
+    if (!ctx) return;
+    const t = this.now();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(900, t);
+    osc.frequency.exponentialRampToValueAtTime(650, t + 0.015);
+    gain.gain.setValueAtTime(0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.03);
+  }
 }
 
 export const simulationAudio = new SimulationAudio();

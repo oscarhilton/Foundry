@@ -76,6 +76,10 @@ Based on plan recommendations, the simulator ships with:
 | Decision | Rationale |
 |----------|-----------|
 | Default preset: **Weather Dial Light** | Hero demo; dial discoverable immediately |
+| **Product mode** by default | Hides Workshop, Mock/Live, Share; Core Debug via Core cube click |
+| Starter kit shelf (7 cubes) | Matches first hardware SKU; extended cubes in drawer |
+| Onboarding hints | Left-to-right label, flow arrows on first add, dial pulse after 10s |
+| Validation observer panel | Builder mode → Validate button; facilitator checklist |
 | Workshop hidden by default | Avoids signal-log overwhelm |
 | Mock weather default | No API key friction |
 | Palette copy: "Order matters — read left to right" | Reinforces sentence metaphor |

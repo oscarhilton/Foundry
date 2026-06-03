@@ -334,6 +334,24 @@ export const PRESET_CHAINS: PresetChain[] = [
   },
 ];
 
+/** Starter kit cubes for delight validation and first hardware SKU. */
+export const STARTER_CUBE_IDS = new Set([
+  "identity/london",
+  "identity/weather",
+  "control/dial",
+  "output/light",
+  "sensor/motion",
+  "output/chime",
+  "core/core",
+]);
+
+/** Hero presets shown by default in product mode. */
+export const HERO_PRESET_IDS = [
+  "weather-dial-light",
+  "london-weather-light",
+  "room-motion-chime",
+] as const;
+
 export function getCubeDefinition(id: string): CubeDefinition | undefined {
   return CUBE_DEFINITIONS.find((c) => c.id === id);
 }

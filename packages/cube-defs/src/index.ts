@@ -11,6 +11,8 @@ export type {
 export {
   CUBE_DEFINITIONS,
   PRESET_CHAINS,
+  STARTER_CUBE_IDS,
+  HERO_PRESET_IDS,
   getCubeDefinition,
   getCubesByCategory,
 } from "./cubes.js";

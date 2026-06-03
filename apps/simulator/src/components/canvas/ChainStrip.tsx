@@ -22,12 +22,17 @@ function firstId(chain: { instanceId: string; definitionId: string }[], defId: s
   return chain.find((c) => c.definitionId === defId)?.instanceId;
 }
 
+const DIAL_HINT_DELAY_MS = 10_000;
+
 export function ChainStrip({ layout, animTime }: ChainStripProps) {
   const chain = useSimulatorStore((s) => s.chain);
   const outputState = useSimulatorStore((s) => s.outputState);
   const activeRecipeName = useSimulatorStore((s) => s.activeRecipeName);
   const layoutVersion = useSimulatorStore((s) => s.layoutVersion);
   const showCoreDebug = useSimulatorStore((s) => s.showCoreDebug);
+  const productMode = useSimulatorStore((s) => s.productMode);
+  const onboarding = useSimulatorStore((s) => s.onboarding);
+  const recipeActiveSince = useSimulatorStore((s) => s.recipeActiveSince);
   const reorderChain = useSimulatorStore((s) => s.reorderChain);
   const removeCube = useSimulatorStore((s) => s.removeCube);
   const setDialPosition = useSimulatorStore((s) => s.setDialPosition);
@@ -35,18 +40,59 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
   const triggerMotion = useSimulatorStore((s) => s.triggerMotion);
   const triggerButton = useSimulatorStore((s) => s.triggerButton);
   const openCoreDebug = useSimulatorStore((s) => s.openCoreDebug);
+  const dismissFlowHint = useSimulatorStore((s) => s.dismissFlowHint);
 
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
   const groupRefs = useRef<Map<string, Konva.Group>>(new Map());
   const prevLayoutVersion = useRef(-1);
 
-  const recipeActive = activeRecipeName !== null;
-  const connectorOpacity = outputState.powered
-    ? 0.55 + Math.sin(animTime * 0.004) * 0.25
-    : 0.35;
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, []);
 
-  const visualBase: Omit<CubeVisualState, "isPrimaryLight" | "isPrimaryDial" | "isPrimaryChime" | "isPrimaryMusic" | "isPrimaryDisplay" | "isPrimaryButton" | "isPrimarySlider" | "lcdText"> = {
+  useEffect(() => {
+    if (!onboarding.flowHintActive) return;
+    const id = setTimeout(() => dismissFlowHint(), 20_000);
+    return () => clearTimeout(id);
+  }, [onboarding.flowHintActive, dismissFlowHint]);
+
+  const recipeActive = activeRecipeName !== null;
+  const flowPulse = onboarding.flowHintActive
+    ? 0.75 + Math.sin(animTime * 0.008) * 0.25
+    : 1;
+  const signalPulse = outputState.powered && recipeActive
+    ? 0.55 + Math.sin(animTime * 0.004 + 0.5) * 0.25
+    : 0.35;
+  const connectorOpacity = outputState.powered ? signalPulse * flowPulse : 0.35 * flowPulse;
+
+  const hasDial = chain.some((c) => c.definitionId === "control/dial");
+  const dialHintEligible =
+    productMode &&
+    hasDial &&
+    recipeActive &&
+    !onboarding.hasUsedDial &&
+    recipeActiveSince !== null &&
+    now - recipeActiveSince > DIAL_HINT_DELAY_MS;
+
+  const showOrderHint =
+    productMode && chain.length > 0 && !activeRecipeName;
+
+  const visualBase: Omit<
+    CubeVisualState,
+    | "isPrimaryLight"
+    | "isPrimaryDial"
+    | "isPrimaryChime"
+    | "isPrimaryMusic"
+    | "isPrimaryDisplay"
+    | "isPrimaryButton"
+    | "isPrimarySlider"
+    | "lcdText"
+    | "isInactiveLight"
+    | "dialHintPulse"
+  > = {
     outputState,
     animTime,
     recipeActive,
@@ -54,6 +100,8 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
     debugOpen: showCoreDebug,
     inChain: true,
   };
+
+  const primaryLightId = firstId(chain, "output/light");
 
   useEffect(() => {
     if (prevLayoutVersion.current === layoutVersion) return;
@@ -124,6 +172,18 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
         strokeWidth={1}
       />
 
+      {showOrderHint && (
+        <Text
+          x={layout.width / 2 - 95}
+          y={layout.chainY - 28}
+          text="Read left to right →"
+          fontSize={12}
+          fill="#457B9D"
+          fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
+          opacity={0.85 + Math.sin(animTime * 0.003) * 0.15}
+        />
+      )}
+
       {chain.length === 0 && (
         <Text
           x={hintX}
@@ -141,6 +201,8 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
 
         const pos = getChainSlotPosition(layout, index, chain.length);
         const isDragging = dragIndex === index;
+        const isPrimaryLight = cube.instanceId === primaryLightId;
+        const isPrimaryDial = cube.instanceId === firstId(chain, "control/dial");
 
         return (
           <Group key={cube.instanceId}>
@@ -152,11 +214,23 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
                   pos.x - 4,
                   pos.y + CUBE_SIZE / 2,
                 ]}
-                stroke={outputState.powered ? "#D1D5DB" : "#E5E7EB"}
-                fill={outputState.powered ? "#D1D5DB" : "#E5E7EB"}
-                strokeWidth={1.5}
-                pointerLength={6}
-                pointerWidth={6}
+                stroke={
+                  onboarding.flowHintActive
+                    ? "#457B9D"
+                    : outputState.powered
+                      ? "#D1D5DB"
+                      : "#E5E7EB"
+                }
+                fill={
+                  onboarding.flowHintActive
+                    ? "#457B9D"
+                    : outputState.powered
+                      ? "#D1D5DB"
+                      : "#E5E7EB"
+                }
+                strokeWidth={onboarding.flowHintActive ? 2 : 1.5}
+                pointerLength={onboarding.flowHintActive ? 8 : 6}
+                pointerWidth={onboarding.flowHintActive ? 8 : 6}
                 opacity={connectorOpacity}
               />
             )}
@@ -196,8 +270,10 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
                 dragScale={isDragging ? 1.04 : 1}
                 visualState={{
                   ...visualBase,
-                  isPrimaryLight: cube.instanceId === firstId(chain, "output/light"),
-                  isPrimaryDial: cube.instanceId === firstId(chain, "control/dial"),
+                  isPrimaryLight,
+                  isPrimaryDial,
+                  isInactiveLight: def.id === "output/light" && !isPrimaryLight,
+                  dialHintPulse: isPrimaryDial && dialHintEligible,
                   isPrimaryChime: cube.instanceId === firstId(chain, "output/chime"),
                   isPrimaryMusic: cube.instanceId === firstId(chain, "output/music"),
                   isPrimaryDisplay: cube.instanceId === firstId(chain, "output/display"),
