@@ -1,5 +1,9 @@
+import type { ParsedChainSlot } from "./chain-parser.js";
 import type { PlaceProfile } from "./place-profile.js";
-import { hourFractionInTimezone } from "./place-profile.js";
+import {
+  hourFractionInTimezone,
+  resolvePlaceProfilesFromSlots,
+} from "./place-profile.js";
 
 export interface OutputFormatState {
   timeHour: number | null;
@@ -106,8 +110,12 @@ export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
   if (ctx.hasDial) segments.push(formatControlPercent(fmt.dialPosition));
   if (ctx.hasSlider) segments.push(formatControlPercent(fmt.sliderPosition));
   if (!ctx.hasTimeSource) {
-    for (const place of ctx.places) {
-      segments.push(place.label);
+    const skipPlaceLabels =
+      ctx.hasWeatherSource && ctx.places.length === 1;
+    if (!skipPlaceLabels) {
+      for (const place of ctx.places) {
+        segments.push(place.label);
+      }
     }
   }
   if (ctx.hasCalm) segments.push("CALM");
@@ -120,6 +128,56 @@ export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
 
 export function concatLcdSegments(segments: string[]): string {
   return segments.join(" ");
+}
+
+export function buildLcdSegmentContext(
+  cubes: ParsedChainSlot[],
+  fmt: OutputFormatState,
+): LcdSegmentContext {
+  const places = resolvePlaceProfilesFromSlots(cubes);
+  const hasWeatherSource = cubes.some(
+    (c) => c.definition.id === "identity/weather",
+  );
+  const hasTimeSource = cubes.some((c) => c.definition.id === "source/time");
+
+  let windowFmt = fmt;
+  if (hasWeatherSource && places.length === 1) {
+    const place = places[0]!;
+    windowFmt = {
+      ...fmt,
+      weatherTemp: place.mockBaseTemp,
+      weatherRain: place.mockRainBias,
+    };
+  }
+
+  return {
+    fmt: windowFmt,
+    hasTemperatureSensor: cubes.some(
+      (c) => c.definition.id === "sensor/temperature",
+    ),
+    hasWeatherSource,
+    hasGithub: cubes.some((c) => c.definition.id === "source/github"),
+    hasTimeSource,
+    hasDial: cubes.some((c) => c.definition.id === "control/dial"),
+    hasSlider: cubes.some((c) => c.definition.id === "control/slider"),
+    places,
+    hasCalm: cubes.some((c) => c.definition.id === "modifier/calm"),
+    hasRandom: cubes.some((c) => c.definition.id === "modifier/random"),
+    hasButton: cubes.some((c) => c.definition.id === "control/button"),
+    hasLight: cubes.some((c) => c.definition.id === "output/light"),
+  };
+}
+
+export function resolveLcdTextForWindow(
+  cubes: ParsedChainSlot[],
+  fmt: OutputFormatState,
+): string {
+  const signalCubes = cubes.filter(
+    (c) => c.definition.role !== "core" && c.definition.id !== "output/lcd",
+  );
+  if (signalCubes.length === 0) return "--";
+  const segments = resolveLcdSegments(buildLcdSegmentContext(cubes, fmt));
+  return segments.length > 0 ? concatLcdSegments(segments) : "--";
 }
 
 export function distributeSegmentsToLcds(

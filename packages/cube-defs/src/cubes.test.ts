@@ -42,8 +42,8 @@ describe("Cube definitions", () => {
     }
   });
 
-  it("has 14 presets", () => {
-    expect(PRESET_CHAINS.length).toBe(14);
+  it("has 15 presets", () => {
+    expect(PRESET_CHAINS.length).toBe(15);
   });
 
   it("classifies audio and visual output modalities", () => {

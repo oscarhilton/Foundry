@@ -282,7 +282,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const state = engine.getOutputState();
-    expect(state.lcdText).toBe("18°C 40% London");
+    expect(state.lcdText).toBe("12°C 45%");
 
     engine.destroy();
   });
@@ -302,7 +302,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toBe("18°C 40% 50% London 40%");
+    expect(state.lcdText).toBe("12°C 45% 50% 40%");
 
     engine.destroy();
   });
@@ -363,12 +363,12 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("temperature-light");
-    expect(state.lcdText).toMatch(/^\d+°C \d+\/hr \d+%$/);
+    expect(state.lcdText).toMatch(/^\d+°C \d+\/hr$/);
 
     engine.destroy();
   });
 
-  it("splits temp and weather across two LCDs", () => {
+  it("concatenates temp and weather on first LCD with empty second window", () => {
     engine.setChain([
       { instanceId: "temp", definitionId: "sensor/temperature" },
       { instanceId: "weather", definitionId: "identity/weather" },
@@ -380,13 +380,13 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const { lcdTexts } = engine.getOutputState();
-    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
-    expect(lcdTexts.lcd2).toBe("18°C 40%");
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C 18°C 40%$/);
+    expect(lcdTexts.lcd2).toBe("--");
 
     engine.destroy();
   });
 
-  it("splits temp, weather, and time across three LCDs", () => {
+  it("concatenates all segments on first LCD when modules precede only one LCD", () => {
     engine.setChain([
       { instanceId: "temp", definitionId: "sensor/temperature" },
       { instanceId: "weather", definitionId: "identity/weather" },
@@ -400,9 +400,9 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const { lcdTexts } = engine.getOutputState();
-    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
-    expect(lcdTexts.lcd2).toBe("18°C 40%");
-    expect(lcdTexts.lcd3).toMatch(/^\d{2}:\d{2}$/);
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C 18°C 40% \d{2}:\d{2}$/);
+    expect(lcdTexts.lcd2).toBe("--");
+    expect(lcdTexts.lcd3).toBe("--");
 
     engine.destroy();
   });
@@ -423,14 +423,14 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("groups segments across two LCDs when more segments than modules", () => {
+  it("splits segments across LCDs when modules are interleaved", () => {
     engine.setChain([
       { instanceId: "temp", definitionId: "sensor/temperature" },
       { instanceId: "weather", definitionId: "identity/weather" },
       { instanceId: "github", definitionId: "source/github" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
       { instanceId: "time", definitionId: "source/time" },
       { instanceId: "dial", definitionId: "control/dial" },
-      { instanceId: "lcd1", definitionId: "output/lcd" },
       { instanceId: "lcd2", definitionId: "output/lcd" },
       { instanceId: "core", definitionId: CORE },
     ]);
@@ -440,19 +440,19 @@ describe("FoundryEngine", () => {
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/°C/);
     expect(lcdTexts.lcd1).toMatch(/\/hr/);
+    expect(lcdTexts.lcd1).toMatch(/18°C 40%/);
     expect(lcdTexts.lcd2).toMatch(/\d{2}:\d{2}/);
     expect(lcdTexts.lcd2).toMatch(/%/);
-    expect(`${lcdTexts.lcd1} ${lcdTexts.lcd2}`).toMatch(/18°C 40%/);
 
     engine.destroy();
   });
 
-  it("broadcasts MOTION to all LCDs then restores split", () => {
+  it("broadcasts MOTION to all LCDs then restores windows", () => {
     engine.setChain([
       { instanceId: "motion", definitionId: "sensor/motion" },
       { instanceId: "temp", definitionId: "sensor/temperature" },
-      { instanceId: "weather", definitionId: "identity/weather" },
       { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "weather", definitionId: "identity/weather" },
       { instanceId: "lcd2", definitionId: "output/lcd" },
       { instanceId: "core", definitionId: CORE },
     ]);
@@ -647,12 +647,13 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("splits London and Tokyo times across two LCDs", () => {
+  it("splits London and Tokyo times across two LCDs when interleaved", () => {
     engine.setChain([
       { instanceId: "london", definitionId: "identity/london" },
-      { instanceId: "tokyo", definitionId: "identity/tokyo" },
-      { instanceId: "time", definitionId: "source/time" },
+      { instanceId: "time1", definitionId: "source/time" },
       { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "tokyo", definitionId: "identity/tokyo" },
+      { instanceId: "time2", definitionId: "source/time" },
       { instanceId: "lcd2", definitionId: "output/lcd" },
       { instanceId: "core", definitionId: CORE },
     ]);
@@ -661,6 +662,27 @@ describe("FoundryEngine", () => {
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/^London \d{2}:\d{2}$/);
     expect(lcdTexts.lcd2).toMatch(/^Tokyo \d{2}:\d{2}$/);
+
+    engine.destroy();
+  });
+
+  it("shows Tokyo time and London weather on positional LCD windows", () => {
+    engine.setChain([
+      { instanceId: "tokyo", definitionId: "identity/tokyo" },
+      { instanceId: "time", definitionId: "source/time" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "london", definitionId: "identity/london" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 24, rain: 0.08 });
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toMatch(/^Tokyo \d{2}:\d{2}$/);
+    expect(lcdTexts.lcd2).toBe("12°C 45%");
+    expect(lcdTexts.lcd2).not.toMatch(/\d{2}:\d{2}/);
 
     engine.destroy();
   });

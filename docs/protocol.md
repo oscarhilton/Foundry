@@ -83,7 +83,7 @@ Namespace: `{domain}/{signal}[/{variant}]`
 
 When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/text` on every signal update. Each non-core module in the chain contributes a segment in **decreasing priority** (highest first):
 
-1. **Motion** — `MOTION` while `sensor/motion` is active (broadcast to all LCDs; overrides spread)
+1. **Motion** — `MOTION` while `sensor/motion` is active (broadcast to all LCDs; overrides windows)
 2. **Temperature sensor** — `16°C`
 3. **Weather** — `18°C 40%`
 4. **GitHub** — `14/hr`
@@ -103,13 +103,15 @@ When the chain contains only **Core + LCD** (no other signal modules), all LCDs 
 
 #### Multiple LCD cubes
 
-When a chain has **one** `output/lcd`, all segments are concatenated on that module (e.g. `16°C 18°C 40% 14:32 London`). The simulator word-wraps medium-length text and horizontally scrolls overflow.
+When a chain has **one** `output/lcd`, all segments from modules before that LCD are concatenated on it (e.g. `16°C 18°C 40% 14:32 London`). The simulator word-wraps medium-length text and horizontally scrolls overflow.
 
-When a chain has **two or more** LCDs, segments are spread left-to-right — one segment per LCD when there are enough modules; when there are more segments than LCDs, segments are grouped into buckets and concatenated per LCD. Extra LCDs show `--`.
+When a chain has **two or more** LCDs, each LCD shows only the modules in its **positional window** — the cubes after the previous LCD (or chain start) up to before this LCD. Core is never in a window. To put different data on different LCDs, **interleave** modules and LCDs in chain order.
+
+Example: `Tokyo, Time, LCD, London, Weather, LCD` → LCD1 = `Tokyo 07:03`, LCD2 = `12°C 45%` (London weather from place profile). An LCD with no modules in its window shows `--`.
 
 Each LCD receives its own `output/lcd/text` publish with `source` set to that LCD's instance id. State is exposed as `lcdTexts: Record<instanceId, string>`; `lcdText` mirrors the first LCD for compatibility.
 
-While motion is active, **all** LCDs broadcast `MOTION`; when motion clears, the spread layout is restored.
+While motion is active, **all** LCDs broadcast `MOTION`; when motion clears, the window layout is restored.
 
 ### Message shape
 
@@ -153,7 +155,7 @@ Place cubes (`identity/london`, `identity/tokyo`) carry `lat`, `lon`, and `timez
 
 Swapping London for Tokyo changes weather character and local time immediately on chain rebind.
 
-When a **Time cube** is also in the chain with LCD output, each place contributes a **local time segment** (e.g. `London 14:30`, `Tokyo 22:30`), computed from that place's timezone. Without a Time cube, place cubes contribute their city name only. One LCD concatenates all segments; multiple LCD modules split one segment per display when there are enough segments.
+When a **Time cube** is also in the chain with LCD output, each place in that LCD's window contributes a **local time segment** (e.g. `London 14:30`, `Tokyo 22:30`), computed from that place's timezone. Without a Time cube in the window, place cubes contribute their city name only. A single LCD concatenates all segments from its window; multiple LCDs each reflect only the modules since the previous LCD.
 
 ## Behaviour Recipes
 

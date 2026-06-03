@@ -63,6 +63,14 @@ export function resolvePlaceProfiles(chain: ParsedChain): PlaceProfile[] {
   return chain.places.map(buildPlaceProfile);
 }
 
+export function resolvePlaceProfilesFromSlots(
+  slots: ParsedChainSlot[],
+): PlaceProfile[] {
+  return slots
+    .filter((s) => s.definition.role === "place")
+    .map(buildPlaceProfile);
+}
+
 export function hourFractionInTimezone(timezone: string, now = new Date()): number {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: timezone,

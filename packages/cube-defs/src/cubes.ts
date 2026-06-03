@@ -349,6 +349,20 @@ export const PRESET_CHAINS: PresetChain[] = [
       "core/core",
     ],
   },
+  {
+    id: "dual-city-lcd",
+    name: "Dual City LCD",
+    description: "Tokyo time on LCD1, London weather on LCD2",
+    cubes: [
+      "identity/tokyo",
+      "source/time",
+      "output/lcd",
+      "identity/london",
+      "identity/weather",
+      "output/lcd",
+      "core/core",
+    ],
+  },
 ];
 
 /** Starter kit cubes for delight validation and first hardware SKU. */

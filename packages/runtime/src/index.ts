@@ -14,19 +14,16 @@ import type { RecipeContext } from "./recipes.js";
 import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
 import {
-  distributeSegmentsToLcds,
   formatGithub,
   formatPowerBattery,
   formatTemp,
   formatTime,
   formatWeather,
-  resolveLcdSegments,
-  type LcdSegmentContext,
+  resolveLcdTextForWindow,
 } from "./output-formatters.js";
 import {
   defaultLiveWeatherCoords,
   resolvePlaceProfile,
-  resolvePlaceProfiles,
   hourFractionInTimezone,
   type PlaceProfile,
 } from "./place-profile.js";
@@ -566,24 +563,6 @@ export class FoundryEngine {
     return null;
   }
 
-  private lcdSegmentContext(): LcdSegmentContext {
-    const chain = this.parsed!;
-    return {
-      fmt: this.formatState(),
-      hasTemperatureSensor: hasTemperatureSensor(chain),
-      hasWeatherSource: hasWeatherSource(chain),
-      hasGithub: chain.cubes.some((c) => c.definition.id === "source/github"),
-      hasTimeSource: hasTimeSource(chain),
-      hasDial: chain.cubes.some((c) => c.definition.id === "control/dial"),
-      hasSlider: chain.cubes.some((c) => c.definition.id === "control/slider"),
-      places: resolvePlaceProfiles(chain),
-      hasCalm: chain.cubes.some((c) => c.definition.id === "modifier/calm"),
-      hasRandom: chain.cubes.some((c) => c.definition.id === "modifier/random"),
-      hasButton: chain.cubes.some((c) => c.definition.id === "control/button"),
-      hasLight: chain.cubes.some((c) => c.definition.id === "output/light"),
-    };
-  }
-
   private syncDisplayFromChain(): void {
     if (!this.parsed?.powered || !hasDisplayOutput(this.parsed)) {
       return;
@@ -629,11 +608,18 @@ export class FoundryEngine {
         texts[lcd.instanceId] = "MOTION";
       }
     } else {
-      const segments = resolveLcdSegments(this.lcdSegmentContext());
-      const distributed = distributeSegmentsToLcds(segments, lcdOutputs.length);
-      lcdOutputs.forEach((lcd, index) => {
-        texts[lcd.instanceId] = distributed[index] ?? "--";
-      });
+      let windowStart = 0;
+      for (const lcd of lcdOutputs) {
+        const lcdIndex = chain.cubes.findIndex(
+          (c) => c.instanceId === lcd.instanceId,
+        );
+        const windowCubes = chain.cubes.slice(windowStart, lcdIndex);
+        texts[lcd.instanceId] = resolveLcdTextForWindow(
+          windowCubes,
+          this.formatState(),
+        );
+        windowStart = lcdIndex + 1;
+      }
     }
 
     this.outputState.lcdTexts = texts;
