@@ -1,6 +1,6 @@
 {
-  "buildCommand": "turbo run build --filter=@foundry/simulator",
-  "outputDirectory": "apps/simulator/dist",
+  "buildCommand": "turbo run build --filter=@foundry/simulator --force && rm -rf dist && cp -R apps/simulator/dist dist",
+  "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": null
 }
