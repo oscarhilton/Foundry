@@ -1,5 +1,5 @@
-import { Arc, Line } from "react-konva";
-import { COLORS } from "../design-tokens";
+import { Line } from "react-konva";
+import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
 interface WeatherVisualProps {
@@ -10,55 +10,25 @@ interface WeatherVisualProps {
 
 export function WeatherVisual({ rain, animTime }: WeatherVisualProps) {
   const r = rain ?? 0.3;
-  const shimmer = 0.3 + Math.sin(animTime * 0.002) * 0.15;
   const cx = CUBE_SIZE / 2;
+  const baseY = CUBE_FACE.stateTop + 6;
 
   return (
     <>
-      <Arc
-        x={cx}
-        y={38}
-        innerRadius={0}
-        outerRadius={14}
-        angle={180}
-        rotation={180}
-        fill={COLORS.muted}
-        opacity={0.35}
-      />
-      <Arc
-        x={cx - 10}
-        y={40}
-        innerRadius={0}
-        outerRadius={10}
-        angle={180}
-        rotation={180}
-        fill={COLORS.muted}
-        opacity={0.25}
-      />
-      <Arc
-        x={cx + 10}
-        y={40}
-        innerRadius={0}
-        outerRadius={10}
-        angle={180}
-        rotation={180}
-        fill={COLORS.muted}
-        opacity={0.25}
-      />
-      {[0, 1, 2, 3].map((i) => {
-        const dropOffset = (animTime * 0.05 + i * 25) % 14;
+      {[0, 1].map((i) => {
+        const dropOffset = (animTime * 0.04 + i * 30) % 12;
         return (
           <Line
             key={i}
             points={[
-              cx - 18 + i * 12,
-              52 + dropOffset,
-              cx - 20 + i * 12,
-              52 + 10 + r * 8 + dropOffset,
+              cx - 4 + i * 8,
+              baseY + dropOffset,
+              cx - 6 + i * 8,
+              baseY + 8 + r * 6 + dropOffset,
             ]}
             stroke={COLORS.ledBlue}
             strokeWidth={1.5}
-            opacity={shimmer * (0.4 + r * 0.6)}
+            opacity={0.25 + r * 0.45}
             lineCap="round"
           />
         );

@@ -1,6 +1,6 @@
-import { Circle, Rect } from "react-konva";
+import { Circle } from "react-konva";
 import { breatheOpacity } from "../animations";
-import { COLORS } from "../design-tokens";
+import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
 interface CoreVisualProps {
@@ -18,59 +18,47 @@ export function CoreVisual({
 }: CoreVisualProps) {
   const pulse = breatheOpacity(animTime, debugOpen ? 0.006 : 0.003);
   const cx = CUBE_SIZE / 2;
+  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
   const bootProgress =
     powered && poweredAt > 0
       ? Math.min(1, (animTime - poweredAt) / 800)
       : 0;
 
+  const dots = [
+    [cx - 5, cy - 5],
+    [cx + 5, cy - 5],
+    [cx - 5, cy + 5],
+    [cx + 5, cy + 5],
+  ];
+
   return (
     <>
-      {[0, 1, 2, 3].map((row) =>
-        [0, 1, 2, 3, 4].map((col) => {
-          const idx = row * 5 + col;
-          const lit = bootProgress > idx / 20;
-          return (
-            <Circle
-              key={`${row}-${col}`}
-              x={cx - 16 + col * 8}
-              y={36 + row * 6}
-              radius={1.5}
-              fill={lit ? COLORS.ledGreen : COLORS.muted}
-              opacity={lit ? 0.5 + pulse * 0.3 : 0.25}
-            />
-          );
-        }),
-      )}
-      <Rect
-        x={cx - 12}
-        y={68}
-        width={24}
-        height={6}
-        fill={COLORS.magnet}
-        cornerRadius={2}
-      />
-      <Rect
+      {dots.map(([x, y], i) => {
+        const lit = bootProgress > i / 4;
+        return (
+          <Circle
+            key={i}
+            x={x}
+            y={y}
+            radius={2}
+            fill={lit ? COLORS.ledGreen : COLORS.muted}
+            opacity={lit ? 0.45 + pulse * 0.25 : 0.2}
+          />
+        );
+      })}
+      <Circle
         x={cx - 8}
-        y={70}
-        width={16}
-        height={2}
-        fill={COLORS.ink}
-        opacity={0.3}
-        cornerRadius={1}
-      />
-      <Circle
-        x={cx - 10}
-        y={58}
-        radius={3}
+        y={cy + 12}
+        radius={2}
         fill={powered ? COLORS.ledGreen : COLORS.connectorGrey}
-        opacity={powered ? pulse : 0.4}
+        opacity={powered ? pulse : 0.35}
       />
       <Circle
-        x={cx + 10}
-        y={58}
-        radius={3}
+        x={cx + 8}
+        y={cy + 12}
+        radius={2}
         fill={debugOpen ? COLORS.ledBlue : COLORS.connectorGrey}
-        opacity={debugOpen ? pulse : 0.3}
+        opacity={debugOpen ? pulse : 0.25}
       />
     </>
   );

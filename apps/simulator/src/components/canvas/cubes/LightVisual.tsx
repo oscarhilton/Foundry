@@ -1,6 +1,6 @@
 import { useRef } from "react";
-import { Circle, Line } from "react-konva";
-import { COLORS } from "../design-tokens";
+import { Circle } from "react-konva";
+import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { lerp, warmGlowColor } from "../animations";
 
@@ -10,7 +10,6 @@ interface LightVisualProps {
 }
 
 export function LightVisual({ brightness, animTime }: LightVisualProps) {
-  const prevBrightness = useRef(brightness);
   const displayBrightness = useRef(brightness);
   const lastFrame = useRef(animTime);
 
@@ -23,56 +22,25 @@ export function LightVisual({ brightness, animTime }: LightVisualProps) {
   );
 
   const b = Math.max(0.02, Math.min(1, displayBrightness.current));
-  const breathe = b > 0.08 ? 1 + Math.sin(animTime * 0.0012) * 0.04 : 1;
-  const flicker =
-    b > 0.7 ? 1 + Math.sin(animTime * 0.012) * 0.04 * (b - 0.7) : 1;
-  const warmed = b * flicker * breathe;
-
-  if (Math.abs(brightness - prevBrightness.current) > 0.01) {
-    prevBrightness.current = brightness;
-  }
-
   const cx = CUBE_SIZE / 2;
-  const cy = 50;
-  const glow = warmGlowColor(warmed);
-
-  const rays = [0, 45, 90, 135, 180, 225, 270, 315];
-  const innerR = 10;
-  const outerR = 18 + warmed * 6;
+  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
+  const glow = warmGlowColor(b);
 
   return (
     <>
-      {rays.map((deg) => {
-        const rad = (deg * Math.PI) / 180;
-        return (
-          <Line
-            key={deg}
-            points={[
-              cx + Math.cos(rad) * innerR,
-              cy + Math.sin(rad) * innerR,
-              cx + Math.cos(rad) * outerR,
-              cy + Math.sin(rad) * outerR,
-            ]}
-            stroke={glow}
-            strokeWidth={2}
-            opacity={0.3 + warmed * 0.6}
-            lineCap="round"
-          />
-        );
-      })}
       <Circle
         x={cx}
         y={cy}
-        radius={10}
-        fill={COLORS.ledYellow}
-        opacity={0.5 + warmed * 0.5}
+        radius={14 + b * 4}
+        fill={glow}
+        opacity={0.12 + b * 0.25}
       />
       <Circle
         x={cx}
         y={cy}
-        radius={6}
-        fill={glow}
-        opacity={0.6 + warmed * 0.4}
+        radius={6 + b * 3}
+        fill={COLORS.ledYellow}
+        opacity={0.35 + b * 0.45}
       />
     </>
   );

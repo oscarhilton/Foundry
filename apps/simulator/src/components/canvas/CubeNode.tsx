@@ -21,6 +21,7 @@ import { TemperatureVisual } from "./cubes/TemperatureVisual";
 import { TimeVisual } from "./cubes/TimeVisual";
 import { RandomVisual } from "./cubes/RandomVisual";
 import { COLORS } from "./design-tokens";
+import { CUBE_SIZE } from "./layout";
 import { lerp } from "./animations";
 import { EMPTY_EFFECT_TIMESTAMPS, type EffectTimestamps } from "./effect-timestamps";
 
@@ -61,6 +62,8 @@ interface CubeNodeProps {
   dragScale?: number;
   onDialChange?: (value: number) => void;
   onSliderChange?: (value: number) => void;
+  onHoverStart?: (definition: CubeDefinition, clientX: number, clientY: number) => void;
+  onHoverEnd?: () => void;
 }
 
 function getStatusLed(
@@ -158,6 +161,8 @@ function CubeNodeInner({
   dragScale = 1,
   onDialChange,
   onSliderChange,
+  onHoverStart,
+  onHoverEnd,
 }: CubeNodeProps) {
   const { outputState, animTime, recipeActive, powered, inChain } = visualState;
   const effects = visualState.effectTimestamps ?? EMPTY_EFFECT_TIMESTAMPS;
@@ -193,6 +198,7 @@ function CubeNodeInner({
   );
 
   const renderVisual = () => {
+    if (!inChain) return null;
     if (inChain && !powered && id !== "core/core") return null;
 
     if (id === "output/light") {
@@ -316,7 +322,7 @@ function CubeNodeInner({
       return (
         <PassiveVisual
           active={recipeActive && powered}
-          label={definition.label}
+          accent={definition.colorAccent}
         />
       );
     }
@@ -343,6 +349,19 @@ function CubeNodeInner({
       onDblClick={onDblClick}
       onClick={onClick}
       onTap={onClick}
+      onMouseEnter={(e) => {
+        const stage = e.target.getStage();
+        const container = stage?.container();
+        if (!container || !onHoverStart) return;
+        const rect = container.getBoundingClientRect();
+        const pos = e.target.getAbsolutePosition();
+        onHoverStart(
+          definition,
+          rect.left + pos.x + CUBE_SIZE / 2,
+          rect.top + pos.y,
+        );
+      }}
+      onMouseLeave={() => onHoverEnd?.()}
     >
       <BaseCubeShell
         definition={definition}

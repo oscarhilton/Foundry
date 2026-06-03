@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import { Group, Circle, Line, Text } from "react-konva";
+import { Group, Circle, Line } from "react-konva";
 import type Konva from "konva";
-import { COLORS } from "../design-tokens";
+import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { lerp } from "../animations";
 
@@ -19,8 +19,8 @@ export function DialVisual({
   hintPulse = false,
 }: DialVisualProps) {
   const cx = CUBE_SIZE / 2;
-  const cy = 50;
-  const knobR = 18;
+  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
+  const knobR = 14;
   const displayPos = useRef(dialPosition);
   const lastFrame = useRef(animTime);
 
@@ -30,8 +30,8 @@ export function DialVisual({
 
   const angle = -135 + displayPos.current * 270;
   const rad = (angle * Math.PI) / 180;
-  const indicatorX = cx + Math.cos(rad) * (knobR - 5);
-  const indicatorY = cy + Math.sin(rad) * (knobR - 5);
+  const indicatorX = cx + Math.cos(rad) * (knobR - 4);
+  const indicatorY = cy + Math.sin(rad) * (knobR - 4);
   const groupRef = useRef<Konva.Group>(null);
 
   const handleDrag = () => {
@@ -49,7 +49,7 @@ export function DialVisual({
     onDialChange(t);
   };
 
-  const hintGlow = hintPulse ? 0.35 + Math.sin(animTime * 0.006) * 0.25 : 0;
+  const hintGlow = hintPulse ? 0.25 + Math.sin(animTime * 0.006) * 0.2 : 0;
 
   return (
     <Group
@@ -65,51 +65,26 @@ export function DialVisual({
         <Circle
           x={cx}
           y={cy}
-          radius={knobR + 8}
-          stroke="#F4A261"
-          strokeWidth={2}
+          radius={knobR + 6}
+          stroke={COLORS.ink}
+          strokeWidth={1}
           opacity={hintGlow}
         />
       )}
-      <Text
-        x={cx - 28}
-        y={cy - 4}
-        text="−"
-        fontSize={14}
-        fill={COLORS.muted}
-        fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
-      />
-      <Text
-        x={cx + 20}
-        y={cy - 4}
-        text="+"
-        fontSize={14}
-        fill={COLORS.muted}
-        fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
-      />
       <Circle
         x={cx}
         y={cy}
         radius={knobR}
-        fill="#E8E4DC"
-        stroke={COLORS.muted}
+        fill={COLORS.cube}
+        stroke={COLORS.stroke}
         strokeWidth={1}
-      />
-      <Circle
-        x={cx}
-        y={cy}
-        radius={knobR - 4}
-        fill="#F5F2EC"
-        stroke={COLORS.rule}
-        strokeWidth={0.5}
       />
       <Line
         points={[cx, cy, indicatorX, indicatorY]}
         stroke={COLORS.ink}
-        strokeWidth={2}
+        strokeWidth={1.5}
         lineCap="round"
       />
-      <Circle x={indicatorX} y={indicatorY} radius={2.5} fill={COLORS.ink} />
     </Group>
   );
 }

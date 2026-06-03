@@ -12,6 +12,8 @@ import { EMPTY_EFFECT_TIMESTAMPS } from "./effect-timestamps";
 interface CubeShelfProps {
   layout: StageLayout;
   onDropToChain: (definitionId: string, x: number, y: number) => boolean;
+  onCubeHover?: (label: string, description: string, clientX: number, clientY: number) => void;
+  onCubeHoverEnd?: () => void;
 }
 
 const SHELF_OUTPUT_STATE: FoundryOutputState = {
@@ -53,7 +55,12 @@ const SHELF_VISUAL_STATE: CubeVisualState = {
   effectTimestamps: EMPTY_EFFECT_TIMESTAMPS,
 };
 
-export function CubeShelf({ layout, onDropToChain }: CubeShelfProps) {
+export function CubeShelf({
+  layout,
+  onDropToChain,
+  onCubeHover,
+  onCubeHoverEnd,
+}: CubeShelfProps) {
   const productMode = useSimulatorStore((s) => s.productMode);
   const showExtendedCubes = useSimulatorStore((s) => s.showExtendedCubes);
   const toggleExtendedCubes = useSimulatorStore((s) => s.toggleExtendedCubes);
@@ -105,6 +112,15 @@ export function CubeShelf({ layout, onDropToChain }: CubeShelfProps) {
               }
               if (node) node.position({ x: 0, y: 0 });
             }}
+            onHoverStart={(definition, clientX, clientY) =>
+              onCubeHover?.(
+                definition.label,
+                definition.description ?? "",
+                clientX,
+                clientY,
+              )
+            }
+            onHoverEnd={onCubeHoverEnd}
           />
         </Group>
       );

@@ -18,6 +18,8 @@ import { useEffectTimestamps } from "./effect-timestamps";
 
 interface ChainStripProps {
   layout: StageLayout;
+  onCubeHover?: (label: string, description: string, clientX: number, clientY: number) => void;
+  onCubeHoverEnd?: () => void;
 }
 
 function firstId(chain: { instanceId: string; definitionId: string }[], defId: string) {
@@ -26,7 +28,7 @@ function firstId(chain: { instanceId: string; definitionId: string }[], defId: s
 
 const DIAL_HINT_DELAY_MS = 10_000;
 
-export function ChainStrip({ layout }: ChainStripProps) {
+export function ChainStrip({ layout, onCubeHover, onCubeHoverEnd }: ChainStripProps) {
   const animTime = useAnimTime();
   const chain = useSimulatorStore((s) => s.chain);
   const outputState = useSimulatorStore((s) => s.outputState);
@@ -306,6 +308,15 @@ export function ChainStrip({ layout }: ChainStripProps) {
                 onClick={() => handleCubeClick(def.id)}
                 onDialChange={setDialPosition}
                 onSliderChange={setSliderPosition}
+                onHoverStart={(definition, clientX, clientY) =>
+                  onCubeHover?.(
+                    definition.label,
+                    definition.description ?? "",
+                    clientX,
+                    clientY,
+                  )
+                }
+                onHoverEnd={onCubeHoverEnd}
               />
             </Group>
           </Group>

@@ -1,16 +1,30 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { Stage, Layer, Rect } from "react-konva";
 import { useSimulatorStore } from "../../store";
 import { useStageSize } from "./useStageSize";
 import { getStageLayout, isNearChainStrip, findNearestChainSlot, CUBE_SIZE } from "./layout";
 import { ChainStrip } from "./ChainStrip";
 import { CubeShelf } from "./CubeShelf";
+import { CubeTooltip, type CubeTooltipData } from "./CubeTooltip";
+import { COLORS } from "./design-tokens";
 
 const DEMO_MOTION_INTERVAL_MS = 60_000;
 
 export function FoundryStage() {
   const { width, height } = useStageSize();
   const layout = getStageLayout(width, height);
+  const [tooltip, setTooltip] = useState<CubeTooltipData | null>(null);
+
+  const handleCubeHover = useCallback(
+    (label: string, description: string, clientX: number, clientY: number) => {
+      setTooltip({ label, description, x: clientX, y: clientY });
+    },
+    [],
+  );
+
+  const handleCubeHoverEnd = useCallback(() => {
+    setTooltip(null);
+  }, []);
 
   const init = useSimulatorStore((s) => s.init);
   const addCubeToChain = useSimulatorStore((s) => s.addCubeToChain);
@@ -22,7 +36,7 @@ export function FoundryStage() {
   const hasMotion = chain.some((c) => c.definitionId === "sensor/motion");
   const ambientTint =
     outputState.powered && outputState.lightBrightness > 0.05
-      ? Math.min(0.08, outputState.lightBrightness * 0.06)
+      ? Math.min(0.05, outputState.lightBrightness * 0.04)
       : 0;
 
   useEffect(() => {
@@ -58,19 +72,34 @@ export function FoundryStage() {
     [layout, chain.length, addCubeToChain],
   );
 
-  const bgFill = ambientTint > 0 ? `rgb(${245 + ambientTint * 80}, ${245 + ambientTint * 40}, ${244})` : "#f5f5f4";
+  const bgFill =
+    ambientTint > 0
+      ? `rgb(${245 + ambientTint * 60}, ${245 + ambientTint * 30}, ${243})`
+      : COLORS.bg;
 
   return (
-    <Stage width={width} height={height}>
-      <Layer listening={false}>
-        <Rect x={0} y={0} width={width} height={height} fill={bgFill} />
-      </Layer>
-      <Layer>
-        <CubeShelf layout={layout} onDropToChain={onDropToChain} />
-      </Layer>
-      <Layer>
-        <ChainStrip layout={layout} />
-      </Layer>
-    </Stage>
+    <>
+      <Stage width={width} height={height}>
+        <Layer listening={false}>
+          <Rect x={0} y={0} width={width} height={height} fill={bgFill} />
+        </Layer>
+        <Layer>
+          <CubeShelf
+            layout={layout}
+            onDropToChain={onDropToChain}
+            onCubeHover={handleCubeHover}
+            onCubeHoverEnd={handleCubeHoverEnd}
+          />
+        </Layer>
+        <Layer>
+          <ChainStrip
+            layout={layout}
+            onCubeHover={handleCubeHover}
+            onCubeHoverEnd={handleCubeHoverEnd}
+          />
+        </Layer>
+      </Stage>
+      <CubeTooltip tooltip={tooltip} />
+    </>
   );
 }

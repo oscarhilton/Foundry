@@ -1,8 +1,9 @@
-import { Group, Rect, Text } from "react-konva";
+import { Group, Rect } from "react-konva";
 import type { CubeDefinition } from "@foundry/cube-defs";
-import { COLORS, CUBE_FACE, FONTS } from "../design-tokens";
+import { COLORS, CUBE_SHELL } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { CubeConnectors } from "./CubeConnectors";
+import { CubeIcon } from "./CubeIcon";
 import { StatusLed } from "./StatusLed";
 
 interface BaseCubeShellProps {
@@ -25,8 +26,8 @@ export function BaseCubeShell({
   children,
 }: BaseCubeShellProps) {
   const fill = unpowered ? COLORS.cubeUnpowered : COLORS.cube;
-  const stroke = highlighted ? COLORS.ink : COLORS.ink;
-  const strokeWidth = highlighted ? 2 : 1;
+  const stroke = highlighted ? COLORS.ink : COLORS.stroke;
+  const strokeWidth = highlighted ? 1.5 : 1;
 
   return (
     <Group>
@@ -36,23 +37,25 @@ export function BaseCubeShell({
         fill={fill}
         stroke={stroke}
         strokeWidth={strokeWidth}
-        cornerRadius={4}
+        cornerRadius={CUBE_SHELL.cornerRadius}
         shadowColor="#000"
-        shadowBlur={4}
-        shadowOpacity={unpowered ? 0.04 : 0.08}
-        shadowOffsetY={2}
+        shadowBlur={CUBE_SHELL.shadowBlur}
+        shadowOpacity={unpowered ? CUBE_SHELL.shadowOpacity * 0.5 : CUBE_SHELL.shadowOpacity}
+        shadowOffsetY={CUBE_SHELL.shadowOffsetY}
       />
-      <Text
-        x={4}
-        y={CUBE_FACE.labelY}
-        width={CUBE_SIZE - 8}
-        text={definition.label.toUpperCase()}
-        fontSize={FONTS.labelSize}
-        fontStyle="bold"
-        fill={unpowered ? COLORS.muted : COLORS.ink}
-        align="center"
-        fontFamily={FONTS.sans}
-        letterSpacing={0.5}
+      <Rect
+        x={CUBE_SHELL.cornerRadius}
+        y={0}
+        width={CUBE_SIZE - CUBE_SHELL.cornerRadius * 2}
+        height={CUBE_SHELL.accentStripeHeight}
+        fill={definition.colorAccent}
+        opacity={CUBE_SHELL.accentStripeOpacity}
+        cornerRadius={[CUBE_SHELL.cornerRadius, CUBE_SHELL.cornerRadius, 0, 0]}
+      />
+      <CubeIcon
+        cubeId={definition.id}
+        accent={definition.colorAccent}
+        unpowered={unpowered}
       />
       <CubeConnectors side="left" />
       <CubeConnectors side="right" />

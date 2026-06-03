@@ -1,5 +1,5 @@
 import { Rect } from "react-konva";
-import { COLORS } from "../design-tokens";
+import { COLORS, CUBE_FACE } from "../design-tokens";
 import { decayPulse } from "../animations";
 
 interface MusicVisualProps {
@@ -19,26 +19,24 @@ export function MusicVisual({
   const v = active ? (velocity ?? 40) / 127 : 0;
   const spike = decayPulse(animTime, musicNoteFiredAt, 350);
   const pulse = active
-    ? 0.5 + Math.sin(animTime * 0.01 + (note ?? 60)) * 0.3 + spike * 0.4
-    : 0.15;
-  const baseY = 62;
+    ? 0.5 + Math.sin(animTime * 0.01 + (note ?? 60)) * 0.25 + spike * 0.3
+    : 0.1;
+  const baseY = CUBE_FACE.stateBottom - 2;
 
   return (
     <>
-      {[0, 1, 2, 3, 4].map((i) => {
-        const idleH = 4 + i * 0.5;
-        const h = active
-          ? 8 + v * 28 * pulse * (1 + i * 0.12)
-          : idleH;
+      {[0, 1, 2].map((i) => {
+        const h = active ? 6 + v * 16 * pulse * (1 + i * 0.15) : 3;
         return (
           <Rect
             key={i}
-            x={18 + i * 13}
+            x={34 + i * 10}
             y={baseY - h}
-            width={8}
+            width={5}
             height={h}
-            fill={i % 2 === 0 ? COLORS.ledBlue : COLORS.ink}
-            opacity={active ? 0.5 + v * 0.5 : 0.2}
+            fill={COLORS.ink}
+            opacity={active ? 0.25 + v * 0.4 : 0.12}
+            cornerRadius={1}
           />
         );
       })}

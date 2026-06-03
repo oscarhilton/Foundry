@@ -1,6 +1,7 @@
 import { useRef } from "react";
-import { Group, Rect } from "react-konva";
+import { Group, Rect, Circle } from "react-konva";
 import type Konva from "konva";
+import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { lerp } from "../animations";
 
@@ -11,9 +12,9 @@ interface SliderVisualProps {
 }
 
 export function SliderVisual({ position, onChange, animTime }: SliderVisualProps) {
-  const trackW = 60;
+  const trackW = 52;
   const trackX = (CUBE_SIZE - trackW) / 2;
-  const trackY = 40;
+  const trackY = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2 - 2;
   const displayPos = useRef(position);
   const lastFrame = useRef(animTime);
 
@@ -21,13 +22,13 @@ export function SliderVisual({ position, onChange, animTime }: SliderVisualProps
   lastFrame.current = animTime;
   displayPos.current = lerp(displayPos.current, position, Math.min(1, dt / 250));
 
-  const thumbX = trackX + displayPos.current * (trackW - 8);
+  const thumbX = trackX + displayPos.current * (trackW - 6);
   const groupRef = useRef<Konva.Group>(null);
 
   const handleDrag = () => {
     const pos = groupRef.current?.getRelativePointerPosition();
     if (!pos) return;
-    const t = Math.max(0, Math.min(1, (pos.x - trackX) / (trackW - 8)));
+    const t = Math.max(0, Math.min(1, (pos.x - trackX) / (trackW - 6)));
     onChange(t);
   };
 
@@ -45,27 +46,11 @@ export function SliderVisual({ position, onChange, animTime }: SliderVisualProps
         x={trackX}
         y={trackY}
         width={trackW}
-        height={6}
-        fill="#E5E7EB"
-        cornerRadius={3}
-      />
-      <Rect
-        x={trackX}
-        y={trackY}
-        width={displayPos.current * trackW}
-        height={6}
-        fill="#2A9D8F"
-        opacity={0.35}
-        cornerRadius={3}
-      />
-      <Rect
-        x={thumbX}
-        y={trackY - 4}
-        width={8}
-        height={14}
-        fill="#2A9D8F"
+        height={3}
+        fill={COLORS.stroke}
         cornerRadius={2}
       />
+      <Circle x={thumbX + 3} y={trackY + 1.5} radius={4} fill={COLORS.ink} opacity={0.5} />
     </Group>
   );
 }
