@@ -41,6 +41,8 @@ export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
       activeRecipeName: null,
       warnings: [],
       placeLabel: null,
+      placeId: null,
+      placeTimezone: null,
       weatherTemp: null,
       weatherRain: null,
       dialPosition: 0.65,

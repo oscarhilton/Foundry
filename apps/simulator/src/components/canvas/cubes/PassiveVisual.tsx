@@ -1,12 +1,13 @@
-import { Circle, Rect } from "react-konva";
+import { Circle, Rect, Text } from "react-konva";
 import { COLORS } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
 interface PassiveVisualProps {
   active: boolean;
+  label?: string;
 }
 
-export function PassiveVisual({ active }: PassiveVisualProps) {
+export function PassiveVisual({ active, label }: PassiveVisualProps) {
   const cx = CUBE_SIZE / 2;
   const cy = 50;
   return (
@@ -27,6 +28,18 @@ export function PassiveVisual({ active }: PassiveVisualProps) {
         fill={COLORS.ledRed}
         opacity={active ? 1 : 0.6}
       />
+      {label && (
+        <Text
+          x={cx - 20}
+          y={cy + 14}
+          width={40}
+          text={label}
+          fontSize={8}
+          fill={COLORS.muted}
+          align="center"
+          fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
+        />
+      )}
     </>
   );
 }

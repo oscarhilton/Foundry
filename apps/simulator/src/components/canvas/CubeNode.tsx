@@ -317,7 +317,12 @@ export function CubeNode({
       );
     }
     if (definition.role === "place") {
-      return <PassiveVisual active={recipeActive && powered} />;
+      return (
+        <PassiveVisual
+          active={recipeActive && powered}
+          label={definition.label}
+        />
+      );
     }
     return null;
   };

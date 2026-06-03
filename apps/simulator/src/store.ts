@@ -136,6 +136,8 @@ const defaultOutputState = (): FoundryOutputState => ({
   activeRecipeName: null,
   warnings: [],
   placeLabel: null,
+  placeId: null,
+  placeTimezone: null,
   weatherTemp: null,
   weatherRain: null,
   dialPosition: 0.65,

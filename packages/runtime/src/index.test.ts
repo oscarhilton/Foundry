@@ -66,6 +66,14 @@ describe("Recipes", () => {
     expect(recipe?.id).toBe("london-weather-light");
   });
 
+  it("does not match London Weather Light without place cube", () => {
+    const chain = parseChain(
+      withCore("identity/weather", "output/light"),
+    );
+    expect(matchRecipe(chain)?.id).not.toBe("london-weather-light");
+    expect(matchRecipe(chain)).toBeUndefined();
+  });
+
   it("does not match without Core", () => {
     const chain = parseChain(
       makeChain("identity/london", "identity/weather", "output/light"),
@@ -542,5 +550,64 @@ describe("FoundryEngine", () => {
     expect(batteryMsg?.value).toBe("BAT 72%");
 
     powerEngine.destroy();
+  });
+
+  it("uses London mock weather baseline when London is in chain", () => {
+    engine.setChain(
+      withCore("identity/london", "identity/weather", "output/light"),
+    );
+    engine.start();
+
+    const state = engine.getOutputState();
+    expect(state.placeId).toBe("identity/london");
+    expect(state.placeTimezone).toBe("Europe/London");
+    expect(state.weatherTemp).not.toBeNull();
+    expect(state.weatherTemp!).toBeLessThan(20);
+
+    engine.destroy();
+  });
+
+  it("uses Tokyo mock weather baseline when Tokyo is in chain", () => {
+    engine.setChain(
+      withCore("identity/tokyo", "identity/weather", "output/light"),
+    );
+    engine.start();
+
+    const state = engine.getOutputState();
+    expect(state.placeId).toBe("identity/tokyo");
+    expect(state.weatherTemp).not.toBeNull();
+    expect(state.weatherTemp!).toBeGreaterThan(16);
+
+    engine.destroy();
+  });
+
+  it("updates weather when place cube is swapped", () => {
+    engine.setChain(
+      withCore("identity/london", "identity/weather", "output/light"),
+    );
+    engine.start();
+    const londonTemp = engine.getOutputState().weatherTemp;
+
+    engine.setChain(
+      withCore("identity/tokyo", "identity/weather", "output/light"),
+    );
+    const tokyoTemp = engine.getOutputState().weatherTemp;
+
+    expect(londonTemp).not.toBeNull();
+    expect(tokyoTemp).not.toBeNull();
+    expect(tokyoTemp!).toBeGreaterThan(londonTemp!);
+
+    engine.destroy();
+  });
+
+  it("publishes time in place timezone without Time cube", () => {
+    engine.setChain(withCore("identity/london", "output/light"));
+    engine.start();
+
+    const state = engine.getOutputState();
+    expect(state.placeTimezone).toBe("Europe/London");
+    expect(state.timeHour).not.toBeNull();
+
+    engine.destroy();
   });
 });

@@ -24,6 +24,12 @@ import {
   type LcdSegmentContext,
 } from "./output-formatters.js";
 import {
+  defaultLiveWeatherCoords,
+  resolvePlaceProfile,
+  hourFractionInTimezone,
+  type PlaceProfile,
+} from "./place-profile.js";
+import {
   SignalRouter,
   smoothValue,
   weatherToBrightness,
@@ -46,6 +52,8 @@ export interface FoundryOutputState {
   activeRecipeName: string | null;
   warnings: string[];
   placeLabel: string | null;
+  placeId: string | null;
+  placeTimezone: string | null;
   weatherTemp: number | null;
   weatherRain: number | null;
   dialPosition: number;
@@ -120,6 +128,8 @@ export class FoundryEngine {
       activeRecipeName: null,
       warnings: [],
       placeLabel: null,
+      placeId: null,
+      placeTimezone: null,
       weatherTemp: null,
       weatherRain: null,
       dialPosition: this.dialPosition,
@@ -205,14 +215,19 @@ export class FoundryEngine {
     return this.dialPosition;
   }
 
-  setLiveWeather(enabled: boolean, lat = 51.5074, lon = -0.1278): void {
+  setLiveWeather(enabled: boolean): void {
     this.useLiveWeather = enabled;
     this.liveWeather?.stop();
     this.liveWeather = null;
 
     if (enabled) {
-      this.liveWeather = new LiveWeatherAdapter(this.router, { lat, lon });
-      this.liveWeather.start();
+      this.mockAdapters.stop();
+    } else {
+      this.mockAdapters.start();
+    }
+
+    if (this.parsed?.powered) {
+      this.syncPlaceAdapters();
     }
   }
 
@@ -222,7 +237,9 @@ export class FoundryEngine {
     }
     this.router.publish("control/dial", this.dialPosition, "ui/dial");
     this.router.publish("control/slider", this.sliderPosition, "ui/slider");
-    this.startAuxAdapters();
+    if (this.parsed?.powered) {
+      this.syncPlaceAdapters();
+    }
     this.recalculateOutputs();
   }
 
@@ -256,16 +273,75 @@ export class FoundryEngine {
     }, 200);
   }
 
-  private startAuxAdapters(): void {
+  private syncPlaceAdapters(): void {
+    if (!this.parsed?.powered) {
+      if (this.timeTimer) clearInterval(this.timeTimer);
+      if (this.tempTimer) clearInterval(this.tempTimer);
+      this.timeTimer = undefined;
+      this.tempTimer = undefined;
+      return;
+    }
+
+    const chain = this.parsed;
+    const place = resolvePlaceProfile(chain);
+
+    this.outputState.placeId = place?.id ?? null;
+    this.outputState.placeTimezone = place?.timezone ?? null;
+
+    if (!this.useLiveWeather) {
+      this.mockAdapters.setPlaceProfile(place);
+      this.mockAdapters.setWeatherEnabled(hasWeatherSource(chain));
+    }
+
+    this.syncTimePublishing(place, hasTimeSource(chain));
+    this.syncLiveWeatherFromPlace(place);
+
+    if (hasTemperatureSensor(chain)) {
+      if (this.tempTimer) clearInterval(this.tempTimer);
+      this.mockAdapters.publishTemperature();
+      this.tempTimer = setInterval(
+        () => this.mockAdapters.publishTemperature(),
+        4000,
+      );
+    } else if (this.tempTimer) {
+      clearInterval(this.tempTimer);
+      this.tempTimer = undefined;
+    }
+  }
+
+  private syncTimePublishing(
+    place: PlaceProfile | null,
+    hasTimeCube: boolean,
+  ): void {
     if (this.timeTimer) clearInterval(this.timeTimer);
-    if (this.tempTimer) clearInterval(this.tempTimer);
-    this.mockAdapters.publishTime();
-    this.mockAdapters.publishTemperature();
-    this.timeTimer = setInterval(() => this.mockAdapters.publishTime(), 5000);
-    this.tempTimer = setInterval(
-      () => this.mockAdapters.publishTemperature(),
-      4000,
-    );
+    this.timeTimer = undefined;
+
+    if (place) {
+      this.mockAdapters.setTimeTimezone(place.timezone);
+      this.mockAdapters.publishTime(place.timezone);
+      this.timeTimer = setInterval(
+        () => this.mockAdapters.publishTime(place.timezone),
+        5000,
+      );
+    } else if (hasTimeCube) {
+      this.mockAdapters.setTimeTimezone(undefined);
+      this.mockAdapters.publishTime();
+      this.timeTimer = setInterval(() => this.mockAdapters.publishTime(), 5000);
+    }
+  }
+
+  private syncLiveWeatherFromPlace(place: PlaceProfile | null): void {
+    if (!this.useLiveWeather || !this.parsed || !hasWeatherSource(this.parsed)) {
+      return;
+    }
+
+    const coords = place ?? defaultLiveWeatherCoords();
+    if (this.liveWeather) {
+      this.liveWeather.updateCoords(coords.lat, coords.lon);
+    } else {
+      this.liveWeather = new LiveWeatherAdapter(this.router, coords);
+      this.liveWeather.start();
+    }
   }
 
   private rebind(): void {
@@ -280,6 +356,8 @@ export class FoundryEngine {
     if (!this.parsed.powered) {
       this.outputState.activeRecipeId = null;
       this.outputState.activeRecipeName = null;
+      this.outputState.placeId = null;
+      this.outputState.placeTimezone = null;
       this.resetOutputs();
       return;
     }
@@ -369,6 +447,7 @@ export class FoundryEngine {
 
     this.recalculateOutputs();
     this.syncCorePower();
+    this.syncPlaceAdapters();
   }
 
   private applyRandom(value: number): number {
@@ -639,5 +718,7 @@ export {
   MockAdapters,
   fetchLiveWeather,
   formatPowerBattery,
+  resolvePlaceProfile,
+  hourFractionInTimezone,
 };
-export type { SignalMessage, ChainCubeInput, ParsedChain, RecipeContext };
+export type { SignalMessage, ChainCubeInput, ParsedChain, RecipeContext, PlaceProfile };

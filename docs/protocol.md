@@ -63,6 +63,8 @@ Namespace: `{domain}/{signal}[/{variant}]`
 | Topic | Type | Description |
 |-------|------|-------------|
 | `place/name` | string | Selected place label |
+| `place/lat` | number | Place latitude (from place cube metadata) |
+| `place/lon` | number | Place longitude (from place cube metadata) |
 | `weather/temp` | number | Temperature °C |
 | `weather/rain` | number | Rain probability 0–1 |
 | `weather/rain/smoothed` | number | Calm-smoothed rain |
@@ -129,6 +131,16 @@ Left-to-right pipeline:
 4. **Outputs** — light, music, chime, display, lcd
 
 **Conflict rule:** nearest control to output binds first.
+
+### Place cubes drive adapters
+
+Place cubes (`identity/london`, `identity/tokyo`) carry `lat`, `lon`, and `timezone` in their descriptor metadata. When a place cube is in a powered chain:
+
+- **Mock weather** uses place-specific baselines (London ~12°C / rainier; Tokyo ~22°C / drier) when a Weather cube is also present
+- **Live weather** (builder mode) fetches Open-Meteo for the place coordinates
+- **`time/hour`** is published in the place timezone even without a Time cube; when no place is present, time uses browser local time and only publishes if a Time cube is in the chain
+
+Swapping London for Tokyo changes weather character and local time immediately on chain rebind.
 
 ## Behaviour Recipes
 

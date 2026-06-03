@@ -116,6 +116,7 @@ export const RECIPES: Recipe[] = [
       powered(
         chain,
         () =>
+          chain.place !== undefined &&
           hasWeatherSource(chain) &&
           hasLightOutput(chain) &&
           !chain.controls.some((c) => c.definition.id === "control/dial"),

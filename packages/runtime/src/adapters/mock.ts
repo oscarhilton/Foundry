@@ -1,5 +1,7 @@
+import type { PlaceProfile } from "../place-profile.js";
 import type { SignalRouter } from "../signal-router.js";
 import { smoothValue, weatherToBrightness } from "../signal-router.js";
+import { hourFractionInTimezone } from "../place-profile.js";
 
 export interface WeatherData {
   temp: number;
@@ -20,6 +22,9 @@ export class MockAdapters {
   private lastMotion = false;
   private router: SignalRouter;
   private running = false;
+  private placeProfile: PlaceProfile | null = null;
+  private weatherEnabled = true;
+  private timeTimezone: string | undefined;
 
   constructor(router: SignalRouter, options: MockAdapterOptions = {}) {
     this.router = router;
@@ -31,20 +36,48 @@ export class MockAdapters {
   private weatherIntervalMs: number;
   private githubIntervalMs: number;
 
+  setPlaceProfile(profile: PlaceProfile | null): void {
+    this.placeProfile = profile;
+    this.timeTimezone = profile?.timezone;
+    if (this.weatherEnabled) {
+      this.weather = this.generateWeatherSample();
+      if (this.running) this.publishWeather();
+    }
+  }
+
+  setWeatherEnabled(enabled: boolean): void {
+    this.weatherEnabled = enabled;
+    if (!enabled && this.weatherTimer) {
+      clearInterval(this.weatherTimer);
+      this.weatherTimer = undefined;
+    } else if (enabled && this.running && !this.weatherTimer) {
+      this.weather = this.generateWeatherSample();
+      this.publishWeather();
+      this.weatherTimer = setInterval(() => {
+        this.weather = this.generateWeatherSample();
+        this.publishWeather();
+      }, this.weatherIntervalMs);
+    }
+  }
+
+  setTimeTimezone(timezone: string | undefined): void {
+    this.timeTimezone = timezone;
+  }
+
   start(): void {
     if (this.running) return;
     this.running = true;
-    this.publishWeather();
-    this.publishGithub();
 
-    this.weatherTimer = setInterval(() => {
-      this.weather = {
-        temp: 8 + Math.sin(Date.now() / 20000) * 8 + Math.random() * 2,
-        rain: Math.max(0, Math.min(1, 0.3 + Math.sin(Date.now() / 15000) * 0.4)),
-      };
+    if (this.weatherEnabled) {
+      this.weather = this.generateWeatherSample();
       this.publishWeather();
-    }, this.weatherIntervalMs);
+      this.weatherTimer = setInterval(() => {
+        this.weather = this.generateWeatherSample();
+        this.publishWeather();
+      }, this.weatherIntervalMs);
+    }
 
+    this.publishGithub();
     this.githubTimer = setInterval(() => {
       this.publishGithub();
     }, this.githubIntervalMs);
@@ -54,11 +87,23 @@ export class MockAdapters {
     this.running = false;
     if (this.weatherTimer) clearInterval(this.weatherTimer);
     if (this.githubTimer) clearInterval(this.githubTimer);
+    this.weatherTimer = undefined;
+    this.githubTimer = undefined;
+  }
+
+  private generateWeatherSample(): WeatherData {
+    const base = this.placeProfile?.mockBaseTemp ?? 14;
+    const rainBase = this.placeProfile?.mockRainBias ?? 0.35;
+    const t = Date.now();
+    return {
+      temp: base + Math.sin(t / 20000) * 6 + Math.random() * 2,
+      rain: Math.max(0, Math.min(1, rainBase + Math.sin(t / 15000) * 0.3)),
+    };
   }
 
   setWeather(data: WeatherData): void {
     this.weather = data;
-    this.publishWeather();
+    if (this.weatherEnabled) this.publishWeather();
   }
 
   getWeather(): WeatherData {
@@ -75,6 +120,7 @@ export class MockAdapters {
   }
 
   private publishWeather(): void {
+    if (!this.weatherEnabled) return;
     this.router.publish("weather/temp", this.weather.temp, "mock/weather");
     this.router.publish("weather/rain", this.weather.rain, "mock/weather");
     this.smoothedRain = smoothValue(this.weather.rain, this.smoothedRain);
@@ -92,9 +138,12 @@ export class MockAdapters {
     this.router.publish("github/activity", activity, "mock/github");
   }
 
-  publishTime(): void {
-    const hour = new Date().getHours() + new Date().getMinutes() / 60;
-    this.router.publish("time/hour", hour / 24, "mock/time");
+  publishTime(timezone?: string): void {
+    const tz = timezone ?? this.timeTimezone;
+    const hourFrac = tz
+      ? hourFractionInTimezone(tz)
+      : (new Date().getHours() + new Date().getMinutes() / 60) / 24;
+    this.router.publish("time/hour", hourFrac, "mock/time");
   }
 
   publishTemperature(): void {
@@ -154,6 +203,11 @@ export class LiveWeatherAdapter {
   constructor(router: SignalRouter, options: LiveWeatherOptions) {
     this.router = router;
     this.options = options;
+  }
+
+  updateCoords(lat: number, lon: number): void {
+    this.options = { lat, lon };
+    if (this.running) void this.poll();
   }
 
   start(intervalMs = 900_000): void {
