@@ -14,6 +14,8 @@ export interface OutputFormatState {
   dialPosition: number;
   sliderPosition: number;
   lightBrightness: number;
+  modifierRandom: number | null;
+  modifierCalmNoise: number | null;
 }
 
 export function formatTime(timeHour: number | null | undefined): string {
@@ -55,6 +57,16 @@ export function formatGithub(githubActivity: number | null | undefined): string 
 
 export function formatControlPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
+}
+
+export function formatModifierNoise(
+  label: string,
+  value: number | null | undefined,
+): string {
+  if (value != null) {
+    return `${label} ${formatControlPercent(value)}`;
+  }
+  return label;
 }
 
 export function formatPowerBattery(
@@ -118,8 +130,12 @@ export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
       }
     }
   }
-  if (ctx.hasCalm) segments.push("CALM");
-  if (ctx.hasRandom) segments.push("RND");
+  if (ctx.hasCalm) {
+    segments.push(formatModifierNoise("CALM", fmt.modifierCalmNoise));
+  }
+  if (ctx.hasRandom) {
+    segments.push(formatModifierNoise("RND", fmt.modifierRandom));
+  }
   if (ctx.hasButton) segments.push("BTN");
   if (ctx.hasLight) segments.push(formatControlPercent(fmt.lightBrightness));
 

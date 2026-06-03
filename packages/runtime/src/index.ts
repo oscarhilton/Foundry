@@ -5,6 +5,7 @@ import {
   hasLcdOutput,
   hasLcdSignalModules,
   hasMotionSensor,
+  hasCalmModifier,
   hasTemperatureSensor,
   hasWeatherSource,
   hasTimeSource,
@@ -454,21 +455,30 @@ export class FoundryEngine {
   }
 
   private syncModifierNoise(): void {
-    if (!this.parsed?.powered || !this.context) {
+    if (!this.parsed?.powered) {
       this.outputState.modifierRandom = null;
       this.outputState.modifierCalmNoise = null;
       return;
     }
 
-    this.noiseTime += 0.016;
+    const useRandom = this.parsed.cubes.some(
+      (c) => c.definition.id === "modifier/random",
+    );
+    const useCalm = hasCalmModifier(this.parsed);
 
-    const { useRandom, useCalm } = this.context;
+    this.noiseTime += 0.016;
 
     if (useRandom) {
       const normalized = perlinNormalized1D(this.noiseTime * 2.5);
       this.outputState.modifierRandom = normalized;
+      const randomCube = this.parsed.cubes.find(
+        (c) => c.definition.id === "modifier/random",
+      );
       const source =
-        this.context.randomInstanceId ?? this.context.outputInstanceId ?? "runtime";
+        randomCube?.instanceId ??
+        this.context?.randomInstanceId ??
+        this.context?.outputInstanceId ??
+        "runtime";
       this.router.publish("modifier/random", normalized, source);
     } else {
       this.outputState.modifierRandom = null;
@@ -490,6 +500,7 @@ export class FoundryEngine {
 
     if (!this.context) {
       this.resetOutputs();
+      this.syncModifierNoise();
       this.syncLcdFromChain();
       return;
     }
@@ -553,6 +564,8 @@ export class FoundryEngine {
       dialPosition: this.outputState.dialPosition,
       sliderPosition: this.outputState.sliderPosition,
       lightBrightness: this.outputState.lightBrightness,
+      modifierRandom: this.outputState.modifierRandom,
+      modifierCalmNoise: this.outputState.modifierCalmNoise,
     };
   }
 

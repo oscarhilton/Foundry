@@ -89,8 +89,8 @@ When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/t
 5. **Time** — `14:32`
 6. **Dial / Slider** — e.g. `65%`
 7. **Place** — place label, e.g. `London`
-8. **Calm modifier** — `CALM`
-9. **Random modifier** — `RND`
+8. **Calm modifier** — `CALM 45%` (Perlin noise level; label only when value unavailable)
+9. **Random modifier** — `RND 72%` (Perlin noise level; label only when value unavailable)
 10. **Button** — `BTN`
 11. **Light output** — brightness as `45%`
 

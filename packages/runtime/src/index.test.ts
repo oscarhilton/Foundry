@@ -206,6 +206,44 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("shows calm Perlin level on LCD", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "modifier/calm",
+        "output/lcd",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.8 });
+
+    const { lcdText, modifierCalmNoise } = engine.getOutputState();
+    expect(modifierCalmNoise).not.toBeNull();
+    expect(lcdText).toMatch(/^12°C 45% CALM \d+%$/);
+
+    engine.destroy();
+  });
+
+  it("shows random Perlin level on LCD", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "modifier/random",
+        "output/lcd",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 20, rain: 0.1 });
+
+    const { lcdText, modifierRandom } = engine.getOutputState();
+    expect(modifierRandom).not.toBeNull();
+    expect(lcdText).toMatch(/^12°C 45% RND \d+%$/);
+
+    engine.destroy();
+  });
+
   it("stays unpowered without Core", () => {
     engine.setChain(
       makeChain("identity/london", "identity/weather", "output/light"),
