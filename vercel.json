@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "turbo run build --filter=@foundry/simulator",
   "outputDirectory": "apps/simulator/dist",
   "installCommand": "npm install",
   "framework": null

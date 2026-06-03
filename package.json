@@ -1,18 +1,21 @@
 {
   "name": "foundry",
   "private": true,
+  "packageManager": "npm@11.3.0",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @foundry/simulator",
-    "build": "npm run build -w @foundry/simulator",
-    "test": "npm run test -w @foundry/cube-defs && npm run test -w @foundry/runtime && node scripts/ux-smoke-test.mjs",
+    "dev": "turbo run dev --filter=@foundry/simulator",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test && node scripts/ux-smoke-test.mjs",
     "test:ux": "node scripts/ux-smoke-test.mjs",
     "lint": "npm run build"
   },
   "devDependencies": {
+    "turbo": "^2.3.0",
     "typescript": "^5.7.2"
   }
 }

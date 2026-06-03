@@ -1,0 +1,7 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/cube-defs" },
+    { "path": "./packages/runtime" }
+  ]
+}

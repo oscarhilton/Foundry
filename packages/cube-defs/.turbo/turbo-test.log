@@ -1,0 +1,14 @@
+
+> @foundry/cube-defs@0.1.0 test
+> vitest run
+
+
+ RUN  v2.1.9 /Users/oscarhilts/Documents/scratch/Foundry/packages/cube-defs
+
+ ✓ src/cubes.test.ts (5 tests) 3ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  20:17:59
+   Duration  1.11s (transform 80ms, setup 0ms, collect 108ms, tests 3ms, environment 0ms, prepare 462ms)
+
