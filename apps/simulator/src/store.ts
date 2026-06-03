@@ -104,6 +104,7 @@ const defaultOutputState = (): FoundryOutputState => ({
   musicNote: null,
   musicVelocity: null,
   displayText: null,
+  lcdText: null,
   sensorTemp: null,
   timeHour: null,
 });

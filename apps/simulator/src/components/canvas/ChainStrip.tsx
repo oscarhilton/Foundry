@@ -46,7 +46,7 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
     ? 0.55 + Math.sin(animTime * 0.004) * 0.25
     : 0.35;
 
-  const visualBase: Omit<CubeVisualState, "isPrimaryLight" | "isPrimaryDial" | "isPrimaryChime" | "isPrimaryMusic" | "isPrimaryDisplay" | "isPrimaryButton" | "isPrimarySlider"> = {
+  const visualBase: Omit<CubeVisualState, "isPrimaryLight" | "isPrimaryDial" | "isPrimaryChime" | "isPrimaryMusic" | "isPrimaryDisplay" | "isPrimaryLcd" | "isPrimaryButton" | "isPrimarySlider"> = {
     outputState,
     animTime,
     recipeActive,
@@ -201,6 +201,7 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
                   isPrimaryChime: cube.instanceId === firstId(chain, "output/chime"),
                   isPrimaryMusic: cube.instanceId === firstId(chain, "output/music"),
                   isPrimaryDisplay: cube.instanceId === firstId(chain, "output/display"),
+                  isPrimaryLcd: cube.instanceId === firstId(chain, "output/lcd"),
                   isPrimaryButton: cube.instanceId === firstId(chain, "control/button"),
                   isPrimarySlider: cube.instanceId === firstId(chain, "control/slider"),
                 }}

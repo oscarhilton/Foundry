@@ -7,6 +7,7 @@ import {
   hasCalmModifier,
   hasChimeOutput,
   hasDisplayOutput,
+  hasLcdOutput,
   hasLightOutput,
   hasMotionSensor,
   hasMusicOutput,
@@ -29,6 +30,48 @@ function powered(chain: ParsedChain, predicate: () => boolean): boolean {
 }
 
 export const RECIPES: Recipe[] = [
+  {
+    id: "time-lcd",
+    name: "Time LCD",
+    description: "Time of day on backlit LCD",
+    match: (chain) =>
+      powered(
+        chain,
+        () =>
+          hasLcdOutput(chain) &&
+          hasTimeSource(chain) &&
+          !hasWeatherSource(chain) &&
+          !hasTemperatureSensor(chain),
+      ),
+  },
+  {
+    id: "temperature-lcd",
+    name: "Temperature LCD",
+    description: "Room temperature on backlit LCD",
+    match: (chain) =>
+      powered(
+        chain,
+        () =>
+          hasLcdOutput(chain) &&
+          hasTemperatureSensor(chain) &&
+          !hasTimeSource(chain) &&
+          !hasWeatherSource(chain),
+      ),
+  },
+  {
+    id: "weather-lcd",
+    name: "Weather LCD",
+    description: "Weather temp and rain on backlit LCD",
+    match: (chain) =>
+      powered(
+        chain,
+        () =>
+          hasLcdOutput(chain) &&
+          hasWeatherSource(chain) &&
+          !hasTimeSource(chain) &&
+          !hasTemperatureSensor(chain),
+      ),
+  },
   {
     id: "button-chime",
     name: "Button Chime",
@@ -84,6 +127,16 @@ export const RECIPES: Recipe[] = [
       ),
   },
   {
+    id: "temperature-light",
+    name: "Temperature Light",
+    description: "Room temperature drives light warmth",
+    match: (chain) =>
+      powered(
+        chain,
+        () => hasTemperatureSensor(chain) && hasLightOutput(chain),
+      ),
+  },
+  {
     id: "github-display",
     name: "GitHub Display",
     description: "GitHub activity on e-ink display",
@@ -92,17 +145,10 @@ export const RECIPES: Recipe[] = [
         chain,
         () =>
           chain.cubes.some((c) => c.definition.id === "source/github") &&
-          hasDisplayOutput(chain),
-      ),
-  },
-  {
-    id: "temperature-light",
-    name: "Temperature Light",
-    description: "Room temperature drives light warmth",
-    match: (chain) =>
-      powered(
-        chain,
-        () => hasTemperatureSensor(chain) && hasLightOutput(chain),
+          hasDisplayOutput(chain) &&
+          !hasLightOutput(chain) &&
+          !hasTemperatureSensor(chain) &&
+          !hasWeatherSource(chain),
       ),
   },
   {

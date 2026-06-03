@@ -6,8 +6,8 @@ import {
 } from "@foundry/cube-defs";
 
 describe("Cube definitions", () => {
-  it("defines 17 cubes including Core", () => {
-    expect(CUBE_DEFINITIONS.length).toBe(17);
+  it("defines 18 cubes including Core", () => {
+    expect(CUBE_DEFINITIONS.length).toBe(18);
   });
 
   it("validates all cube definitions", () => {
@@ -26,6 +26,7 @@ describe("Cube definitions", () => {
       "control/slider",
       "output/music",
       "output/display",
+      "output/lcd",
       "sensor/temperature",
     ];
     for (const id of ids) {
@@ -39,7 +40,7 @@ describe("Cube definitions", () => {
     }
   });
 
-  it("has 10 presets", () => {
-    expect(PRESET_CHAINS.length).toBe(10);
+  it("has 13 presets", () => {
+    expect(PRESET_CHAINS.length).toBe(13);
   });
 });

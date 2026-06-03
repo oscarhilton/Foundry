@@ -180,6 +180,10 @@ export function hasDisplayOutput(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "output/display");
 }
 
+export function hasLcdOutput(chain: ParsedChain): boolean {
+  return chain.cubes.some((c) => c.definition.id === "output/lcd");
+}
+
 export function hasButtonControl(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "control/button");
 }

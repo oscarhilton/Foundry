@@ -5,10 +5,10 @@
 
  RUN  v2.1.9 /Users/oscarhilts/Documents/scratch/Foundry/packages/runtime
 
- ✓ src/index.test.ts (18 tests) 15ms
+ ✓ src/index.test.ts (24 tests) 8ms
 
  Test Files  1 passed (1)
-      Tests  18 passed (18)
-   Start at  20:17:59
-   Duration  1.21s (transform 160ms, setup 0ms, collect 197ms, tests 15ms, environment 0ms, prepare 115ms)
+      Tests  24 passed (24)
+   Start at  21:06:01
+   Duration  371ms (transform 65ms, setup 0ms, collect 81ms, tests 8ms, environment 0ms, prepare 37ms)
 

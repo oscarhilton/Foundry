@@ -1,5 +1,5 @@
 import type { ChainCubeInput, ParsedChain } from "./chain-parser.js";
-import { parseChain, isChainPowered } from "./chain-parser.js";
+import { parseChain, isChainPowered, hasDisplayOutput, hasTemperatureSensor, hasWeatherSource, hasTimeSource } from "./chain-parser.js";
 import type { RecipeContext } from "./recipes.js";
 import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
@@ -36,6 +36,7 @@ export interface FoundryOutputState {
   musicNote: number | null;
   musicVelocity: number | null;
   displayText: string | null;
+  lcdText: string | null;
   sensorTemp: number | null;
   timeHour: number | null;
 }
@@ -106,6 +107,7 @@ export class FoundryEngine {
       musicNote: null,
       musicVelocity: null,
       displayText: null,
+      lcdText: null,
       sensorTemp: null,
       timeHour: null,
     };
@@ -336,8 +338,14 @@ export class FoundryEngine {
   }
 
   private recalculateOutputs(): void {
-    if (!this.parsed?.powered || !this.context) {
+    if (!this.parsed?.powered) {
       this.resetOutputs();
+      return;
+    }
+
+    if (!this.context) {
+      this.resetOutputs();
+      this.syncDisplayFromChain();
       return;
     }
 
@@ -383,13 +391,98 @@ export class FoundryEngine {
         break;
       }
       case "github-display": {
-        const activity = this.outputState.githubActivity ?? 0;
-        const commits = Math.round(activity * 20);
-        this.setDisplayText(`${commits} commits/hr`);
+        break;
+      }
+      case "time-lcd": {
+        const hourFrac = this.outputState.timeHour ?? 0.5;
+        const totalMinutes = Math.floor(hourFrac * 24 * 60);
+        const hours = Math.floor(totalMinutes / 60) % 24;
+        const minutes = totalMinutes % 60;
+        this.setLcdText(
+          `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
+        );
+        break;
+      }
+      case "temperature-lcd": {
+        const sensorTemp = this.outputState.sensorTemp ?? 20;
+        this.setLcdText(`${Math.round(sensorTemp)}°C`);
+        break;
+      }
+      case "weather-lcd": {
+        const weatherTemp = this.outputState.weatherTemp ?? 14;
+        const weatherRain = this.outputState.weatherRain ?? 0.3;
+        this.setLcdText(
+          `${Math.round(weatherTemp)}°C ${Math.round(weatherRain * 100)}%`,
+        );
         break;
       }
       default:
         break;
+    }
+
+    this.syncDisplayFromChain();
+  }
+
+  private resolveDisplayText(): string | null {
+    if (!this.parsed) return null;
+
+    const chain = this.parsed;
+    const recipeId = this.context?.recipe.id;
+
+    const formatTime = (): string => {
+      const hourFrac = this.outputState.timeHour ?? 0.5;
+      const totalMinutes = Math.floor(hourFrac * 24 * 60);
+      const hours = Math.floor(totalMinutes / 60) % 24;
+      const minutes = totalMinutes % 60;
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    };
+
+    const formatTemp = (): string =>
+      `${Math.round(this.outputState.sensorTemp ?? 20)}°C`;
+
+    const formatWeather = (): string => {
+      const weatherTemp = this.outputState.weatherTemp ?? 14;
+      const weatherRain = this.outputState.weatherRain ?? 0.3;
+      return `${Math.round(weatherTemp)}°C ${Math.round(weatherRain * 100)}%`;
+    };
+
+    const formatGithub = (): string =>
+      `${Math.round((this.outputState.githubActivity ?? 0) * 20)}/hr`;
+
+    switch (recipeId) {
+      case "temperature-light":
+        return formatTemp();
+      case "london-weather-light":
+      case "weather-dial-light":
+        return formatWeather();
+      case "github-display":
+        return formatGithub();
+      case "time-calm-light":
+        return formatTime();
+      default:
+        break;
+    }
+
+    if (hasTemperatureSensor(chain)) return formatTemp();
+    if (hasWeatherSource(chain)) return formatWeather();
+    if (chain.cubes.some((c) => c.definition.id === "source/github")) {
+      return formatGithub();
+    }
+    if (hasTimeSource(chain)) return formatTime();
+
+    return null;
+  }
+
+  private syncDisplayFromChain(): void {
+    if (!this.parsed?.powered || !hasDisplayOutput(this.parsed)) {
+      return;
+    }
+
+    const text = this.resolveDisplayText();
+    if (text !== null) {
+      this.setDisplayText(text);
+    } else {
+      this.outputState.displayText = null;
     }
   }
 
@@ -398,6 +491,7 @@ export class FoundryEngine {
     this.outputState.musicNote = null;
     this.outputState.musicVelocity = null;
     this.outputState.displayText = null;
+    this.outputState.lcdText = null;
     this.outputState.chimeTriggered = false;
   }
 
@@ -425,6 +519,11 @@ export class FoundryEngine {
   private setDisplayText(text: string): void {
     this.outputState.displayText = text;
     this.router.publish("output/display/text", text, "runtime");
+  }
+
+  private setLcdText(text: string): void {
+    this.outputState.lcdText = text;
+    this.router.publish("output/lcd/text", text, "runtime");
   }
 
   private fireChime(): void {

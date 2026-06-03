@@ -15,6 +15,7 @@ export function SimulationAudioBridge() {
   const prevPowered = useRef(outputState.powered);
   const prevMotion = useRef(outputState.motionDetected);
   const prevDisplayText = useRef(outputState.displayText);
+  const prevLcdText = useRef(outputState.lcdText);
   const prevMusicNote = useRef<number | null>(null);
   const seenSignalIds = useRef(new Set<string>());
 
@@ -23,6 +24,7 @@ export function SimulationAudioBridge() {
     markButton,
     markMotion,
     markDisplayChange,
+    markLcdChange,
     markMusicNote,
     markPowered,
   } = useEffectTimestamps();
@@ -74,6 +76,13 @@ export function SimulationAudioBridge() {
     }
     prevDisplayText.current = outputState.displayText;
   }, [outputState.displayText, markDisplayChange]);
+
+  useEffect(() => {
+    if (outputState.lcdText !== prevLcdText.current) {
+      markLcdChange();
+    }
+    prevLcdText.current = outputState.lcdText;
+  }, [outputState.lcdText, markLcdChange]);
 
   useEffect(() => {
     const note = outputState.musicNote;

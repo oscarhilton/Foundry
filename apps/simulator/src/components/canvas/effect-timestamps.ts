@@ -5,6 +5,7 @@ export interface EffectTimestamps {
   buttonFiredAt: number;
   motionFiredAt: number;
   displayChangedAt: number;
+  lcdChangedAt: number;
   musicNoteFiredAt: number;
   lastMusicNote: number | null;
   poweredAt: number;
@@ -15,6 +16,7 @@ interface EffectTimestampState extends EffectTimestamps {
   markButton: () => void;
   markMotion: () => void;
   markDisplayChange: () => void;
+  markLcdChange: () => void;
   markMusicNote: (note: number) => void;
   markPowered: () => void;
 }
@@ -26,6 +28,7 @@ export const useEffectTimestamps = create<EffectTimestampState>((set) => ({
   buttonFiredAt: 0,
   motionFiredAt: 0,
   displayChangedAt: 0,
+  lcdChangedAt: 0,
   musicNoteFiredAt: 0,
   lastMusicNote: null,
   poweredAt: 0,
@@ -34,6 +37,7 @@ export const useEffectTimestamps = create<EffectTimestampState>((set) => ({
   markButton: () => set({ buttonFiredAt: now() }),
   markMotion: () => set({ motionFiredAt: now() }),
   markDisplayChange: () => set({ displayChangedAt: now() }),
+  markLcdChange: () => set({ lcdChangedAt: now() }),
   markMusicNote: (note) =>
     set({ musicNoteFiredAt: now(), lastMusicNote: note }),
   markPowered: () => set({ poweredAt: now() }),

@@ -17,6 +17,7 @@ import { ButtonVisual } from "./cubes/ButtonVisual";
 import { SliderVisual } from "./cubes/SliderVisual";
 import { MusicVisual } from "./cubes/MusicVisual";
 import { DisplayVisual } from "./cubes/DisplayVisual";
+import { LcdVisual } from "./cubes/LcdVisual";
 import { TemperatureVisual } from "./cubes/TemperatureVisual";
 import { TimeVisual } from "./cubes/TimeVisual";
 import { RandomVisual } from "./cubes/RandomVisual";
@@ -36,6 +37,7 @@ export interface CubeVisualState {
   isPrimaryChime?: boolean;
   isPrimaryMusic?: boolean;
   isPrimaryDisplay?: boolean;
+  isPrimaryLcd?: boolean;
   isPrimaryButton?: boolean;
   isPrimarySlider?: boolean;
 }
@@ -253,6 +255,15 @@ export function CubeNode({
           text={outputState.displayText}
           animTime={animTime}
           displayChangedAt={effects.displayChangedAt}
+        />
+      );
+    }
+    if (id === "output/lcd" && visualState.isPrimaryLcd) {
+      return (
+        <LcdVisual
+          text={outputState.lcdText}
+          animTime={animTime}
+          lcdChangedAt={effects.lcdChangedAt}
         />
       );
     }

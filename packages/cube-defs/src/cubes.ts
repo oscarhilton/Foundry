@@ -195,6 +195,18 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
   },
   {
     schema: 1,
+    id: "output/lcd",
+    label: "LCD",
+    category: "output",
+    role: "output",
+    colorAccent: "#06D6A0",
+    capabilities: ["lcd"],
+    registers: [],
+    topics: { publish: [], subscribe: ["output/lcd/text"] },
+    description: "Backlit character LCD",
+  },
+  {
+    schema: 1,
     id: "output/chime",
     label: "Chime",
     category: "output",
@@ -296,6 +308,29 @@ export const PRESET_CHAINS: PresetChain[] = [
     name: "Temperature Light",
     description: "Room temperature drives light warmth",
     cubes: ["sensor/temperature", "output/light", "core/core"],
+  },
+  {
+    id: "time-lcd",
+    name: "Time LCD",
+    description: "Time of day on backlit LCD",
+    cubes: ["source/time", "output/lcd", "core/core"],
+  },
+  {
+    id: "temperature-lcd",
+    name: "Temperature LCD",
+    description: "Room temperature on backlit LCD",
+    cubes: ["sensor/temperature", "output/lcd", "core/core"],
+  },
+  {
+    id: "weather-lcd",
+    name: "Weather LCD",
+    description: "London weather on backlit LCD",
+    cubes: [
+      "identity/london",
+      "identity/weather",
+      "output/lcd",
+      "core/core",
+    ],
   },
 ];
 

@@ -73,6 +73,8 @@ Namespace: `{domain}/{signal}[/{variant}]`
 | `output/light/brightness` | number | Final light brightness 0–1 |
 | `output/chime/trigger` | boolean | Chime fire event |
 | `output/music/note` | number | MIDI note number |
+| `output/display/text` | string | E-ink display text |
+| `output/lcd/text` | string | Backlit LCD text |
 
 ### Message shape
 
@@ -91,7 +93,7 @@ Left-to-right pipeline:
 1. **Sources** — place, weather, github, time
 2. **Modifiers** — calm, random, threshold
 3. **Controls** — dial, slider, button
-4. **Outputs** — light, music, chime, display
+4. **Outputs** — light, music, chime, display, lcd
 
 **Conflict rule:** nearest control to output binds first.
 

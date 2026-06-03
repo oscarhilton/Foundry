@@ -54,6 +54,7 @@ export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
       musicNote: null,
       musicVelocity: null,
       displayText: null,
+      lcdText: null,
       sensorTemp: null,
       timeHour: null,
     },
