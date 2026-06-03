@@ -1,8 +1,26 @@
 import type { ChainCubeInput, ParsedChain } from "./chain-parser.js";
-import { parseChain, isChainPowered, hasDisplayOutput, hasTemperatureSensor, hasWeatherSource, hasTimeSource } from "./chain-parser.js";
+import {
+  parseChain,
+  isChainPowered,
+  hasDisplayOutput,
+  hasLcdOutput,
+  hasMotionSensor,
+  hasTemperatureSensor,
+  hasWeatherSource,
+  hasTimeSource,
+} from "./chain-parser.js";
 import type { RecipeContext } from "./recipes.js";
 import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
+import {
+  combineLine,
+  formatControlPercent,
+  formatGithub,
+  formatTemp,
+  formatTime,
+  formatWeather,
+  formatWeatherCompact,
+} from "./output-formatters.js";
 import {
   SignalRouter,
   smoothValue,
@@ -304,6 +322,7 @@ export class FoundryEngine {
           this.fireChime();
         }
         this.lastMotion = detected;
+        this.recalculateOutputs();
       }),
     );
 
@@ -346,6 +365,7 @@ export class FoundryEngine {
     if (!this.context) {
       this.resetOutputs();
       this.syncDisplayFromChain();
+      this.syncLcdFromChain();
       return;
     }
 
@@ -393,34 +413,24 @@ export class FoundryEngine {
       case "github-display": {
         break;
       }
-      case "time-lcd": {
-        const hourFrac = this.outputState.timeHour ?? 0.5;
-        const totalMinutes = Math.floor(hourFrac * 24 * 60);
-        const hours = Math.floor(totalMinutes / 60) % 24;
-        const minutes = totalMinutes % 60;
-        this.setLcdText(
-          `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
-        );
-        break;
-      }
-      case "temperature-lcd": {
-        const sensorTemp = this.outputState.sensorTemp ?? 20;
-        this.setLcdText(`${Math.round(sensorTemp)}°C`);
-        break;
-      }
-      case "weather-lcd": {
-        const weatherTemp = this.outputState.weatherTemp ?? 14;
-        const weatherRain = this.outputState.weatherRain ?? 0.3;
-        this.setLcdText(
-          `${Math.round(weatherTemp)}°C ${Math.round(weatherRain * 100)}%`,
-        );
-        break;
-      }
       default:
         break;
     }
 
     this.syncDisplayFromChain();
+    this.syncLcdFromChain();
+  }
+
+  private formatState() {
+    return {
+      timeHour: this.outputState.timeHour,
+      sensorTemp: this.outputState.sensorTemp,
+      weatherTemp: this.outputState.weatherTemp,
+      weatherRain: this.outputState.weatherRain,
+      githubActivity: this.outputState.githubActivity,
+      dialPosition: this.outputState.dialPosition,
+      sliderPosition: this.outputState.sliderPosition,
+    };
   }
 
   private resolveDisplayText(): string | null {
@@ -428,47 +438,71 @@ export class FoundryEngine {
 
     const chain = this.parsed;
     const recipeId = this.context?.recipe.id;
-
-    const formatTime = (): string => {
-      const hourFrac = this.outputState.timeHour ?? 0.5;
-      const totalMinutes = Math.floor(hourFrac * 24 * 60);
-      const hours = Math.floor(totalMinutes / 60) % 24;
-      const minutes = totalMinutes % 60;
-      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-    };
-
-    const formatTemp = (): string =>
-      `${Math.round(this.outputState.sensorTemp ?? 20)}°C`;
-
-    const formatWeather = (): string => {
-      const weatherTemp = this.outputState.weatherTemp ?? 14;
-      const weatherRain = this.outputState.weatherRain ?? 0.3;
-      return `${Math.round(weatherTemp)}°C ${Math.round(weatherRain * 100)}%`;
-    };
-
-    const formatGithub = (): string =>
-      `${Math.round((this.outputState.githubActivity ?? 0) * 20)}/hr`;
+    const fmt = this.formatState();
 
     switch (recipeId) {
       case "temperature-light":
-        return formatTemp();
+        return formatTemp(fmt.sensorTemp);
       case "london-weather-light":
       case "weather-dial-light":
-        return formatWeather();
+        return formatWeather(fmt.weatherTemp, fmt.weatherRain);
       case "github-display":
-        return formatGithub();
+        return formatGithub(fmt.githubActivity);
       case "time-calm-light":
-        return formatTime();
+        return formatTime(fmt.timeHour);
       default:
         break;
     }
 
-    if (hasTemperatureSensor(chain)) return formatTemp();
-    if (hasWeatherSource(chain)) return formatWeather();
+    if (hasTemperatureSensor(chain)) return formatTemp(fmt.sensorTemp);
+    if (hasWeatherSource(chain)) return formatWeather(fmt.weatherTemp, fmt.weatherRain);
     if (chain.cubes.some((c) => c.definition.id === "source/github")) {
-      return formatGithub();
+      return formatGithub(fmt.githubActivity);
     }
-    if (hasTimeSource(chain)) return formatTime();
+    if (hasTimeSource(chain)) return formatTime(fmt.timeHour);
+
+    return null;
+  }
+
+  private resolveLcdText(): string | null {
+    if (!this.parsed) return null;
+
+    const chain = this.parsed;
+    const fmt = this.formatState();
+
+    if (hasMotionSensor(chain) && this.outputState.motionDetected) {
+      return "MOTION";
+    }
+
+    const hasTime = hasTimeSource(chain);
+    const timeStr = hasTime ? formatTime(fmt.timeHour) : null;
+    const hasDial = chain.cubes.some((c) => c.definition.id === "control/dial");
+    const hasSlider = chain.cubes.some((c) => c.definition.id === "control/slider");
+    const hasGithub = chain.cubes.some((c) => c.definition.id === "source/github");
+
+    if (hasTemperatureSensor(chain)) {
+      const primary = formatTemp(fmt.sensorTemp);
+      return timeStr ? combineLine(primary, timeStr) : primary;
+    }
+
+    if (hasWeatherSource(chain)) {
+      if (timeStr) {
+        return combineLine(formatWeatherCompact(fmt.weatherTemp), timeStr);
+      }
+      return formatWeather(fmt.weatherTemp, fmt.weatherRain);
+    }
+
+    if (hasGithub) {
+      const primary = formatGithub(fmt.githubActivity);
+      return timeStr ? combineLine(primary, timeStr) : primary;
+    }
+
+    if (hasTime) return formatTime(fmt.timeHour);
+
+    if (hasDial) return formatControlPercent(fmt.dialPosition);
+    if (hasSlider) return formatControlPercent(fmt.sliderPosition);
+
+    if (chain.place) return chain.place.definition.label;
 
     return null;
   }
@@ -483,6 +517,19 @@ export class FoundryEngine {
       this.setDisplayText(text);
     } else {
       this.outputState.displayText = null;
+    }
+  }
+
+  private syncLcdFromChain(): void {
+    if (!this.parsed?.powered || !hasLcdOutput(this.parsed)) {
+      return;
+    }
+
+    const text = this.resolveLcdText();
+    if (text !== null) {
+      this.setLcdText(text);
+    } else {
+      this.outputState.lcdText = null;
     }
   }
 

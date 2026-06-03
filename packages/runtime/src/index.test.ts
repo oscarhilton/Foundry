@@ -94,23 +94,6 @@ describe("Recipes", () => {
     const chain = parseChain(withCore("control/button", "output/chime"));
     expect(matchRecipe(chain)?.id).toBe("button-chime");
   });
-
-  it("matches Time LCD", () => {
-    const chain = parseChain(withCore("source/time", "output/lcd"));
-    expect(matchRecipe(chain)?.id).toBe("time-lcd");
-  });
-
-  it("matches Temperature LCD", () => {
-    const chain = parseChain(withCore("sensor/temperature", "output/lcd"));
-    expect(matchRecipe(chain)?.id).toBe("temperature-lcd");
-  });
-
-  it("matches Weather LCD", () => {
-    const chain = parseChain(
-      withCore("identity/london", "identity/weather", "output/lcd"),
-    );
-    expect(matchRecipe(chain)?.id).toBe("weather-lcd");
-  });
 });
 
 describe("Signal utilities", () => {
@@ -231,29 +214,27 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("shows time on LCD for Time LCD recipe", () => {
+  it("shows time on LCD for time preset chain", () => {
     engine.setChain(withCore("source/time", "output/lcd"));
     engine.start();
 
     const state = engine.getOutputState();
-    expect(state.activeRecipeId).toBe("time-lcd");
     expect(state.lcdText).toMatch(/^\d{2}:\d{2}$/);
 
     engine.destroy();
   });
 
-  it("shows temperature on LCD for Temperature LCD recipe", () => {
+  it("shows temperature on LCD for temperature preset chain", () => {
     engine.setChain(withCore("sensor/temperature", "output/lcd"));
     engine.start();
 
     const state = engine.getOutputState();
-    expect(state.activeRecipeId).toBe("temperature-lcd");
     expect(state.lcdText).toMatch(/^\d+°C$/);
 
     engine.destroy();
   });
 
-  it("shows weather on LCD for Weather LCD recipe", () => {
+  it("shows weather on LCD for weather preset chain", () => {
     engine.setChain(
       withCore("identity/london", "identity/weather", "output/lcd"),
     );
@@ -261,8 +242,70 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const state = engine.getOutputState();
-    expect(state.activeRecipeId).toBe("weather-lcd");
     expect(state.lcdText).toBe("18°C 40%");
+
+    engine.destroy();
+  });
+
+  it("shows weather on LCD in composite weather-dial-light chain", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "control/dial",
+        "output/light",
+        "output/lcd",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    const state = engine.getOutputState();
+    expect(state.activeRecipeId).toBe("weather-dial-light");
+    expect(state.lcdText).toBe("18°C 40%");
+
+    engine.destroy();
+  });
+
+  it("combines temp and time on LCD when both are in chain", () => {
+    engine.setChain(
+      withCore("sensor/temperature", "source/time", "output/lcd"),
+    );
+    engine.start();
+
+    const state = engine.getOutputState();
+    expect(state.lcdText).toMatch(/^\d+°C \d{2}:\d{2}$/);
+
+    engine.destroy();
+  });
+
+  it("shows MOTION on LCD while motion is active", () => {
+    engine.setChain(withCore("sensor/motion", "sensor/temperature", "output/lcd"));
+    engine.start();
+
+    engine.mockAdapters.triggerMotion(true);
+    expect(engine.getOutputState().lcdText).toBe("MOTION");
+
+    engine.mockAdapters.triggerMotion(false);
+    expect(engine.getOutputState().lcdText).toMatch(/^\d+°C$/);
+
+    engine.destroy();
+  });
+
+  it("prefers temperature over github on LCD when both are in chain", () => {
+    engine.setChain(
+      withCore(
+        "source/github",
+        "sensor/temperature",
+        "output/lcd",
+        "output/light",
+      ),
+    );
+    engine.start();
+
+    const state = engine.getOutputState();
+    expect(state.activeRecipeId).toBe("temperature-light");
+    expect(state.lcdText).toMatch(/^\d+°C$/);
 
     engine.destroy();
   });

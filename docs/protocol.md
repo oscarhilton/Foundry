@@ -76,6 +76,20 @@ Namespace: `{domain}/{signal}[/{variant}]`
 | `output/display/text` | string | E-ink display text |
 | `output/lcd/text` | string | Backlit LCD text |
 
+#### LCD text priority
+
+When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/text` on every signal update using physical-first priority:
+
+1. **Motion** — `MOTION` while `sensor/motion` is active
+2. **Temperature sensor** — `16°C` (combines with time as `16°C 14:32` when both present)
+3. **Weather** — `18°C 40%` (combines with time as `18°C 14:32`, dropping rain %)
+4. **GitHub** — `14/hr` (combines with time as `14/hr 14:32`)
+5. **Time** — `14:32`
+6. **Dial / Slider** — dial preferred, e.g. `65%`
+7. **Place** — place label, e.g. `London`
+
+LCD content is independent of the active behaviour recipe — composite chains (e.g. Weather + Dial + Light + LCD) still update the LCD from the highest-priority available source.
+
 ### Message shape
 
 ```typescript
