@@ -262,7 +262,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const state = engine.getOutputState();
-    expect(state.lcdText).toMatch(/^18°C 40% London \d{2}:\d{2}$/);
+    expect(state.lcdText).toBe("18°C 40% London");
 
     engine.destroy();
   });
@@ -282,9 +282,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toMatch(
-      /^18°C 40% London \d{2}:\d{2} 50% \d+%$/,
-    );
+    expect(state.lcdText).toBe("18°C 40% 50% London 40%");
 
     engine.destroy();
   });

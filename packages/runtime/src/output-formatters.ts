@@ -94,15 +94,22 @@ export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
     segments.push(formatWeather(fmt.weatherTemp, fmt.weatherRain));
   }
   if (ctx.hasGithub) segments.push(formatGithub(fmt.githubActivity));
-  if (ctx.places.length > 0) {
-    for (const place of ctx.places) {
-      segments.push(formatPlaceTime(place.label, place.timezone));
+  if (ctx.hasTimeSource) {
+    if (ctx.places.length > 0) {
+      for (const place of ctx.places) {
+        segments.push(formatPlaceTime(place.label, place.timezone));
+      }
+    } else {
+      segments.push(formatTime(fmt.timeHour));
     }
-  } else if (ctx.hasTimeSource) {
-    segments.push(formatTime(fmt.timeHour));
   }
   if (ctx.hasDial) segments.push(formatControlPercent(fmt.dialPosition));
   if (ctx.hasSlider) segments.push(formatControlPercent(fmt.sliderPosition));
+  if (!ctx.hasTimeSource) {
+    for (const place of ctx.places) {
+      segments.push(place.label);
+    }
+  }
   if (ctx.hasCalm) segments.push("CALM");
   if (ctx.hasRandom) segments.push("RND");
   if (ctx.hasButton) segments.push("BTN");
