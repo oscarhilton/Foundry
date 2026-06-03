@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { Stage, Layer, Rect } from "react-konva";
 import { useSimulatorStore } from "../../store";
 import { useStageSize } from "./useStageSize";
@@ -11,10 +11,8 @@ const DEMO_MOTION_INTERVAL_MS = 60_000;
 export function FoundryStage() {
   const { width, height } = useStageSize();
   const layout = getStageLayout(width, height);
-  const [animTime, setAnimTime] = useState(0);
 
   const init = useSimulatorStore((s) => s.init);
-  const tick = useSimulatorStore((s) => s.tick);
   const addCubeToChain = useSimulatorStore((s) => s.addCubeToChain);
   const chain = useSimulatorStore((s) => s.chain);
   const productMode = useSimulatorStore((s) => s.productMode);
@@ -30,21 +28,6 @@ export function FoundryStage() {
   useEffect(() => {
     init();
   }, [init]);
-
-  useEffect(() => {
-    const interval = setInterval(tick, 50);
-    return () => clearInterval(interval);
-  }, [tick]);
-
-  useEffect(() => {
-    let frame: number;
-    const loop = (t: number) => {
-      setAnimTime(t);
-      frame = requestAnimationFrame(loop);
-    };
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
-  }, []);
 
   useEffect(() => {
     if (!productMode || !hasMotion || !outputState.powered) return;
@@ -79,10 +62,14 @@ export function FoundryStage() {
 
   return (
     <Stage width={width} height={height}>
-      <Layer>
+      <Layer listening={false}>
         <Rect x={0} y={0} width={width} height={height} fill={bgFill} />
-        <ChainStrip layout={layout} animTime={animTime} />
-        <CubeShelf layout={layout} animTime={animTime} onDropToChain={onDropToChain} />
+      </Layer>
+      <Layer>
+        <CubeShelf layout={layout} onDropToChain={onDropToChain} />
+      </Layer>
+      <Layer>
+        <ChainStrip layout={layout} />
       </Layer>
     </Stage>
   );

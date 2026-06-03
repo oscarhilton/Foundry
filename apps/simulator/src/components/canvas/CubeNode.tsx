@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import type Konva from "konva";
 import { Group } from "react-konva";
 import type { CubeDefinition } from "@foundry/cube-defs";
@@ -23,7 +23,7 @@ import { TimeVisual } from "./cubes/TimeVisual";
 import { RandomVisual } from "./cubes/RandomVisual";
 import { COLORS } from "./design-tokens";
 import { lerp } from "./animations";
-import { useEffectTimestamps } from "./effect-timestamps";
+import { EMPTY_EFFECT_TIMESTAMPS, type EffectTimestamps } from "./effect-timestamps";
 
 export interface CubeVisualState {
   outputState: FoundryOutputState;
@@ -32,6 +32,7 @@ export interface CubeVisualState {
   powered: boolean;
   debugOpen: boolean;
   inChain: boolean;
+  effectTimestamps?: EffectTimestamps;
   isPrimaryLight?: boolean;
   isPrimaryDial?: boolean;
   isPrimaryChime?: boolean;
@@ -141,7 +142,7 @@ function getStatusLed(
   }
 }
 
-export function CubeNode({
+function CubeNodeInner({
   definition,
   x,
   y,
@@ -159,6 +160,7 @@ export function CubeNode({
   onSliderChange,
 }: CubeNodeProps) {
   const { outputState, animTime, recipeActive, powered, inChain } = visualState;
+  const effects = visualState.effectTimestamps ?? EMPTY_EFFECT_TIMESTAMPS;
   const id = definition.id;
   const showPowered = !inChain || powered;
   const inactiveOutput = visualState.isInactiveLight === true;
@@ -170,8 +172,6 @@ export function CubeNode({
   const dt = Math.min(50, animTime - lastFrame.current);
   lastFrame.current = animTime;
   displayOpacity.current = lerp(displayOpacity.current, targetOpacity, Math.min(1, dt / 300));
-
-  const effects = useEffectTimestamps();
 
   const statusLed = getStatusLed(
     id,
@@ -361,3 +361,15 @@ export function CubeNode({
     </Group>
   );
 }
+
+export const CubeNode = memo(CubeNodeInner, (prev, next) => {
+  if (!next.visualState.inChain) {
+    return (
+      prev.definition.id === next.definition.id &&
+      prev.dragScale === next.dragScale &&
+      prev.opacity === next.opacity &&
+      prev.visualState === next.visualState
+    );
+  }
+  return false;
+});

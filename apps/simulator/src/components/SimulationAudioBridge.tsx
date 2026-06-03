@@ -20,15 +20,13 @@ export function SimulationAudioBridge() {
   const prevMusicNote = useRef<number | null>(null);
   const seenSignalIds = useRef(new Set<string>());
 
-  const {
-    markChime,
-    markButton,
-    markMotion,
-    markDisplayChange,
-    markLcdChange,
-    markMusicNote,
-    markPowered,
-  } = useEffectTimestamps();
+  const markChime = useEffectTimestamps((s) => s.markChime);
+  const markButton = useEffectTimestamps((s) => s.markButton);
+  const markMotion = useEffectTimestamps((s) => s.markMotion);
+  const markDisplayChange = useEffectTimestamps((s) => s.markDisplayChange);
+  const markLcdChange = useEffectTimestamps((s) => s.markLcdChange);
+  const markMusicNote = useEffectTimestamps((s) => s.markMusicNote);
+  const markPowered = useEffectTimestamps((s) => s.markPowered);
 
   useEffect(() => {
     const unlock = async () => {

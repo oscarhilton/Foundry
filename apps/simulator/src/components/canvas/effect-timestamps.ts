@@ -11,6 +11,17 @@ export interface EffectTimestamps {
   poweredAt: number;
 }
 
+export const EMPTY_EFFECT_TIMESTAMPS: EffectTimestamps = {
+  chimeFiredAt: 0,
+  buttonFiredAt: 0,
+  motionFiredAt: 0,
+  displayChangedAt: 0,
+  lcdChangedAt: 0,
+  musicNoteFiredAt: 0,
+  lastMusicNote: null,
+  poweredAt: 0,
+};
+
 interface EffectTimestampState extends EffectTimestamps {
   markChime: () => void;
   markButton: () => void;

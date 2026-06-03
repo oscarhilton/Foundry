@@ -1,4 +1,4 @@
-import type { ParsedChain } from "./chain-parser.js";
+import type { ParsedChain, ParsedChainSlot } from "./chain-parser.js";
 
 export interface PlaceProfile {
   id: string;
@@ -29,10 +29,7 @@ const PLACE_DEFAULTS: Record<
 const FALLBACK_LAT = 51.5074;
 const FALLBACK_LON = -0.1278;
 
-export function resolvePlaceProfile(chain: ParsedChain): PlaceProfile | null {
-  const place = chain.place;
-  if (!place) return null;
-
+function buildPlaceProfile(place: ParsedChainSlot): PlaceProfile {
   const meta = place.definition.metadata ?? {};
   const defaults = PLACE_DEFAULTS[place.definition.id] ?? {
     timezone: "UTC",
@@ -54,6 +51,16 @@ export function resolvePlaceProfile(chain: ParsedChain): PlaceProfile | null {
     mockBaseTemp: defaults.mockBaseTemp,
     mockRainBias: defaults.mockRainBias,
   };
+}
+
+export function resolvePlaceProfile(chain: ParsedChain): PlaceProfile | null {
+  const place = chain.place;
+  if (!place) return null;
+  return buildPlaceProfile(place);
+}
+
+export function resolvePlaceProfiles(chain: ParsedChain): PlaceProfile[] {
+  return chain.places.map(buildPlaceProfile);
 }
 
 export function hourFractionInTimezone(timezone: string, now = new Date()): number {

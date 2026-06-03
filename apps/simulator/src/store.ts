@@ -49,6 +49,26 @@ function syncRecipeTiming(
   }
 }
 
+function applyEngineOutput(
+  get: () => SimulatorState,
+  set: (partial: Partial<SimulatorState>) => void,
+  extra?: Partial<SimulatorState>,
+) {
+  const eng = getEngine();
+  const state = eng.getOutputState();
+  const patch: Partial<SimulatorState> = {
+    outputState: state,
+    activeRecipeName: state.activeRecipeName,
+    warnings: state.warnings,
+    ...extra,
+  };
+  if (get().showCoreDebug) {
+    patch.coreDebugSnapshot = eng.getCoreDebugSnapshot();
+  }
+  set(patch);
+  syncRecipeTiming(get, set, state.activeRecipeName);
+}
+
 function syncEngine(get: () => SimulatorState, set: (partial: Partial<SimulatorState>) => void) {
   const e = getEngine();
   e.setChain(get().chain.map((c) => ({
@@ -56,14 +76,8 @@ function syncEngine(get: () => SimulatorState, set: (partial: Partial<SimulatorS
     definitionId: c.definitionId,
   })));
   e.setLiveWeather(get().useLiveWeather);
-  const state = e.getOutputState();
-  set({
-    outputState: state,
-    activeRecipeName: state.activeRecipeName,
-    warnings: state.warnings,
-    coreDebugSnapshot: e.getCoreDebugSnapshot(),
-  });
-  syncRecipeTiming(get, set, state.activeRecipeName);
+  applyEngineOutput(get, set);
+  const state = get().outputState;
   if (state.activeRecipeName && get().onboarding.flowHintActive) {
     set({ onboarding: { ...get().onboarding, flowHintActive: false } });
   }
@@ -120,7 +134,6 @@ export interface SimulatorState {
   dismissFlowHint: () => void;
   exportChain: () => string;
   importChain: (json: string) => void;
-  tick: () => void;
   setAudioUnlocked: (unlocked: boolean) => void;
   toggleSound: () => void;
   showShareToast: (message: string) => void;
@@ -188,11 +201,16 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       dialDefault: 0.65,
       onSignal: (msg) => {
         const eng = getEngine();
-        set((s) => ({
-          signalLog: [msg, ...s.signalLog].slice(0, 200),
-          outputState: eng.getOutputState(),
-          coreDebugSnapshot: eng.getCoreDebugSnapshot(),
-        }));
+        set((s) => {
+          const patch: Partial<SimulatorState> = {
+            signalLog: [msg, ...s.signalLog].slice(0, 200),
+            outputState: eng.getOutputState(),
+          };
+          if (s.showCoreDebug) {
+            patch.coreDebugSnapshot = eng.getCoreDebugSnapshot();
+          }
+          return patch;
+        });
       },
     });
     engine.start();
@@ -268,11 +286,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   setDialPosition: (value) => {
     const prev = get().outputState.dialPosition;
     getEngine().setDialPosition(value);
-    const eng = getEngine();
     const onboarding = get().onboarding;
-    set({
-      outputState: eng.getOutputState(),
-      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
+    applyEngineOutput(get, set, {
       onboarding:
         !onboarding.hasUsedDial && Math.abs(value - prev) > 0.02
           ? { ...onboarding, hasUsedDial: true }
@@ -282,29 +297,17 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
   setSliderPosition: (value) => {
     getEngine().setSliderPosition(value);
-    const eng = getEngine();
-    set({
-      outputState: eng.getOutputState(),
-      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
-    });
+    applyEngineOutput(get, set);
   },
 
   setPowerSource: (source) => {
     getEngine().setPowerSource(source);
-    const eng = getEngine();
-    set({
-      outputState: eng.getOutputState(),
-      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
-    });
+    applyEngineOutput(get, set);
   },
 
   setBatteryPercent: (percent) => {
     getEngine().setBatteryPercent(percent);
-    const eng = getEngine();
-    set({
-      outputState: eng.getOutputState(),
-      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
-    });
+    applyEngineOutput(get, set);
   },
 
   togglePowerSource: () => {
@@ -314,20 +317,12 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
   triggerMotion: () => {
     getEngine().triggerMotion();
-    const eng = getEngine();
-    set({
-      outputState: eng.getOutputState(),
-      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
-    });
+    applyEngineOutput(get, set);
   },
 
   triggerButton: () => {
     getEngine().triggerButton();
-    const eng = getEngine();
-    set({
-      outputState: eng.getOutputState(),
-      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
-    });
+    applyEngineOutput(get, set);
   },
 
   toggleProductMode: () => {
@@ -358,7 +353,17 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     shareToastTimer = setTimeout(() => set({ shareToast: null }), 3000);
   },
 
-  toggleCoreDebug: () => set({ showCoreDebug: !get().showCoreDebug }),
+  toggleCoreDebug: () => {
+    const next = !get().showCoreDebug;
+    if (next) {
+      set({
+        showCoreDebug: true,
+        coreDebugSnapshot: getEngine().getCoreDebugSnapshot(),
+      });
+    } else {
+      set({ showCoreDebug: false });
+    }
+  },
 
   openCoreDebug: () => {
     const eng = getEngine();
@@ -415,14 +420,6 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     } catch {
       // ignore invalid JSON
     }
-  },
-
-  tick: () => {
-    const eng = getEngine();
-    set({
-      outputState: eng.getOutputState(),
-      coreDebugSnapshot: eng.getCoreDebugSnapshot(),
-    });
   },
 
   setAudioUnlocked: (unlocked) => set({ audioUnlocked: unlocked }),

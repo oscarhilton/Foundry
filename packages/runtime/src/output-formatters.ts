@@ -1,3 +1,6 @@
+import type { PlaceProfile } from "./place-profile.js";
+import { hourFractionInTimezone } from "./place-profile.js";
+
 export interface OutputFormatState {
   timeHour: number | null;
   sensorTemp: number | null;
@@ -15,6 +18,14 @@ export function formatTime(timeHour: number | null | undefined): string {
   const hours = Math.floor(totalMinutes / 60) % 24;
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+export function formatPlaceTime(
+  label: string,
+  timezone: string,
+  now = new Date(),
+): string {
+  return `${label} ${formatTime(hourFractionInTimezone(timezone, now))}`;
 }
 
 export function formatTemp(sensorTemp: number | null | undefined): string {
@@ -67,8 +78,7 @@ export interface LcdSegmentContext {
   hasTimeSource: boolean;
   hasDial: boolean;
   hasSlider: boolean;
-  hasPlace: boolean;
-  placeLabel: string | null;
+  places: PlaceProfile[];
   hasCalm: boolean;
   hasRandom: boolean;
   hasButton: boolean;
@@ -84,10 +94,15 @@ export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
     segments.push(formatWeather(fmt.weatherTemp, fmt.weatherRain));
   }
   if (ctx.hasGithub) segments.push(formatGithub(fmt.githubActivity));
-  if (ctx.hasTimeSource) segments.push(formatTime(fmt.timeHour));
+  if (ctx.places.length > 0) {
+    for (const place of ctx.places) {
+      segments.push(formatPlaceTime(place.label, place.timezone));
+    }
+  } else if (ctx.hasTimeSource) {
+    segments.push(formatTime(fmt.timeHour));
+  }
   if (ctx.hasDial) segments.push(formatControlPercent(fmt.dialPosition));
   if (ctx.hasSlider) segments.push(formatControlPercent(fmt.sliderPosition));
-  if (ctx.hasPlace && ctx.placeLabel) segments.push(ctx.placeLabel);
   if (ctx.hasCalm) segments.push("CALM");
   if (ctx.hasRandom) segments.push("RND");
   if (ctx.hasButton) segments.push("BTN");

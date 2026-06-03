@@ -332,6 +332,18 @@ export const PRESET_CHAINS: PresetChain[] = [
       "core/core",
     ],
   },
+  {
+    id: "dual-city-time-lcd",
+    name: "World Clock LCD",
+    description: "Local time in London and Tokyo on backlit LCD",
+    cubes: [
+      "identity/london",
+      "identity/tokyo",
+      "source/time",
+      "output/lcd",
+      "core/core",
+    ],
+  },
 ];
 
 /** Starter kit cubes for delight validation and first hardware SKU. */

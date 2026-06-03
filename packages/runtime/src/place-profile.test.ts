@@ -3,6 +3,7 @@ import { parseChain } from "./chain-parser.js";
 import {
   hourFractionInTimezone,
   resolvePlaceProfile,
+  resolvePlaceProfiles,
 } from "./place-profile.js";
 
 function chainWith(...definitionIds: string[]) {
@@ -40,6 +41,21 @@ describe("resolvePlaceProfile", () => {
     expect(
       resolvePlaceProfile(chainWith("identity/weather", "core/core")),
     ).toBeNull();
+  });
+});
+
+describe("resolvePlaceProfiles", () => {
+  it("returns both London and Tokyo in chain order", () => {
+    const profiles = resolvePlaceProfiles(
+      chainWith("identity/london", "identity/tokyo", "core/core"),
+    );
+    expect(profiles).toHaveLength(2);
+    expect(profiles[0]?.id).toBe("identity/london");
+    expect(profiles[1]?.id).toBe("identity/tokyo");
+  });
+
+  it("returns empty array when no place cubes", () => {
+    expect(resolvePlaceProfiles(chainWith("core/core"))).toEqual([]);
   });
 });
 

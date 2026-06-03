@@ -1,19 +1,60 @@
 import { useRef, useState } from "react";
 import { Group, Text } from "react-konva";
 import type Konva from "konva";
+import type { FoundryOutputState } from "@foundry/runtime";
 import { CUBE_DEFINITIONS, STARTER_CUBE_IDS } from "@foundry/cube-defs";
 import { useSimulatorStore } from "../../store";
 import { getShelfSlotPosition, type StageLayout } from "./layout";
 import { CubeNode, type CubeVisualState } from "./CubeNode";
 import { tweenTo } from "./animations";
+import { EMPTY_EFFECT_TIMESTAMPS } from "./effect-timestamps";
 
 interface CubeShelfProps {
   layout: StageLayout;
-  animTime: number;
   onDropToChain: (definitionId: string, x: number, y: number) => boolean;
 }
 
-export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
+const SHELF_OUTPUT_STATE: FoundryOutputState = {
+  powered: false,
+  coreCount: 0,
+  lightBrightness: 0.02,
+  chimeTriggered: false,
+  chimeCount: 0,
+  activeRecipeId: null,
+  activeRecipeName: null,
+  warnings: [],
+  placeLabel: null,
+  placeId: null,
+  placeTimezone: null,
+  weatherTemp: null,
+  weatherRain: null,
+  dialPosition: 0.65,
+  sliderPosition: 0.5,
+  motionDetected: false,
+  buttonPressed: false,
+  githubActivity: null,
+  musicNote: null,
+  musicVelocity: null,
+  displayText: null,
+  lcdText: null,
+  lcdTexts: {},
+  sensorTemp: null,
+  timeHour: null,
+  powerSource: "usb",
+  batteryPercent: 100,
+};
+
+const SHELF_VISUAL_STATE: CubeVisualState = {
+  outputState: SHELF_OUTPUT_STATE,
+  animTime: 0,
+  recipeActive: false,
+  powered: false,
+  debugOpen: false,
+  inChain: false,
+  effectTimestamps: EMPTY_EFFECT_TIMESTAMPS,
+};
+
+export function CubeShelf({ layout, onDropToChain }: CubeShelfProps) {
   const productMode = useSimulatorStore((s) => s.productMode);
   const showExtendedCubes = useSimulatorStore((s) => s.showExtendedCubes);
   const toggleExtendedCubes = useSimulatorStore((s) => s.toggleExtendedCubes);
@@ -29,43 +70,6 @@ export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
 
   const row1 = visibleCubes.filter((_, i) => i < Math.ceil(visibleCubes.length / 2));
   const row2 = visibleCubes.filter((_, i) => i >= Math.ceil(visibleCubes.length / 2));
-
-  const visualState: CubeVisualState = {
-    outputState: {
-      powered: false,
-      coreCount: 0,
-      lightBrightness: 0.02,
-      chimeTriggered: false,
-      chimeCount: 0,
-      activeRecipeId: null,
-      activeRecipeName: null,
-      warnings: [],
-      placeLabel: null,
-      placeId: null,
-      placeTimezone: null,
-      weatherTemp: null,
-      weatherRain: null,
-      dialPosition: 0.65,
-      sliderPosition: 0.5,
-      motionDetected: false,
-      buttonPressed: false,
-      githubActivity: null,
-      musicNote: null,
-      musicVelocity: null,
-      displayText: null,
-      lcdText: null,
-      lcdTexts: {},
-      sensorTemp: null,
-      timeHour: null,
-      powerSource: "usb",
-      batteryPercent: 100,
-    },
-    animTime,
-    recipeActive: false,
-    powered: false,
-    debugOpen: false,
-    inChain: false,
-  };
 
   const renderRow = (cubes: typeof CUBE_DEFINITIONS, row: 0 | 1) =>
     cubes.map((def, index) => {
@@ -90,7 +94,7 @@ export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
             draggable
             dragScale={isDragging ? 1.06 : 1}
             opacity={isDragging ? 0.85 : 1}
-            visualState={visualState}
+            visualState={SHELF_VISUAL_STATE}
             onDragStart={() => setDraggingId(def.id)}
             onDragEnd={(dragX, dragY, node) => {
               setDraggingId(null);
@@ -114,6 +118,7 @@ export function CubeShelf({ layout, animTime, onDropToChain }: CubeShelfProps) {
   return (
     <Group>
       <Text
+        listening={false}
         x={40}
         y={layout.shelfRow1Y - 24}
         text={hintText}

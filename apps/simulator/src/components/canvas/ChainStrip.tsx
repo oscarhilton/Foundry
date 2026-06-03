@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { Group, Arrow, Line, Text } from "react-konva";
 import type Konva from "konva";
 import { getDefinition, useSimulatorStore } from "../../store";
@@ -12,10 +13,11 @@ import {
 } from "./layout";
 import { CubeNode, type CubeVisualState } from "./CubeNode";
 import { tweenTo } from "./animations";
+import { useAnimTime } from "./useAnimTime";
+import { useEffectTimestamps } from "./effect-timestamps";
 
 interface ChainStripProps {
   layout: StageLayout;
-  animTime: number;
 }
 
 function firstId(chain: { instanceId: string; definitionId: string }[], defId: string) {
@@ -24,7 +26,8 @@ function firstId(chain: { instanceId: string; definitionId: string }[], defId: s
 
 const DIAL_HINT_DELAY_MS = 10_000;
 
-export function ChainStrip({ layout, animTime }: ChainStripProps) {
+export function ChainStrip({ layout }: ChainStripProps) {
+  const animTime = useAnimTime();
   const chain = useSimulatorStore((s) => s.chain);
   const outputState = useSimulatorStore((s) => s.outputState);
   const activeRecipeName = useSimulatorStore((s) => s.activeRecipeName);
@@ -41,6 +44,19 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
   const triggerButton = useSimulatorStore((s) => s.triggerButton);
   const openCoreDebug = useSimulatorStore((s) => s.openCoreDebug);
   const dismissFlowHint = useSimulatorStore((s) => s.dismissFlowHint);
+
+  const effectTimestamps = useEffectTimestamps(
+    useShallow((s) => ({
+      chimeFiredAt: s.chimeFiredAt,
+      buttonFiredAt: s.buttonFiredAt,
+      motionFiredAt: s.motionFiredAt,
+      displayChangedAt: s.displayChangedAt,
+      lcdChangedAt: s.lcdChangedAt,
+      musicNoteFiredAt: s.musicNoteFiredAt,
+      lastMusicNote: s.lastMusicNote,
+      poweredAt: s.poweredAt,
+    })),
+  );
 
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -99,6 +115,7 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
     powered: outputState.powered,
     debugOpen: showCoreDebug,
     inChain: true,
+    effectTimestamps,
   };
 
   const primaryLightId = firstId(chain, "output/light");
@@ -167,6 +184,7 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
   return (
     <Group>
       <Line
+        listening={false}
         points={[40, layout.shelfRow1Y - 36, layout.width - 40, layout.shelfRow1Y - 36]}
         stroke="#E5E7EB"
         strokeWidth={1}
@@ -174,6 +192,7 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
 
       {showOrderHint && (
         <Text
+          listening={false}
           x={layout.width / 2 - 95}
           y={layout.chainY - 28}
           text="Read left to right →"
@@ -186,6 +205,7 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
 
       {chain.length === 0 && (
         <Text
+          listening={false}
           x={hintX}
           y={layout.chainY + CUBE_SIZE / 2 - 8}
           text="Drag cubes from the shelf — include Core for power"
@@ -208,6 +228,7 @@ export function ChainStrip({ layout, animTime }: ChainStripProps) {
           <Group key={cube.instanceId}>
             {index > 0 && (
               <Arrow
+                listening={false}
                 points={[
                   pos.x - CONNECTOR_W,
                   pos.y + CUBE_SIZE / 2,

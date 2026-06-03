@@ -1,7 +1,15 @@
+import { lazy, Suspense } from "react";
 import { useSimulatorStore, PRESET_CHAINS, HERO_PRESET_IDS } from "../store";
-import { SignalLog } from "./SignalLog";
-import { CoreDebugPanel } from "./CoreDebugPanel";
-import { ValidationPanel } from "./ValidationPanel";
+
+const SignalLog = lazy(() =>
+  import("./SignalLog").then((m) => ({ default: m.SignalLog })),
+);
+const CoreDebugPanel = lazy(() =>
+  import("./CoreDebugPanel").then((m) => ({ default: m.CoreDebugPanel })),
+);
+const ValidationPanel = lazy(() =>
+  import("./ValidationPanel").then((m) => ({ default: m.ValidationPanel })),
+);
 
 export function OverlayHUD() {
   const productMode = useSimulatorStore((s) => s.productMode);
@@ -232,8 +240,14 @@ export function OverlayHUD() {
         </div>
       </div>
 
-      {showCoreDebug && <CoreDebugPanel />}
-      <ValidationPanel />
+      {showCoreDebug && (
+        <Suspense fallback={null}>
+          <CoreDebugPanel />
+        </Suspense>
+      )}
+      <Suspense fallback={null}>
+        <ValidationPanel />
+      </Suspense>
 
       <div
         className={`fixed top-0 right-0 h-full w-80 z-20 bg-white border-l border-foundry-border shadow-lg transition-transform duration-300 pointer-events-auto ${
@@ -241,7 +255,9 @@ export function OverlayHUD() {
         }`}
       >
         <div className="p-4 h-full flex flex-col">
-          <SignalLog />
+          <Suspense fallback={null}>
+            <SignalLog />
+          </Suspense>
         </div>
       </div>
     </>

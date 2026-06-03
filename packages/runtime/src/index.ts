@@ -26,6 +26,7 @@ import {
 import {
   defaultLiveWeatherCoords,
   resolvePlaceProfile,
+  resolvePlaceProfiles,
   hourFractionInTimezone,
   type PlaceProfile,
 } from "./place-profile.js";
@@ -575,8 +576,7 @@ export class FoundryEngine {
       hasTimeSource: hasTimeSource(chain),
       hasDial: chain.cubes.some((c) => c.definition.id === "control/dial"),
       hasSlider: chain.cubes.some((c) => c.definition.id === "control/slider"),
-      hasPlace: chain.place !== undefined,
-      placeLabel: chain.place?.definition.label ?? null,
+      places: resolvePlaceProfiles(chain),
       hasCalm: chain.cubes.some((c) => c.definition.id === "modifier/calm"),
       hasRandom: chain.cubes.some((c) => c.definition.id === "modifier/random"),
       hasButton: chain.cubes.some((c) => c.definition.id === "control/button"),

@@ -262,7 +262,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const state = engine.getOutputState();
-    expect(state.lcdText).toBe("18°C 40% London");
+    expect(state.lcdText).toMatch(/^18°C 40% London \d{2}:\d{2}$/);
 
     engine.destroy();
   });
@@ -282,7 +282,9 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toBe("18°C 40% 50% London 40%");
+    expect(state.lcdText).toMatch(
+      /^18°C 40% London \d{2}:\d{2} 50% \d+%$/,
+    );
 
     engine.destroy();
   });
@@ -607,6 +609,52 @@ describe("FoundryEngine", () => {
     const state = engine.getOutputState();
     expect(state.placeTimezone).toBe("Europe/London");
     expect(state.timeHour).not.toBeNull();
+
+    engine.destroy();
+  });
+
+  it("shows London and Tokyo local times on single LCD", () => {
+    engine.setChain([
+      { instanceId: "london", definitionId: "identity/london" },
+      { instanceId: "tokyo", definitionId: "identity/tokyo" },
+      { instanceId: "time", definitionId: "source/time" },
+      { instanceId: "lcd", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+
+    const { lcdText } = engine.getOutputState();
+    expect(lcdText).toMatch(/^London \d{2}:\d{2} Tokyo \d{2}:\d{2}$/);
+
+    engine.destroy();
+  });
+
+  it("splits London and Tokyo times across two LCDs", () => {
+    engine.setChain([
+      { instanceId: "london", definitionId: "identity/london" },
+      { instanceId: "tokyo", definitionId: "identity/tokyo" },
+      { instanceId: "time", definitionId: "source/time" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toMatch(/^London \d{2}:\d{2}$/);
+    expect(lcdTexts.lcd2).toMatch(/^Tokyo \d{2}:\d{2}$/);
+
+    engine.destroy();
+  });
+
+  it("shows single London time on LCD without duplicate label", () => {
+    engine.setChain(
+      withCore("identity/london", "source/time", "output/lcd"),
+    );
+    engine.start();
+
+    const { lcdText } = engine.getOutputState();
+    expect(lcdText).toMatch(/^London \d{2}:\d{2}$/);
 
     engine.destroy();
   });

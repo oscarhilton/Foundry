@@ -142,6 +142,8 @@ Place cubes (`identity/london`, `identity/tokyo`) carry `lat`, `lon`, and `timez
 
 Swapping London for Tokyo changes weather character and local time immediately on chain rebind.
 
+When multiple place cubes are in a powered chain with LCD output, each place contributes a **local time segment** (e.g. `London 14:30`, `Tokyo 22:30`), computed from that place's timezone. One LCD concatenates all cities; multiple LCD modules split one city per display when there are enough segments.
+
 ## Behaviour Recipes
 
 Recipes match chain patterns and wire signal subscriptions:

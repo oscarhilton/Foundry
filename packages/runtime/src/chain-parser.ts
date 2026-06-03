@@ -10,6 +10,7 @@ export interface ParsedChainSlot {
 
 export interface ParsedChain {
   cubes: ParsedChainSlot[];
+  places: ParsedChainSlot[];
   place?: ParsedChainSlot;
   sources: ParsedChainSlot[];
   modifiers: ParsedChainSlot[];
@@ -40,7 +41,8 @@ export function parseChain(cubes: ChainCubeInput[]): ParsedChain {
     parsed.push({ instanceId: cube.instanceId, definition });
   }
 
-  const place = parsed.find((c) => c.definition.role === "place");
+  const places = parsed.filter((c) => c.definition.role === "place");
+  const place = places[0];
   const sources = parsed.filter((c) => c.definition.role === "source");
   const modifiers = parsed.filter((c) => c.definition.role === "modifier");
   const controls = parsed.filter((c) => c.definition.role === "control");
@@ -66,6 +68,7 @@ export function parseChain(cubes: ChainCubeInput[]): ParsedChain {
 
   const chain: ParsedChain = {
     cubes: parsed,
+    places,
     place,
     sources,
     modifiers,
