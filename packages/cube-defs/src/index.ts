@@ -4,6 +4,7 @@ export type {
   CubeRegister,
   CubeTopics,
   CubeDefinition,
+  OutputModality,
   ChainCubeInstance,
   PresetChain,
 } from "./schema.js";
@@ -15,6 +16,9 @@ export {
   HERO_PRESET_IDS,
   getCubeDefinition,
   getCubesByCategory,
+  getOutputModality,
+  isAudioOutput,
+  isVisualOutput,
 } from "./cubes.js";
 
 export {

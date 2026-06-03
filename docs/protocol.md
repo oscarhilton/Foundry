@@ -132,6 +132,17 @@ Left-to-right pipeline:
 
 **Conflict rule:** nearest control to output binds first.
 
+### Output modalities
+
+Outputs are split into two modalities (see `outputModality` on cube descriptors):
+
+| Modality | Cubes | Conflict rule |
+|----------|-------|---------------|
+| **Visual** | Light, Display, LCD | Only the **last** visual output in the chain is active |
+| **Audio** | Music, Chime | Can run in parallel with visual outputs; only the **first** cube of each audio type is active |
+
+Audio and visual outputs do not conflict — a chain may include both Light and Music. Signal `source` fields use the target cube's instance id (e.g. music notes publish with the Music cube's id).
+
 ### Place cubes drive adapters
 
 Place cubes (`identity/london`, `identity/tokyo`) carry `lat`, `lon`, and `timezone` in their descriptor metadata. When a place cube is in a powered chain:

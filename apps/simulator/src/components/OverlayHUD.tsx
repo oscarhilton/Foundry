@@ -43,7 +43,7 @@ export function OverlayHUD() {
   const visiblePresets =
     productMode && !showAllPresets ? heroPresets : PRESET_CHAINS;
   const multipleLightsWarning = warnings.some((w) =>
-    w.includes("Multiple outputs"),
+    w.includes("Multiple visual outputs"),
   );
 
   const handleExport = () => {
@@ -80,7 +80,7 @@ export function OverlayHUD() {
       {multipleLightsWarning && outputState.powered && (
         <div className="fixed top-28 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
           <span className="pointer-events-auto text-xs px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-gray-700">
-            One light drives the chain — extra outputs stay dim
+            One visual output drives the chain — extra displays stay dim
           </span>
         </div>
       )}

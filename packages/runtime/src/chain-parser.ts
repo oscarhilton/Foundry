@@ -1,5 +1,7 @@
 import {
   getCubeDefinition,
+  isAudioOutput,
+  isVisualOutput,
   type CubeDefinition,
 } from "@foundry/cube-defs";
 
@@ -17,6 +19,8 @@ export interface ParsedChain {
   controls: ParsedChainSlot[];
   sensors: ParsedChainSlot[];
   outputs: ParsedChainSlot[];
+  visualOutputs: ParsedChainSlot[];
+  audioOutputs: ParsedChainSlot[];
   hasCore: boolean;
   coreCount: number;
   powered: boolean;
@@ -48,6 +52,8 @@ export function parseChain(cubes: ChainCubeInput[]): ParsedChain {
   const controls = parsed.filter((c) => c.definition.role === "control");
   const sensors = parsed.filter((c) => c.definition.role === "sensor");
   const outputs = parsed.filter((c) => c.definition.role === "output");
+  const visualOutputs = outputs.filter((c) => isVisualOutput(c.definition.id));
+  const audioOutputs = outputs.filter((c) => isAudioOutput(c.definition.id));
   const coreCount = parsed.filter((c) => c.definition.role === "core").length;
   const hasCore = coreCount > 0;
 
@@ -57,8 +63,18 @@ export function parseChain(cubes: ChainCubeInput[]): ParsedChain {
     warnings.push("Multiple Core cubes detected — chain unpowered");
   }
 
-  if (outputs.length > 1) {
-    warnings.push("Multiple outputs detected; only the last output is active");
+  if (visualOutputs.length > 1) {
+    warnings.push(
+      "Multiple visual outputs detected; only the last visual output is active",
+    );
+  }
+  const musicOutputs = audioOutputs.filter((c) => c.definition.id === "output/music");
+  const chimeOutputs = audioOutputs.filter((c) => c.definition.id === "output/chime");
+  if (musicOutputs.length > 1) {
+    warnings.push("Multiple Music cubes detected; only the first is active");
+  }
+  if (chimeOutputs.length > 1) {
+    warnings.push("Multiple Chime cubes detected; only the first is active");
   }
   if (controls.length > 1 && outputs.length > 0) {
     warnings.push(
@@ -75,6 +91,8 @@ export function parseChain(cubes: ChainCubeInput[]): ParsedChain {
     controls,
     sensors,
     outputs,
+    visualOutputs,
+    audioOutputs,
     hasCore,
     coreCount,
     powered: false,
@@ -114,16 +132,24 @@ export function chainHasPattern(
   return true;
 }
 
+function getControlAnchorOutput(chain: ParsedChain): ParsedChainSlot | undefined {
+  return (
+    getActiveVisualOutput(chain) ??
+    chain.outputs[chain.outputs.length - 1]
+  );
+}
+
 export function getNearestControl(
   chain: ParsedChain,
 ): ParsedChainSlot | undefined {
   if (chain.controls.length === 0) return undefined;
-  if (chain.outputs.length === 0) {
+  const anchor = getControlAnchorOutput(chain);
+  if (!anchor) {
     return chain.controls[chain.controls.length - 1];
   }
 
   const outputIdx = chain.cubes.findIndex(
-    (c) => c.instanceId === chain.outputs[chain.outputs.length - 1].instanceId,
+    (c) => c.instanceId === anchor.instanceId,
   );
 
   let nearest: ParsedChainSlot | undefined;
@@ -145,10 +171,31 @@ export function getNearestControl(
   return nearest ?? chain.controls[chain.controls.length - 1];
 }
 
+export function getActiveVisualOutput(
+  chain: ParsedChain,
+): ParsedChainSlot | undefined {
+  return chain.visualOutputs[chain.visualOutputs.length - 1];
+}
+
+/** @deprecated Use getActiveVisualOutput for visual routing. */
 export function getActiveOutput(
   chain: ParsedChain,
 ): ParsedChainSlot | undefined {
-  return chain.outputs[chain.outputs.length - 1];
+  return getActiveVisualOutput(chain) ?? chain.outputs[chain.outputs.length - 1];
+}
+
+export function getPrimaryAudioOutput(
+  chain: ParsedChain,
+  definitionId: string,
+): ParsedChainSlot | undefined {
+  return chain.audioOutputs.find((c) => c.definition.id === definitionId);
+}
+
+export function getPrimaryOutput(
+  chain: ParsedChain,
+  definitionId: string,
+): ParsedChainSlot | undefined {
+  return chain.cubes.find((c) => c.definition.id === definitionId);
 }
 
 export function hasWeatherSource(chain: ParsedChain): boolean {

@@ -1,8 +1,10 @@
 import type { ParsedChain } from "./chain-parser.js";
 import {
   chainHasPattern,
-  getActiveOutput,
+  getActiveVisualOutput,
   getNearestControl,
+  getPrimaryAudioOutput,
+  getPrimaryOutput,
   hasButtonControl,
   hasCalmModifier,
   hasChimeOutput,
@@ -149,6 +151,9 @@ export interface RecipeContext {
   useRandom: boolean;
   controlInstanceId?: string;
   outputInstanceId?: string;
+  lightInstanceId?: string;
+  musicInstanceId?: string;
+  chimeInstanceId?: string;
 }
 
 export function buildRecipeContext(chain: ParsedChain): RecipeContext | null {
@@ -156,7 +161,7 @@ export function buildRecipeContext(chain: ParsedChain): RecipeContext | null {
   if (!recipe) return null;
 
   const control = getNearestControl(chain);
-  const output = getActiveOutput(chain);
+  const visualOutput = getActiveVisualOutput(chain);
 
   return {
     chain,
@@ -165,6 +170,9 @@ export function buildRecipeContext(chain: ParsedChain): RecipeContext | null {
     useCalm: hasCalmModifier(chain),
     useRandom: chain.cubes.some((c) => c.definition.id === "modifier/random"),
     controlInstanceId: control?.instanceId,
-    outputInstanceId: output?.instanceId,
+    outputInstanceId: visualOutput?.instanceId,
+    lightInstanceId: getPrimaryOutput(chain, "output/light")?.instanceId,
+    musicInstanceId: getPrimaryAudioOutput(chain, "output/music")?.instanceId,
+    chimeInstanceId: getPrimaryAudioOutput(chain, "output/chime")?.instanceId,
   };
 }

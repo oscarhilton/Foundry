@@ -3,6 +3,8 @@ import {
   CUBE_DEFINITIONS,
   validateCubeDefinition,
   PRESET_CHAINS,
+  isAudioOutput,
+  isVisualOutput,
 } from "@foundry/cube-defs";
 
 describe("Cube definitions", () => {
@@ -40,7 +42,16 @@ describe("Cube definitions", () => {
     }
   });
 
-  it("has 13 presets", () => {
-    expect(PRESET_CHAINS.length).toBe(13);
+  it("has 14 presets", () => {
+    expect(PRESET_CHAINS.length).toBe(14);
+  });
+
+  it("classifies audio and visual output modalities", () => {
+    expect(isAudioOutput("output/music")).toBe(true);
+    expect(isAudioOutput("output/chime")).toBe(true);
+    expect(isVisualOutput("output/light")).toBe(true);
+    expect(isVisualOutput("output/display")).toBe(true);
+    expect(isVisualOutput("output/lcd")).toBe(true);
+    expect(isAudioOutput("output/light")).toBe(false);
   });
 });

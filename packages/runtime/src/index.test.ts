@@ -55,6 +55,26 @@ describe("ChainParser", () => {
     );
     expect(isChainPowered(chain)).toBe(false);
   });
+
+  it("does not warn when light and music are both present", () => {
+    const chain = parseChain(
+      withCore("output/light", "output/music"),
+    );
+    expect(chain.visualOutputs).toHaveLength(1);
+    expect(chain.audioOutputs).toHaveLength(1);
+    expect(
+      chain.warnings.some((w) => w.includes("Multiple visual outputs")),
+    ).toBe(false);
+  });
+
+  it("warns when multiple visual outputs are present", () => {
+    const chain = parseChain(
+      withCore("output/light", "output/display"),
+    );
+    expect(
+      chain.warnings.some((w) => w.includes("Multiple visual outputs")),
+    ).toBe(true);
+  });
 });
 
 describe("Recipes", () => {
@@ -653,6 +673,48 @@ describe("FoundryEngine", () => {
 
     const { lcdText } = engine.getOutputState();
     expect(lcdText).toMatch(/^London \d{2}:\d{2}$/);
+
+    engine.destroy();
+  });
+
+  it("allows light and music in the same chain without visual conflict warning", () => {
+    engine.setChain([
+      { instanceId: "tokyo", definitionId: "identity/tokyo" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "light", definitionId: "output/light" },
+      { instanceId: "music", definitionId: "output/music" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 22, rain: 0.2 });
+
+    const state = engine.getOutputState();
+    expect(
+      state.warnings.some((w) => w.includes("Multiple visual outputs")),
+    ).toBe(false);
+    expect(state.musicNote).not.toBeNull();
+    expect(state.activeRecipeId).toBe("tokyo-weather-music");
+
+    engine.destroy();
+  });
+
+  it("publishes music signals with the music cube instance id", () => {
+    const signals: SignalMessage[] = [];
+    engine.destroy();
+    engine = new FoundryEngine({
+      onSignal: (msg) => signals.push(msg),
+    });
+    engine.setChain([
+      { instanceId: "tokyo", definitionId: "identity/tokyo" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "music", definitionId: "output/music" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 22, rain: 0.2 });
+
+    const noteMsg = signals.find((m) => m.topic === "output/music/note");
+    expect(noteMsg?.source).toBe("music");
 
     engine.destroy();
   });

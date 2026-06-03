@@ -26,6 +26,8 @@ export interface CubeTopics {
   subscribe: string[];
 }
 
+export type OutputModality = "audio" | "visual";
+
 export interface CubeDefinition {
   schema: number;
   id: string;
@@ -34,6 +36,7 @@ export interface CubeDefinition {
   role: CubeRole;
   colorAccent: string;
   capabilities: string[];
+  outputModality?: OutputModality;
   metadata?: Record<string, unknown>;
   registers: CubeRegister[];
   topics: CubeTopics;

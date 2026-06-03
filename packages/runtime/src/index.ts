@@ -666,20 +666,28 @@ export class FoundryEngine {
     this.router.publish(
       "output/light/brightness",
       brightness,
-      this.context?.outputInstanceId ?? "runtime",
+      this.context?.lightInstanceId ??
+        this.context?.outputInstanceId ??
+        "runtime",
     );
   }
 
   private setMusicOutput(note: number, velocity: number): void {
     this.outputState.musicNote = note;
     this.outputState.musicVelocity = velocity;
-    this.router.publish("output/music/note", note, "runtime");
-    this.router.publish("output/music/velocity", velocity, "runtime");
+    const source =
+      this.context?.musicInstanceId ?? this.context?.outputInstanceId ?? "runtime";
+    this.router.publish("output/music/note", note, source);
+    this.router.publish("output/music/velocity", velocity, source);
   }
 
   private setDisplayText(text: string): void {
     this.outputState.displayText = text;
-    this.router.publish("output/display/text", text, "runtime");
+    this.router.publish(
+      "output/display/text",
+      text,
+      this.context?.outputInstanceId ?? "runtime",
+    );
   }
 
   private fireChime(): void {
@@ -687,14 +695,12 @@ export class FoundryEngine {
     this.chimeCount++;
     this.outputState.chimeTriggered = true;
     this.outputState.chimeCount = this.chimeCount;
-    this.router.publish(
-      "output/chime/trigger",
-      true,
-      this.context?.outputInstanceId ?? "runtime",
-    );
+    const source =
+      this.context?.chimeInstanceId ?? this.context?.outputInstanceId ?? "runtime";
+    this.router.publish("output/chime/trigger", true, source);
     setTimeout(() => {
       this.outputState.chimeTriggered = false;
-      this.router.publish("output/chime/trigger", false, "runtime");
+      this.router.publish("output/chime/trigger", false, source);
     }, 300);
   }
 

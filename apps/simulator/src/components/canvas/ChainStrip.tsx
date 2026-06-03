@@ -107,6 +107,8 @@ export function ChainStrip({ layout }: ChainStripProps) {
     | "isPrimarySlider"
     | "lcdText"
     | "isInactiveLight"
+    | "isInactiveMusic"
+    | "isInactiveChime"
     | "dialHintPulse"
   > = {
     outputState,
@@ -294,6 +296,8 @@ export function ChainStrip({ layout }: ChainStripProps) {
                   isPrimaryLight,
                   isPrimaryDial,
                   isInactiveLight: def.id === "output/light" && !isPrimaryLight,
+                  isInactiveMusic: def.id === "output/music" && cube.instanceId !== firstId(chain, "output/music"),
+                  isInactiveChime: def.id === "output/chime" && cube.instanceId !== firstId(chain, "output/chime"),
                   dialHintPulse: isPrimaryDial && dialHintEligible,
                   isPrimaryChime: cube.instanceId === firstId(chain, "output/chime"),
                   isPrimaryMusic: cube.instanceId === firstId(chain, "output/music"),

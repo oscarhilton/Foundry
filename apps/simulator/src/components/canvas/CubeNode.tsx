@@ -42,6 +42,8 @@ export interface CubeVisualState {
   isPrimaryButton?: boolean;
   isPrimarySlider?: boolean;
   isInactiveLight?: boolean;
+  isInactiveMusic?: boolean;
+  isInactiveChime?: boolean;
   dialHintPulse?: boolean;
 }
 
@@ -163,7 +165,10 @@ function CubeNodeInner({
   const effects = visualState.effectTimestamps ?? EMPTY_EFFECT_TIMESTAMPS;
   const id = definition.id;
   const showPowered = !inChain || powered;
-  const inactiveOutput = visualState.isInactiveLight === true;
+  const inactiveOutput =
+    visualState.isInactiveLight === true ||
+    visualState.isInactiveMusic === true ||
+    visualState.isInactiveChime === true;
   const baseOpacity = inactiveOutput ? 0.42 : opacity;
   const targetOpacity = (inChain && !powered ? 0.35 : baseOpacity) * (dragScale !== 1 ? 0.95 : 1);
 
@@ -237,21 +242,23 @@ function CubeNodeInner({
         />
       );
     }
-    if (id === "output/chime" && visualState.isPrimaryChime) {
+    if (id === "output/chime" && inChain && powered) {
       return (
         <ChimeVisual
-          triggered={outputState.chimeTriggered}
+          triggered={
+            visualState.isPrimaryChime ? outputState.chimeTriggered : false
+          }
           animTime={animTime}
-          chimeCount={outputState.chimeCount}
+          chimeCount={visualState.isPrimaryChime ? outputState.chimeCount : 0}
           chimeFiredAt={effects.chimeFiredAt}
         />
       );
     }
-    if (id === "output/music" && visualState.isPrimaryMusic) {
+    if (id === "output/music" && inChain && powered) {
       return (
         <MusicVisual
-          note={outputState.musicNote}
-          velocity={outputState.musicVelocity}
+          note={visualState.isPrimaryMusic ? outputState.musicNote : null}
+          velocity={visualState.isPrimaryMusic ? outputState.musicVelocity : null}
           animTime={animTime}
           musicNoteFiredAt={effects.musicNoteFiredAt}
         />

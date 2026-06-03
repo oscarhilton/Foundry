@@ -1,4 +1,4 @@
-import type { CubeDefinition, PresetChain } from "./schema.js";
+import type { CubeDefinition, OutputModality, PresetChain } from "./schema.js";
 
 export const CUBE_DEFINITIONS: CubeDefinition[] = [
   {
@@ -165,6 +165,7 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     registers: [{ name: "brightness", offset: 16, type: "uint16", scale: 0.001 }],
     topics: { publish: [], subscribe: ["output/light/brightness"] },
     description: "Warm ambient light output",
+    outputModality: "visual",
   },
   {
     schema: 1,
@@ -179,7 +180,8 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
       publish: [],
       subscribe: ["output/music/note", "output/music/velocity"],
     },
-    description: "Generative MIDI output",
+    description: "Generative audio output",
+    outputModality: "audio",
   },
   {
     schema: 1,
@@ -192,6 +194,7 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     registers: [],
     topics: { publish: [], subscribe: ["output/display/text"] },
     description: "Low-power e-ink text display",
+    outputModality: "visual",
   },
   {
     schema: 1,
@@ -204,6 +207,7 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     registers: [],
     topics: { publish: [], subscribe: ["output/lcd/text"] },
     description: "Backlit character LCD",
+    outputModality: "visual",
   },
   {
     schema: 1,
@@ -216,6 +220,7 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     registers: [{ name: "trigger", offset: 16, type: "uint8" }],
     topics: { publish: [], subscribe: ["output/chime/trigger"] },
     description: "Soft bell on trigger",
+    outputModality: "audio",
   },
   {
     schema: 1,
@@ -372,4 +377,16 @@ export function getCubesByCategory(
   category: CubeDefinition["category"],
 ): CubeDefinition[] {
   return CUBE_DEFINITIONS.filter((c) => c.category === category);
+}
+
+export function getOutputModality(definitionId: string): OutputModality | undefined {
+  return getCubeDefinition(definitionId)?.outputModality;
+}
+
+export function isAudioOutput(definitionId: string): boolean {
+  return getOutputModality(definitionId) === "audio";
+}
+
+export function isVisualOutput(definitionId: string): boolean {
+  return getOutputModality(definitionId) === "visual";
 }
