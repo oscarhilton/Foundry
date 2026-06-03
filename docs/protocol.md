@@ -81,22 +81,24 @@ Namespace: `{domain}/{signal}[/{variant}]`
 When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/text` on every signal update using physical-first priority:
 
 1. **Motion** — `MOTION` while `sensor/motion` is active
-2. **Temperature sensor** — `16°C` (combines with time as `16°C 14:32` when both present)
-3. **Weather** — `18°C 40%` (combines with time as `18°C 14:32`, dropping rain %)
-4. **GitHub** — `14/hr` (combines with time as `14/hr 14:32`)
+2. **Temperature sensor** — `16°C`
+3. **Weather** — `18°C 40%`
+4. **GitHub** — `14/hr`
 5. **Time** — `14:32`
 6. **Dial / Slider** — dial preferred, e.g. `65%`
 7. **Place** — place label, e.g. `London`
 
-LCD content is independent of the active behaviour recipe — composite chains (e.g. Weather + Dial + Light + LCD) still update the LCD from the highest-priority available source.
+All available segments are concatenated into one message. LCD content is independent of the active behaviour recipe.
 
 #### Multiple LCD cubes
 
-When a chain has **one** `output/lcd`, segments are combined on a single line (e.g. `16°C 14:32`).
+When a chain has **one** `output/lcd`, all segments are concatenated on that module (e.g. `16°C 18°C 40% 14:32`). The simulator word-wraps medium-length text and horizontally scrolls overflow.
 
-When a chain has **two or more** LCDs, segments are assigned left-to-right in priority order — one segment per LCD. Extra LCDs show `--`. Each LCD receives its own `output/lcd/text` publish with `source` set to that LCD's instance id. State is also exposed as `lcdTexts: Record<instanceId, string>`; `lcdText` mirrors the first LCD for compatibility.
+When a chain has **two or more** LCDs, segments are spread left-to-right — one segment per LCD when there are enough modules; when there are more segments than LCDs, segments are grouped into buckets and concatenated per LCD. Extra LCDs show `--`.
 
-While motion is active, **all** LCDs broadcast `MOTION`; when motion clears, the split layout is restored.
+Each LCD receives its own `output/lcd/text` publish with `source` set to that LCD's instance id. State is exposed as `lcdTexts: Record<instanceId, string>`; `lcdText` mirrors the first LCD for compatibility.
+
+While motion is active, **all** LCDs broadcast `MOTION`; when motion clears, the spread layout is restored.
 
 ### Message shape
 

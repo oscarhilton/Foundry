@@ -13,7 +13,7 @@ import type { RecipeContext } from "./recipes.js";
 import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
 import {
-  combineSegmentsForSingleLcd,
+  distributeSegmentsToLcds,
   formatGithub,
   formatTemp,
   formatTime,
@@ -507,15 +507,11 @@ export class FoundryEngine {
       for (const lcd of lcdOutputs) {
         texts[lcd.instanceId] = "MOTION";
       }
-    } else if (lcdOutputs.length === 1) {
-      const combined = combineSegmentsForSingleLcd(ctx);
-      if (combined !== null) {
-        texts[lcdOutputs[0].instanceId] = combined;
-      }
     } else {
       const segments = resolveLcdSegments(ctx);
+      const distributed = distributeSegmentsToLcds(segments, lcdOutputs.length);
       lcdOutputs.forEach((lcd, index) => {
-        texts[lcd.instanceId] = segments[index] ?? "--";
+        texts[lcd.instanceId] = distributed[index] ?? "--";
       });
     }
 

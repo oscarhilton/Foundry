@@ -78,31 +78,32 @@ export function resolveLcdSegments(ctx: LcdSegmentContext): string[] {
   return segments;
 }
 
-export function combineSegmentsForSingleLcd(ctx: LcdSegmentContext): string | null {
-  const { fmt } = ctx;
-  const timeStr = ctx.hasTimeSource ? formatTime(fmt.timeHour) : null;
+export function concatLcdSegments(segments: string[]): string {
+  return segments.join(" ");
+}
 
-  if (ctx.hasTemperatureSensor) {
-    const primary = formatTemp(fmt.sensorTemp);
-    return timeStr ? combineLine(primary, timeStr) : primary;
+export function distributeSegmentsToLcds(
+  segments: string[],
+  lcdCount: number,
+): string[] {
+  if (lcdCount === 0) return [];
+  if (lcdCount === 1) {
+    return segments.length > 0 ? [concatLcdSegments(segments)] : ["--"];
+  }
+  if (segments.length === 0) {
+    return Array.from({ length: lcdCount }, () => "--");
+  }
+  if (segments.length <= lcdCount) {
+    const result = [...segments];
+    while (result.length < lcdCount) result.push("--");
+    return result;
   }
 
-  if (ctx.hasWeatherSource) {
-    if (timeStr) {
-      return combineLine(formatWeatherCompact(fmt.weatherTemp), timeStr);
-    }
-    return formatWeather(fmt.weatherTemp, fmt.weatherRain);
+  const perBucket = Math.ceil(segments.length / lcdCount);
+  const result: string[] = [];
+  for (let i = 0; i < lcdCount; i++) {
+    const chunk = segments.slice(i * perBucket, (i + 1) * perBucket);
+    result.push(chunk.length > 0 ? concatLcdSegments(chunk) : "--");
   }
-
-  if (ctx.hasGithub) {
-    const primary = formatGithub(fmt.githubActivity);
-    return timeStr ? combineLine(primary, timeStr) : primary;
-  }
-
-  if (ctx.hasTimeSource) return formatTime(fmt.timeHour);
-  if (ctx.hasDial) return formatControlPercent(fmt.dialPosition);
-  if (ctx.hasSlider) return formatControlPercent(fmt.sliderPosition);
-  if (ctx.placeLabel) return ctx.placeLabel;
-
-  return null;
+  return result;
 }

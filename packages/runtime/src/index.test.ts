@@ -262,12 +262,12 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toBe("18°C 40%");
+    expect(state.lcdText).toBe("18°C 40% 50%");
 
     engine.destroy();
   });
 
-  it("combines temp and time on LCD when both are in chain", () => {
+  it("concatenates temp and time on single LCD", () => {
     engine.setChain(
       withCore("sensor/temperature", "source/time", "output/lcd"),
     );
@@ -275,6 +275,24 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.lcdText).toMatch(/^\d+°C \d{2}:\d{2}$/);
+
+    engine.destroy();
+  });
+
+  it("concatenates all segments on single LCD when multiple sources present", () => {
+    engine.setChain(
+      withCore(
+        "sensor/temperature",
+        "identity/weather",
+        "source/time",
+        "output/lcd",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    const state = engine.getOutputState();
+    expect(state.lcdText).toMatch(/^\d+°C 18°C 40% \d{2}:\d{2}$/);
 
     engine.destroy();
   });
@@ -292,7 +310,7 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("prefers temperature over github on LCD when both are in chain", () => {
+  it("concatenates temp and github on single LCD when both are in chain", () => {
     engine.setChain(
       withCore(
         "source/github",
@@ -305,7 +323,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("temperature-light");
-    expect(state.lcdText).toMatch(/^\d+°C$/);
+    expect(state.lcdText).toMatch(/^\d+°C \d+\/hr$/);
 
     engine.destroy();
   });
@@ -361,6 +379,30 @@ describe("FoundryEngine", () => {
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
     expect(lcdTexts.lcd2).toBe("--");
+
+    engine.destroy();
+  });
+
+  it("groups segments across two LCDs when more segments than modules", () => {
+    engine.setChain([
+      { instanceId: "temp", definitionId: "sensor/temperature" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "github", definitionId: "source/github" },
+      { instanceId: "time", definitionId: "source/time" },
+      { instanceId: "dial", definitionId: "control/dial" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toMatch(/°C/);
+    expect(lcdTexts.lcd1).toMatch(/\/hr/);
+    expect(lcdTexts.lcd2).toMatch(/\d{2}:\d{2}/);
+    expect(lcdTexts.lcd2).toMatch(/%/);
+    expect(`${lcdTexts.lcd1} ${lcdTexts.lcd2}`).toMatch(/18°C 40%/);
 
     engine.destroy();
   });
