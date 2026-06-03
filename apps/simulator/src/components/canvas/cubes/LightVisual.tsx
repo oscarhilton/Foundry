@@ -25,22 +25,44 @@ export function LightVisual({ brightness, animTime }: LightVisualProps) {
   const cx = CUBE_SIZE / 2;
   const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
   const glow = warmGlowColor(b);
+  const breathe = b > 0.15 ? 1 + Math.sin(animTime * 0.0012) * 0.03 * b : 1;
+  const shadowBlur = 8 + b * 20;
+
+  const outerRadius = (10 + b * 22) * breathe;
+  const outerOpacity = (0.04 + b * 0.32) * breathe;
+  const midRadius = 6 + b * 12;
+  const midOpacity = 0.08 + b * 0.45;
+  const coreRadius = 3 + b * 5;
+  const coreOpacity = 0.15 + b * 0.85;
 
   return (
     <>
       <Circle
         x={cx}
         y={cy}
-        radius={14 + b * 4}
+        radius={outerRadius}
         fill={glow}
-        opacity={0.12 + b * 0.25}
+        opacity={outerOpacity}
+        shadowColor={glow}
+        shadowBlur={shadowBlur}
+        shadowOpacity={0.35 + b * 0.45}
       />
       <Circle
         x={cx}
         y={cy}
-        radius={6 + b * 3}
-        fill={COLORS.ledYellow}
-        opacity={0.35 + b * 0.45}
+        radius={midRadius}
+        fill={glow}
+        opacity={midOpacity}
+        shadowColor={glow}
+        shadowBlur={shadowBlur * 0.6}
+        shadowOpacity={0.25 + b * 0.35}
+      />
+      <Circle
+        x={cx}
+        y={cy}
+        radius={coreRadius}
+        fill={b > 0.4 ? COLORS.ledYellow : glow}
+        opacity={coreOpacity}
       />
     </>
   );
