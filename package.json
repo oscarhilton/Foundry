@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @foundry/simulator",
-    "build": "npm run build -w @foundry/cube-defs && npm run build -w @foundry/runtime && npm run build -w @foundry/simulator",
+    "build": "npm run build -w @foundry/simulator",
     "test": "npm run test -w @foundry/cube-defs && npm run test -w @foundry/runtime && node scripts/ux-smoke-test.mjs",
     "test:ux": "node scripts/ux-smoke-test.mjs",
     "lint": "npm run build"
