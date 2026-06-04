@@ -21,6 +21,8 @@ Product understanding   (what to buy, how many Cores)
 Configuration understanding   (hometown, rename, Wi-Fi)
   ↓
 Purchase path   (what's in the starter kit)
+  ↓
+Extensibility imagination   (custom cubes, new integrations, durability)
 ```
 
 ## How to score
@@ -34,6 +36,13 @@ Purchase path   (what's in the starter kit)
 | "Does it need Wi-Fi?" / "Is there an app?" | **Trust / scaffolding** — hidden complexity question |
 | "What if I put them backwards?" | **Experimentation** — physical feedback copy resonating |
 | "What's in the starter kit?" / "What comes in the box?" | **Purchase path** — Start Here card working |
+| "Can I make my own cube?" / "Can I track stocks / trains?" | **Extensibility — creator signal** — language accepted; log verbatim |
+| "What if my cat knocks it apart?" / "Does it break if disconnected?" | **Physical imagination** — object on desk; durability not yet in showcase |
+| "Do I have to wait for Foundry to release a Stock cube?" | **Vocabulary limits** — internal only; do not add showcase FAQ yet |
+
+### Custom-cube signal (watch, not a gate)
+
+If **≥2 of 5** independently ask about **custom cubes** or **adding words to the language**, treat as strong evidence the concept reads as a language. **Do not** interpret as "build M7 SDK now."
 
 ### Starter kit comprehension (after 30s)
 
@@ -86,8 +95,10 @@ Date:
 Participant (role):
 Before/after copy update:
 First question (verbatim):
-Layer (grammar / product / config / unhealthy):
+Layer (grammar / product / config / purchase / extensibility / unhealthy):
 Starter kit described (verbatim, if asked):
+Extensibility question (verbatim, if any):
+Physical/durability question (verbatim, if any):
 Cubes-as-words quote (if any):
 Notes (30s behaviour):
 ```
@@ -99,5 +110,7 @@ Notes (30s behaviour):
 **Trust-boundary copy:** ideal first questions include hometown, rename, or Wi-Fi — not "What does Weather do?"
 
 **Start Here copy:** ≥3 of 5 can list Core + Place + Weather + Light; no one asks for a Wi-Fi cube.
+
+**Extensibility signal:** log custom-cube and durability questions; ≥2 of 5 asking about custom words is a strong language signal (not a build trigger).
 
 **Bonus:** ≥1 of 5 sessions includes cubes-as-words vocabulary.

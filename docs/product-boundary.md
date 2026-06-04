@@ -63,6 +63,41 @@ Wrong product signal to eliminate: “I need one cube per city.”
 
 Showcase answers configuration, mistakes, and connectivity trust — see [silent-showcase-test.md](silent-showcase-test.md).
 
+## Extensibility
+
+Internal alignment only — **not consumer-facing showcase copy yet.**
+
+Foundry **starts with a curated vocabulary** (Weather, Time, GitHub, Motion, Light, Display, …).
+
+| Path | Expectation |
+|------|-------------|
+| **Consumer** | Buy cube → snap → done. No code, no workshop required. |
+| **Creator (unshipped)** | Custom sensors, outputs, and integrations are **not promised** in M6/M6.1. |
+
+Future versions **may** allow custom cubes, sensors, and integrations. The first goal is making a **small vocabulary feel expressive**.
+
+**Do not** put hobbyist/developer kit, open API, firmware, MQTT, or Matter language in showcase copy until decided.
+
+Watch for the extensibility signal in silent tests — see [silent-showcase-test.md](silent-showcase-test.md).
+
+### Open question
+
+Deliberately unanswered. Log in silent tests; **do not commit roadmap:**
+
+> Should Foundry eventually allow users to create their own nouns, verbs, and outputs?
+
+Users asking **"Can I make my own cube?"** perceive Foundry as a **language**, not a gadget. That is a product signal, not a build mandate.
+
+### Physical durability (internal principle)
+
+**Not showcase copy yet** — wait for mockup snap validation ([mockup-sprint.md](../hardware/mockup-sprint.md)).
+
+Ideal **physical-language** answer when we eventually ship it:
+
+> The chain can disconnect and reconnect at any point. When reassembled, the Core rediscovers the sentence and resumes.
+
+Technical basis: Core firmware runs chain discovery on boot and in the main loop ([firmware/core/src/main.cpp](../hardware/firmware/core/src/main.cpp) — `discoverChain()`).
+
 ## Smart-home drift
 
 When a conversation drifts to "will it work with my Hue bulbs?", redirect:
