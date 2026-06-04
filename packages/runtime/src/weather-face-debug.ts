@@ -1,0 +1,50 @@
+import type { ParsedChain } from "./chain-parser.js";
+import { hasCalmModifier } from "./chain-parser.js";
+import {
+  formatWeatherFaceMood,
+  type WeatherFaceState,
+} from "./weather-face.js";
+import { isRaining } from "./weather-light.js";
+
+export interface WeatherFaceDebugInput {
+  weatherRain: number | null;
+  smoothedRain: number;
+}
+
+export interface WeatherFaceDebugContext {
+  modeLabel: "Rain threshold" | "Live condition";
+  currentRainPercent: number;
+  thresholdPercent: number | null;
+  gate: "open" | "closed" | null;
+  moodLabel: string | null;
+}
+
+export function buildWeatherFaceDebugContext(
+  parsed: ParsedChain,
+  face: WeatherFaceState,
+  input: WeatherFaceDebugInput,
+): WeatherFaceDebugContext {
+  const useCalm = hasCalmModifier(parsed);
+  const rain = useCalm ? input.smoothedRain : (input.weatherRain ?? 0.3);
+  const currentRainPercent = Math.round(rain * 100);
+
+  if (face.mode === "threshold") {
+    const threshold = face.rainThreshold ?? 0.5;
+    const thresholdPercent = Math.round(threshold * 100);
+    return {
+      modeLabel: "Rain threshold",
+      currentRainPercent,
+      thresholdPercent,
+      gate: isRaining(rain, threshold) ? "open" : "closed",
+      moodLabel: null,
+    };
+  }
+
+  return {
+    modeLabel: "Live condition",
+    currentRainPercent,
+    thresholdPercent: null,
+    gate: null,
+    moodLabel: formatWeatherFaceMood(face.symbol),
+  };
+}

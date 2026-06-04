@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { formatLightMoodLabel, formatPowerBattery, formatWeatherFaceMood } from "@foundry/runtime";
+import { formatLightMoodLabel, formatPowerBattery } from "@foundry/runtime";
 import { useSimulatorStore } from "../store";
 
 function formatValue(value: unknown): string {
@@ -320,10 +320,34 @@ export function CoreDebugPanel() {
                   </p>
                 ) : null}
                 <p className="text-foundry-muted text-[9px] pt-1">
-                  Mood: {formatWeatherFaceMood(snapshot.weatherFace.face.symbol)}
+                  Mode: {snapshot.weatherFace.runtime.modeLabel}
                   {" · "}
                   Latched: {snapshot.weatherFace.face.latched ? "yes" : "no"}
                 </p>
+                {snapshot.weatherFace.face.mode === "threshold" ? (
+                  <>
+                    <p className="text-foundry-ink">
+                      Threshold: {snapshot.weatherFace.runtime.thresholdPercent}%
+                    </p>
+                    <p className="text-foundry-ink">
+                      Current rain: {snapshot.weatherFace.runtime.currentRainPercent}%
+                    </p>
+                    <p className="text-foundry-ink">
+                      Gate: {snapshot.weatherFace.runtime.gate}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    {snapshot.weatherFace.runtime.moodLabel ? (
+                      <p className="text-foundry-ink">
+                        Mood: {snapshot.weatherFace.runtime.moodLabel}
+                      </p>
+                    ) : null}
+                    <p className="text-foundry-ink">
+                      Current rain: {snapshot.weatherFace.runtime.currentRainPercent}%
+                    </p>
+                  </>
+                )}
               </div>
             </section>
           )}
