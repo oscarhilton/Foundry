@@ -114,7 +114,6 @@ function LatchedFace({ face }: { face: WeatherFaceState }) {
           y={headlineY}
           text={face.headline}
           fontSize={8}
-          fontWeight={600}
           fill={ink}
           textAnchor="middle"
         />
@@ -157,7 +156,6 @@ function LatchedFace({ face }: { face: WeatherFaceState }) {
         y={headlineY}
         text={face.headline}
         fontSize={8}
-        fontWeight={600}
         fill={ink}
         textAnchor="middle"
       />
