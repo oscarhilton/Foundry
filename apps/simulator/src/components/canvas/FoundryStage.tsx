@@ -49,6 +49,7 @@ const SHELF_VISUAL_STATE = {
     placeTimezone: null,
     weatherTemp: null,
     weatherRain: null,
+    weatherFace: null,
     dialPosition: 0.65,
     sliderPosition: 0.5,
     motionDetected: false,

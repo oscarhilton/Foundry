@@ -1,9 +1,9 @@
 /** Ambient light mood from weather — blue rain, yellow sun, grey overcast. */
 export type LightMood = "rain" | "sun" | "overcast";
 
-/** Same breakpoint as rain mood — keep chime and light behaviour aligned. */
-export function isRaining(rain: number): boolean {
-  return rain >= 0.5;
+/** Rain at or above threshold (default 0.5 for light mood; dial can override). */
+export function isRaining(rain: number, threshold = 0.5): boolean {
+  return rain >= threshold;
 }
 
 export function weatherToLightMood(_temp: number, rain: number): LightMood {

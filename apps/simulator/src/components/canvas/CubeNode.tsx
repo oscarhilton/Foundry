@@ -194,7 +194,14 @@ function CubeNodeInner({
 
   const renderVisual = () => {
     if (!inChain) return null;
-    if (inChain && !powered && id !== "core/core") return null;
+    if (
+      inChain &&
+      !powered &&
+      id !== "core/core" &&
+      !(id === "identity/weather" && outputState.weatherFace)
+    ) {
+      return null;
+    }
 
     if (id === "output/light") {
       if (visualState.isPrimaryLight) {
@@ -275,8 +282,8 @@ function CubeNodeInner({
     if (id === "identity/weather") {
       return (
         <WeatherVisual
+          face={outputState.weatherFace}
           rain={outputState.weatherRain}
-          temp={outputState.weatherTemp}
           animTime={animTime}
         />
       );

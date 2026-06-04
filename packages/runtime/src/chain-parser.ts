@@ -295,6 +295,43 @@ export function hasDialCube(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "control/dial");
 }
 
+/** Target cube has `beforeId` immediately to its left in the slot list. */
+export function cubeImmediatelyBeforeInSlots(
+  cubes: ParsedChainSlot[],
+  targetId: string,
+  beforeId: string,
+): boolean {
+  const targetIndex = cubes.findIndex((c) => c.definition.id === targetId);
+  if (targetIndex <= 0) return false;
+  return cubes[targetIndex - 1]!.definition.id === beforeId;
+}
+
+/** Dial → Weather: dial tunes the weather source (threshold gate). */
+export function dialTunesWeatherInSlots(cubes: ParsedChainSlot[]): boolean {
+  return cubeImmediatelyBeforeInSlots(
+    cubes,
+    "identity/weather",
+    "control/dial",
+  );
+}
+
+/** Weather → Dial: dial selects which weather field reaches LCD. */
+export function dialSelectsWeatherInSlots(cubes: ParsedChainSlot[]): boolean {
+  return cubeImmediatelyBeforeInSlots(
+    cubes,
+    "control/dial",
+    "identity/weather",
+  );
+}
+
+export function dialTunesWeather(chain: ParsedChain): boolean {
+  return dialTunesWeatherInSlots(chain.cubes);
+}
+
+export function dialSelectsWeatherField(chain: ParsedChain): boolean {
+  return dialSelectsWeatherInSlots(chain.cubes);
+}
+
 export function hasSplitCube(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "transform/split");
 }

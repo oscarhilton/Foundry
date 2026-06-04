@@ -27,6 +27,7 @@ const SHELF_OUTPUT_STATE: FoundryOutputState = {
   placeTimezone: null,
   weatherTemp: null,
   weatherRain: null,
+  weatherFace: null,
   dialPosition: 0.65,
   sliderPosition: 0.5,
   motionDetected: false,

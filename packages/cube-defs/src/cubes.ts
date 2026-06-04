@@ -115,7 +115,8 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
       { name: "position", offset: 16, type: "uint16", scale: 0.001 },
     ],
     topics: { publish: ["control/dial"], subscribe: [] },
-    description: "Select which weather field appears on the display, or scale light",
+    description:
+      "Before Weather: tune rain gate. After Weather: select LCD field or scale light",
   },
   {
     schema: 1,
