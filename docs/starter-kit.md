@@ -1,5 +1,7 @@
 # Foundry Starter Kit
 
+Consumer summary: **Start Here** card on showcase (`?showcase=1`) — Core, Place, Weather, Light → `Place → Weather → Light`.
+
 Two kit definitions exist on purpose: **what we build first on the bench** (M6 proof) vs **what we might sell in a box** (retail narrative).
 
 ## M6 proof kit (build this first)

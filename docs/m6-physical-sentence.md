@@ -35,7 +35,8 @@ See [starter-kit.md](starter-kit.md) for retail vs proof kit distinction.
 
 - [ ] 4-cube mockups printed; snap feel validated on a desk
 - [ ] Core firmware drives Light from mock weather when London + Weather EEPROMs present
-- [ ] Silent showcase test: first question is about **what to buy**, not grammar (see [silent-showcase-test.md](silent-showcase-test.md))
+- [ ] Silent showcase test: first question is about **what to buy** or **configuration**, not grammar (see [silent-showcase-test.md](silent-showcase-test.md))
+- [ ] Showcase hero answers **trust boundary**: programmable Place, arrangement mistakes, Wi-Fi
 
 ## M6.1 (after M6)
 

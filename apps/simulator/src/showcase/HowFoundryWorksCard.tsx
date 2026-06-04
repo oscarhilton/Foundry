@@ -12,16 +12,31 @@ const CUBE_GROUPS = [
   },
   {
     label: "Identity cubes",
-    items: ["Place (e.g. London, Tokyo)"],
+    items: ["Place"],
+    note: "Demo faces are examples; you can change the place later without replacing the cube.",
   },
 ] as const;
 
-/** M6 proof chain — visible from across a room */
-function M6ProofChainVisual() {
-  const blocks = ["London", "Weather", "Light", "Core"];
+function PlaceAssignVisual() {
   return (
     <div
-      className="flex items-center justify-center gap-0 py-2 pointer-events-none select-none"
+      className="flex flex-col items-center gap-1 py-2 pointer-events-none select-none"
+      aria-hidden
+    >
+      <span className="flex flex-col items-center justify-center rounded-md border border-foundry-border bg-white text-[7px] font-medium text-foundry-ink shadow-sm w-14 h-11">
+        Place
+      </span>
+      <span className="text-[9px] text-foundry-muted">↓ assigned to London</span>
+    </div>
+  );
+}
+
+/** M6 proof chain — visible from across a room */
+function M6ProofChainVisual() {
+  const blocks = ["Place", "Weather", "Light", "Core"];
+  return (
+    <div
+      className="flex items-center justify-center gap-0 py-1 pointer-events-none select-none"
       aria-hidden
     >
       {blocks.map((label, i) => (
@@ -30,13 +45,18 @@ function M6ProofChainVisual() {
             <span className="w-3 h-1 shrink-0 rounded-full bg-[#D4D4D8]" />
           )}
           <span
-            className={`flex flex-col items-center justify-center rounded-md border bg-white text-[7px] font-medium text-foundry-ink shadow-sm ${
+            className={`flex flex-col items-center justify-center rounded-md border text-[7px] font-medium shadow-sm ${
               label === "Core"
                 ? "border-[#1D3557] bg-[#1D3557] text-white w-12 h-12"
-                : "border-foundry-border w-11 h-11"
+                : "border-foundry-border bg-white text-foundry-ink w-11 h-11"
             }`}
           >
             {label}
+            {label === "Core" && (
+              <span className="text-[6px] font-normal opacity-80 mt-0.5 leading-none">
+                power + Wi-Fi
+              </span>
+            )}
           </span>
         </span>
       ))}
@@ -115,6 +135,38 @@ export function HowFoundryWorksCard() {
             </p>
           </div>
 
+          <div className="space-y-3 border-b border-foundry-border/60 pb-4">
+            <ProductQa title="How does a Place become London?">
+              <p>
+                <strong>Place cubes are programmable.</strong> Demo kits may show
+                London or Tokyo on the face. You choose the place when setting
+                up your Core — and{" "}
+                <strong>you can change it later without replacing the cube.</strong>
+              </p>
+            </ProductQa>
+
+            <ProductQa title="What if the arrangement does not work?">
+              <p>
+                Cubes only affect outputs to their <strong>right</strong>.
+                Wrong order or an incomplete sentence gets a{" "}
+                <strong>clear physical signal</strong> on the Core or output —
+                not error codes. The workshop simulator shows hints while you
+                experiment.
+              </p>
+            </ProductQa>
+
+            <ProductQa title="Does it need Wi-Fi?">
+              <p>
+                Weather and time update automatically while the Core is on
+                Wi-Fi.
+              </p>
+              <p>
+                Wi-Fi is built into the <strong>Core</strong>. It is not a cube
+                in your sentence.
+              </p>
+            </ProductQa>
+          </div>
+
           <p>Physical cubes connect magnetically.</p>
           <p>One Core cube provides power and connectivity.</p>
 
@@ -127,6 +179,11 @@ export function HowFoundryWorksCard() {
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
+                {"note" in group && group.note && (
+                  <p className="mt-1 pl-4 text-xs text-foundry-muted">
+                    {group.note}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -136,14 +193,23 @@ export function HowFoundryWorksCard() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-foundry-border/80 bg-[#f5f5f4]/80 px-3">
-          <p className="text-[9px] uppercase tracking-wide text-foundry-muted text-center pt-2">
-            First hardware demo
-          </p>
-          <M6ProofChainVisual />
-          <p className="text-[10px] text-center text-foundry-muted pb-2 px-1">
-            London → Weather → Light · read left to right
-          </p>
+        <div className="space-y-3">
+          <div className="rounded-lg border border-foundry-border/80 bg-[#f5f5f4]/80 px-3">
+            <p className="text-[9px] uppercase tracking-wide text-foundry-muted text-center pt-2">
+              Place cube
+            </p>
+            <PlaceAssignVisual />
+          </div>
+          <div className="rounded-lg border border-foundry-border/80 bg-[#f5f5f4]/80 px-3">
+            <p className="text-[9px] uppercase tracking-wide text-foundry-muted text-center pt-2">
+              First hardware demo
+            </p>
+            <M6ProofChainVisual />
+            <p className="text-[10px] text-center text-foundry-muted pb-2 px-1">
+              Core provides power and Wi-Fi · semantic chain is Place → Weather
+              → Light
+            </p>
+          </div>
         </div>
       </div>
 

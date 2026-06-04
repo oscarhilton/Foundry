@@ -46,6 +46,23 @@ World Desk length is a known desk friction; document, do not solve in M6.
 
 The simulator is a **workshop** for language validation. It is not the product. The product is cubes on a desk.
 
+## Trust boundary (showcase copy)
+
+The showcase documents **what users must trust**, not undecided implementation details.
+
+| Topic | Consumer-facing principle |
+|-------|---------------------------|
+| **Place** | One cube type, **assigned to** a city — not a “London cube” SKU per city |
+| **Setup** | “When setting up your Core” — agnostic of USB, phone app, or Bluetooth until decided |
+| **Mistakes** | Users **arrange objects**, not programs. Wrong order → clear **physical signal**, not error codes. Avoid: compiler, validation, syntax error |
+| **Wi-Fi** | “Weather and time update automatically while the Core is on Wi-Fi.” No refresh intervals or offline policy in consumer copy |
+
+**Infrastructure (Wi-Fi, power) lives in the Core** — never a semantic cube in the sentence.
+
+Wrong product signal to eliminate: “I need one cube per city.”
+
+Showcase answers configuration, mistakes, and connectivity trust — see [silent-showcase-test.md](silent-showcase-test.md).
+
 ## Smart-home drift
 
 When a conversation drifts to "will it work with my Hue bulbs?", redirect:

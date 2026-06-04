@@ -69,3 +69,13 @@ function buildCards(): ShowcaseCardContent[] {
 }
 
 export const SHOWCASE_CARDS = buildCards();
+
+/** M6 consumer entry — matches docs/starter-kit.md proof kit */
+export const START_HERE = {
+  title: "Start Here",
+  kitTitle: "Starter Kit",
+  kitItems: ["Core", "Place", "Weather", "Light"] as const,
+  firstSentence: "Place → Weather → Light",
+  addOns: ["Display", "Time", "Dial", "Motion"] as const,
+  tryPresetId: "weather-moods" as const satisfies ShowcasePresetId,
+};
