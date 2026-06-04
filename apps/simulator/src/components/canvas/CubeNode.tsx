@@ -355,6 +355,10 @@ function CubeNodeInner({
     const visual = renderVisual();
     if (!visual) return null;
 
+    if (id === "identity/weather") {
+      return visual;
+    }
+
     return (
       <svg
         width={CUBE_SIZE}

@@ -12,6 +12,7 @@ export const COLORS = {
   ledYellow: "#FFD166",
   ledPurple: "#8338EC",
   connectorGrey: "#D1D5DB",
+  einkBackground: "#f3f3f3",
 } as const;
 
 export const FONTS = {
