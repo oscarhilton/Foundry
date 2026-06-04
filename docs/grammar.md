@@ -4,7 +4,7 @@
 
 **Before any cube ships, ask: Does this introduce a new kind of sentence?**
 
-Foundry optimises for *language*, not cube count. Prefer roughly **10 sources and 10 transforms** over many data feeds with few verbs. Sources publish facts; **transforms** change how those facts read on an output.
+Foundry optimises for *language*, not cube count. How people learn and use that language — copy first, substitute one word, ambient certainty — is in [use-model.md](use-model.md). Prefer roughly **10 sources and 10 transforms** over many data feeds with few verbs. Sources publish facts; **transforms** change how those facts read on an output.
 
 ## Noun → Verb → Output
 
@@ -69,7 +69,7 @@ Brightness still follows temperature and rain. Light and LCD are independent.
 
 ## Split decomposes segments
 
-`London → Weather → Split → LCD → LCD` — Split expands weather into separate consumable segments (e.g. `12°C` then `45% rain`) before viewport consumption. Without Split, clustered LCDs share segments via the remainder fold.
+`London → Weather → Split → LCD → LCD` — Split expands weather into atomic clauses (place, temp, rain). Viewports consume one clause each when available; fewer displays front-pack (e.g. `London\n12°C` then `45% rain`). Without Split, clustered LCDs share segments via the remainder fold.
 
 ## Motion gates content
 

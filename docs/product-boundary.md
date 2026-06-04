@@ -6,6 +6,8 @@ Internal decisions so marketing, showcase copy, and manufacturing stay aligned. 
 
 **Foundry is not a smart-home platform. Foundry is a physical language for behaviours.**
 
+How people actually use it — copy, substitute, placement — is in [use-model.md](use-model.md).
+
 Consumers will otherwise assume Home Assistant / Hue / Matter / Alexa compatibility and judge the project on integrations we have not chosen yet.
 
 ## Topology
