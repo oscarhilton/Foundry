@@ -339,6 +339,53 @@ describe("FoundryEngine", () => {
     expect(snap.powered).toBe(true);
     expect(snap.discovered.length).toBe(4);
     expect(snap.discovered[0].address).toMatch(/^0x/);
+    expect(snap.lightOutput?.mode).toBe("Weather Mood");
+
+    engine.destroy();
+  });
+
+  it("does not publish github/activity when github is not in chain", () => {
+    const signals: SignalMessage[] = [];
+    engine.destroy();
+    engine = new FoundryEngine({
+      onSignal: (msg) => signals.push(msg),
+    });
+    engine.setChain(withCore("sensor/temperature", "output/light"));
+    engine.start();
+
+    expect(signals.some((m) => m.topic === "github/activity")).toBe(false);
+
+    engine.destroy();
+  });
+
+  it("publishes light brightness with source core and light targetId", () => {
+    const signals: SignalMessage[] = [];
+    engine.destroy();
+    engine = new FoundryEngine({
+      onSignal: (msg) => signals.push(msg),
+    });
+    engine.setChain([
+      { instanceId: "temp", definitionId: "sensor/temperature" },
+      { instanceId: "light", definitionId: "output/light" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+
+    const lightMsg = signals.find((m) => m.topic === "output/light/brightness");
+    expect(lightMsg?.source).toBe("core");
+    expect(lightMsg?.targetId).toBe("light");
+
+    engine.destroy();
+  });
+
+  it("includes github light output in core debug snapshot", () => {
+    engine.setChain(
+      withCore("source/github", "output/light"),
+    );
+    engine.start();
+    const snap = engine.getCoreDebugSnapshot();
+    expect(snap.lightOutput?.mode).toBe("GitHub Activity");
+    expect(snap.lightOutput?.driverSummary).toContain("github/activity");
 
     engine.destroy();
   });

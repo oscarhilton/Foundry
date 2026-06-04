@@ -38,6 +38,7 @@ import {
   matchLegacyRecipe,
   type LightBehaviourId,
 } from "./output-bindings.js";
+import { buildLightDebugOutput, type LightDebugOutput } from "./light-debug.js";
 import {
   weatherToLightMood,
   type LightMood,
@@ -117,6 +118,7 @@ export interface CoreDebugSnapshot {
     targetId?: string;
     targetAddress?: string;
   }>;
+  lightOutput: LightDebugOutput | null;
 }
 
 export class FoundryEngine {
@@ -218,6 +220,31 @@ export class FoundryEngine {
         : "manual"
       : "unpowered";
 
+    const lightCube = parsed.cubes.find((c) => c.definition.id === "output/light");
+    const lightBehaviour = resolveLightBehaviour(parsed);
+    const lightOutput =
+      parsed.powered && lightCube
+        ? buildLightDebugOutput(
+            lightBehaviour,
+            {
+              githubActivity: this.outputState.githubActivity,
+              weatherTemp: this.outputState.weatherTemp,
+              weatherRain: this.outputState.weatherRain,
+              sensorTemp: this.outputState.sensorTemp,
+              timeHour: this.outputState.timeHour,
+              dialPosition: this.outputState.dialPosition,
+              lightBrightness: this.outputState.lightBrightness,
+              lightMood: this.outputState.lightMood,
+            },
+            {
+              instanceId: lightCube.instanceId,
+              label: lightCube.definition.label,
+            },
+            this.devices.get(lightCube.instanceId)?.address ??
+              debugAddressFor(lightCube.instanceId),
+          )
+        : null;
+
     return {
       powered: this.outputState.powered,
       coreCount: parsed.coreCount,
@@ -233,6 +260,7 @@ export class FoundryEngine {
       activeRecipe: this.outputState.activeRecipeName,
       chainMode,
       viewportTrace,
+      lightOutput,
       bindings: log.map((m) => ({
         topic: m.topic,
         value: m.value,
@@ -347,6 +375,9 @@ export class FoundryEngine {
     if (!this.useLiveWeather) {
       this.mockAdapters.setPlaceProfile(place);
       this.mockAdapters.setWeatherEnabled(hasWeatherSource(chain));
+      this.mockAdapters.setGithubEnabled(
+        chain.cubes.some((c) => c.definition.id === "source/github"),
+      );
     }
 
     this.syncTimePublishing(place, hasTimeSource(chain));
@@ -488,12 +519,19 @@ export class FoundryEngine {
       }),
     );
 
-    this.unsubscribers.push(
-      this.router.subscribe("github/activity", (msg) => {
-        this.outputState.githubActivity = msg.value as number;
-        this.recalculateOutputs();
-      }),
+    const hasGithub = this.parsed.cubes.some(
+      (c) => c.definition.id === "source/github",
     );
+    if (!hasGithub) {
+      this.outputState.githubActivity = null;
+    } else {
+      this.unsubscribers.push(
+        this.router.subscribe("github/activity", (msg) => {
+          this.outputState.githubActivity = msg.value as number;
+          this.recalculateOutputs();
+        }),
+      );
+    }
 
     this.unsubscribers.push(
       this.router.subscribe("time/hour", (msg) => {
@@ -740,12 +778,20 @@ export class FoundryEngine {
     const b = Math.max(0.02, Math.min(1, brightness));
     this.outputState.lightBrightness = b;
     this.outputState.lightMood = mood;
-    const source =
+    const lightInstanceId =
       this.context?.lightInstanceId ??
       this.parsed?.cubes.find((c) => c.definition.id === "output/light")
-        ?.instanceId ??
-      "runtime";
-    this.router.publish("output/light/brightness", b, source);
+        ?.instanceId;
+    const device = lightInstanceId
+      ? this.getDevice(lightInstanceId)
+      : undefined;
+    this.router.publish("output/light/brightness", b, {
+      source: "core",
+      targetId: lightInstanceId,
+      targetAddress:
+        device?.address ??
+        (lightInstanceId ? debugAddressFor(lightInstanceId) : undefined),
+    });
   }
 
   private setMusicOutput(note: number, velocity: number): void {
@@ -788,6 +834,11 @@ export {
   resolveLightBehaviour,
   resolvePrimaryRecipeLabel,
 } from "./output-bindings.js";
+export {
+  buildLightDebugOutput,
+  formatLightMoodLabel,
+} from "./light-debug.js";
+export type { LightDebugOutput } from "./light-debug.js";
 export {
   shouldBroadcastMotionToLcds,
 } from "./segment-pipeline.js";

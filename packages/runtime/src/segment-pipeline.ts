@@ -73,6 +73,8 @@ export interface ViewportConsumptionStep {
   consumed: Segment[];
   remainderAfter: Segment[];
   rendered: string;
+  /** Present when upstream window includes motion gate (sensor/motion). */
+  motionGate?: "active" | "inactive";
 }
 
 export interface ViewportConsumptionResult {
@@ -304,6 +306,28 @@ function windowSignalCubes(
     .filter(isSignalCube);
 }
 
+function lastLcdIndexBefore(chain: ParsedChain, viewportChainIndex: number): number {
+  let last = -1;
+  for (let k = 0; k < viewportChainIndex; k++) {
+    if (chain.cubes[k]!.definition.id === "output/lcd") last = k;
+  }
+  return last;
+}
+
+function resolveMotionGate(
+  chain: ParsedChain,
+  viewportChainIndex: number,
+  options: SegmentPipelineOptions,
+): ViewportConsumptionStep["motionGate"] {
+  const cubes = windowSignalCubes(
+    chain,
+    lastLcdIndexBefore(chain, viewportChainIndex),
+    viewportChainIndex,
+  );
+  if (!windowNeedsMotionGate(cubes)) return undefined;
+  return options.motionDetected === false ? "inactive" : "active";
+}
+
 /** Empty window that only contains Time after an LCD — do not load-share cluster with prior LCD. */
 function isOrphanTimeWindow(
   chain: ParsedChain,
@@ -386,6 +410,7 @@ function runViewportConsumption(
         consumed,
         remainderAfter: [...remainder],
         rendered,
+        motionGate: resolveMotionGate(chain, w.chainIndex, options),
       });
       texts[w.instanceId] = rendered;
     }

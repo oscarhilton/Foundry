@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { formatPowerBattery } from "@foundry/runtime";
+import { formatLightMoodLabel, formatPowerBattery } from "@foundry/runtime";
 import { useSimulatorStore } from "../store";
 
 function formatValue(value: unknown): string {
@@ -7,19 +7,27 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-function formatSegmentList(segments: string[]): string {
-  if (segments.length === 0) return "—";
-  if (segments.length === 1) return segments[0]!;
-  return segments.join(", ");
-}
-
 function ViewportSegmentBracket({ segments }: { segments: string[] }) {
+  if (segments.length === 0) {
+    return (
+      <p className="whitespace-pre-line text-foundry-ink">[—]</p>
+    );
+  }
   return (
-    <p className="whitespace-pre-line text-foundry-ink">
-      [{formatSegmentList(segments)}]
-    </p>
+    <div className="space-y-1">
+      {segments.map((seg, i) => (
+        <p key={i} className="whitespace-pre-line text-foundry-ink">
+          [{seg}]
+        </p>
+      ))}
+    </div>
   );
 }
+
+const OUTPUT_TOPICS = new Set([
+  "output/lcd/text",
+  "output/light/brightness",
+]);
 
 function ViewportRenderedArrow({ rendered }: { rendered: string }) {
   const lines = rendered.split("\n");
@@ -71,6 +79,13 @@ export function CoreDebugPanel() {
   const powerLabel = formatPowerBattery(
     outputState.powerSource,
     outputState.batteryPercent,
+  );
+
+  const lcdEntries = Object.entries(outputState.lcdTexts);
+  const recentLog = signalLog.slice(0, 20);
+  const streamMessages = recentLog.filter((m) => !OUTPUT_TOPICS.has(m.topic));
+  const hasRecentOutputPublish = recentLog.some((m) =>
+    OUTPUT_TOPICS.has(m.topic),
   );
 
   return (
@@ -245,6 +260,20 @@ export function CoreDebugPanel() {
                     key={step.targetId}
                     className="border border-foundry-border rounded-lg p-3 space-y-1.5 bg-gray-50/50"
                   >
+                    {step.motionGate !== undefined && (
+                      <div className="pb-1 border-b border-foundry-border/60 mb-1">
+                        <p className="text-foundry-muted uppercase tracking-wide text-[9px]">
+                          GATE
+                        </p>
+                        <p className="text-foundry-ink">
+                          Motion:{" "}
+                          {step.motionGate === "active" ? "active" : "inactive"}
+                        </p>
+                        {step.motionGate === "inactive" && (
+                          <p className="text-foundry-muted">→ --</p>
+                        )}
+                      </div>
+                    )}
                     <p className="text-foundry-muted uppercase tracking-wide text-[9px]">
                       AVAILABLE TO viewport {step.targetId}
                       {step.address ? ` (${step.address})` : ""}
@@ -261,6 +290,42 @@ export function CoreDebugPanel() {
                     <ViewportRenderedArrow rendered={step.rendered} />
                   </div>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {snapshot?.lightOutput && (
+            <section>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-foundry-muted mb-2">
+                Light output
+              </h3>
+              <div className="border border-foundry-border rounded-lg p-3 space-y-1.5 bg-gray-50/50 text-[10px] font-mono">
+                <p className="text-foundry-muted">
+                  {snapshot.lightOutput.label} · {snapshot.lightOutput.instanceId}
+                  {snapshot.lightOutput.address
+                    ? ` (${snapshot.lightOutput.address})`
+                    : ""}
+                </p>
+                <p className="text-foundry-ink">
+                  Mode: {snapshot.lightOutput.mode}
+                </p>
+                <p className="text-foundry-muted text-[9px]">
+                  {snapshot.lightOutput.driverSummary}
+                </p>
+                {snapshot.lightOutput.driverTopic && (
+                  <p className="text-foundry-ink">
+                    Input: {formatValue(snapshot.lightOutput.driverValue)}
+                  </p>
+                )}
+                {formatLightMoodLabel(snapshot.lightOutput.mood) && (
+                  <p className="text-foundry-ink">
+                    Mood: {formatLightMoodLabel(snapshot.lightOutput.mood)}
+                  </p>
+                )}
+                <p className="text-foundry-ink">
+                  Brightness:{" "}
+                  {Math.round(snapshot.lightOutput.brightness * 100)}%
+                </p>
               </div>
             </section>
           )}
@@ -306,11 +371,40 @@ export function CoreDebugPanel() {
             <h3 className="text-xs font-medium uppercase tracking-wider text-foundry-muted mb-2">
               Topic stream
             </h3>
+            {(lcdEntries.length > 0 || outputState.lightBrightness > 0.02) && (
+              <div className="mb-2 border border-foundry-border rounded-lg p-3 space-y-1 font-mono text-[10px] bg-gray-50/50">
+                <p className="text-foundry-muted uppercase tracking-wide text-[9px]">
+                  Latest outputs
+                </p>
+                {lcdEntries.map(([id, text]) => (
+                  <p key={id} className="whitespace-pre-line text-foundry-ink">
+                    LCD {id}: {text}
+                  </p>
+                ))}
+                {chain.some((c) => c.definitionId === "output/light") && (
+                  <p className="text-foundry-ink">
+                    Light: {Math.round(outputState.lightBrightness * 100)}%
+                    {outputState.lightMood
+                      ? ` · ${formatLightMoodLabel(outputState.lightMood)}`
+                      : ""}
+                  </p>
+                )}
+                {!hasRecentOutputPublish && (
+                  <p className="text-foundry-muted text-[9px] pt-1">
+                    No new output events
+                  </p>
+                )}
+              </div>
+            )}
             <div className="border border-foundry-border rounded-lg max-h-40 overflow-y-auto font-mono text-[10px]">
-              {signalLog.length === 0 ? (
-                <p className="px-3 py-3 text-foundry-muted">Waiting for signals…</p>
+              {streamMessages.length === 0 ? (
+                <p className="px-3 py-3 text-foundry-muted">
+                  {signalLog.length === 0
+                    ? "Waiting for signals…"
+                    : "No input signals in recent log"}
+                </p>
               ) : (
-                signalLog.slice(0, 20).map((msg, i) => (
+                streamMessages.map((msg, i) => (
                   <div
                     key={`${msg.ts}-${msg.topic}-${msg.targetId ?? ""}-${i}`}
                     className="flex flex-wrap gap-x-2 gap-y-0.5 px-3 py-1 border-b border-gray-50"

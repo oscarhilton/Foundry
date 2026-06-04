@@ -24,6 +24,7 @@ export class MockAdapters {
   private running = false;
   private placeProfile: PlaceProfile | null = null;
   private weatherEnabled = true;
+  private githubEnabled = false;
   private timeTimezone: string | undefined;
 
   constructor(router: SignalRouter, options: MockAdapterOptions = {}) {
@@ -60,6 +61,19 @@ export class MockAdapters {
     }
   }
 
+  setGithubEnabled(enabled: boolean): void {
+    this.githubEnabled = enabled;
+    if (!enabled && this.githubTimer) {
+      clearInterval(this.githubTimer);
+      this.githubTimer = undefined;
+    } else if (enabled && this.running && !this.githubTimer) {
+      this.publishGithub();
+      this.githubTimer = setInterval(() => {
+        this.publishGithub();
+      }, this.githubIntervalMs);
+    }
+  }
+
   setTimeTimezone(timezone: string | undefined): void {
     this.timeTimezone = timezone;
   }
@@ -77,10 +91,12 @@ export class MockAdapters {
       }, this.weatherIntervalMs);
     }
 
-    this.publishGithub();
-    this.githubTimer = setInterval(() => {
+    if (this.githubEnabled) {
       this.publishGithub();
-    }, this.githubIntervalMs);
+      this.githubTimer = setInterval(() => {
+        this.publishGithub();
+      }, this.githubIntervalMs);
+    }
   }
 
   stop(): void {
@@ -134,6 +150,7 @@ export class MockAdapters {
   }
 
   private publishGithub(): void {
+    if (!this.githubEnabled) return;
     const activity = 0.2 + Math.random() * 0.6;
     this.router.publish("github/activity", activity, "mock/github");
   }

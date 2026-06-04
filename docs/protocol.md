@@ -120,6 +120,8 @@ Each LCD receives its own `output/lcd/text` publish:
 - `targetId` — viewport instance id (routing identity; required for LCD text)
 - `targetAddress` — optional I²C address from device discovery (transport metadata)
 
+`output/light/brightness` is published the same way: `source` is always `core`, with `targetId` set to the Light cube instance (the runtime commands the output; the cube is the target).
+
 The signal router stores latest values per `topic::targetId`, not per topic alone. State is exposed as `lcdTexts: Record<instanceId, string>`; `lcdText` mirrors the first LCD for compatibility.
 
 While motion is active, **all** LCDs broadcast `MOTION`; when motion clears, the window layout is restored.

@@ -40,6 +40,8 @@ describe("roadmap grammar", () => {
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/12°C/);
     expect(lcdTexts.lcd2).toBe("45% rain");
+    const trace = engine.getCoreDebugSnapshot().viewportTrace;
+    expect(trace[0]?.payloadBefore).toHaveLength(2);
     engine.destroy();
   });
 
@@ -53,8 +55,13 @@ describe("roadmap grammar", () => {
     ]);
     engine.start();
     expect(engine.getOutputState().lcdText).toBe("--");
+    const trace = engine.getCoreDebugSnapshot().viewportTrace;
+    expect(trace[0]?.motionGate).toBe("inactive");
     engine.mockAdapters.triggerMotion(true);
     expect(engine.getOutputState().lcdText).toMatch(/London/);
+    expect(engine.getCoreDebugSnapshot().viewportTrace[0]?.motionGate).toBe(
+      "active",
+    );
     engine.destroy();
   });
 
