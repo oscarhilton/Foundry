@@ -23,6 +23,8 @@ Configuration understanding   (hometown, rename, Wi-Fi)
 Purchase path   (what's in the starter kit)
   ↓
 Extensibility imagination   (custom cubes, new integrations, durability)
+  ↓
+Longevity / due diligence   (cloud, company survival, open ecosystem)
 ```
 
 ## How to score
@@ -39,10 +41,17 @@ Extensibility imagination   (custom cubes, new integrations, durability)
 | "Can I make my own cube?" / "Can I track stocks / trains?" | **Extensibility — creator signal** — language accepted; log verbatim |
 | "What if my cat knocks it apart?" / "Does it break if disconnected?" | **Physical imagination** — object on desk; durability not yet in showcase |
 | "Do I have to wait for Foundry to release a Stock cube?" | **Vocabulary limits** — internal only; do not add showcase FAQ yet |
+| "What if Foundry goes away?" / "Do these become paperweights?" | **Longevity — buyer signal** — imagining purchase; log verbatim |
+| "Does it need your servers?" / "Can it work offline?" | **Cloud independence** — internal; answer in docs not showcase |
+| "Can other companies make cubes?" / "Is the connector bus open?" | **Hardware openness** — internal only until position decided |
 
 ### Custom-cube signal (watch, not a gate)
 
-If **≥2 of 5** independently ask about **custom cubes** or **adding words to the language**, treat as strong evidence the concept reads as a language. **Do not** interpret as "build M7 SDK now."
+If **≥2 of 5** independently ask about **custom cubes** or **adding words to the language**, treat as strong evidence the concept reads as a language. **Do not** interpret as a build trigger — see [m7-trust-longevity.md](m7-trust-longevity.md).
+
+### Longevity signal (watch, not a gate)
+
+If **≥1 of 5** asks about **company survival** or **cloud lock-in**, treat as evidence the concept reads as a **product worth buying**, not a toy. Do not interpret as "publish open-hardware spec now." Point to [product-boundary.md](product-boundary.md) Longevity principles when asked.
 
 ### Starter kit comprehension (after 30s)
 
@@ -95,10 +104,11 @@ Date:
 Participant (role):
 Before/after copy update:
 First question (verbatim):
-Layer (grammar / product / config / purchase / extensibility / unhealthy):
+Layer (grammar / product / config / purchase / extensibility / longevity / unhealthy):
 Starter kit described (verbatim, if asked):
 Extensibility question (verbatim, if any):
 Physical/durability question (verbatim, if any):
+Longevity question (verbatim, if any):
 Cubes-as-words quote (if any):
 Notes (30s behaviour):
 ```
@@ -112,5 +122,7 @@ Notes (30s behaviour):
 **Start Here copy:** ≥3 of 5 can list Core + Place + Weather + Light; no one asks for a Wi-Fi cube.
 
 **Extensibility signal:** log custom-cube and durability questions; ≥2 of 5 asking about custom words is a strong language signal (not a build trigger).
+
+**Longevity signal:** log company-survival and cloud-lock-in questions; ≥1 of 5 at this layer means buyer due diligence (see [m7-trust-longevity.md](m7-trust-longevity.md)).
 
 **Bonus:** ≥1 of 5 sessions includes cubes-as-words vocabulary.

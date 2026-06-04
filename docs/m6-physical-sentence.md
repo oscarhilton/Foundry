@@ -7,6 +7,7 @@
 | **M1–M5** | Prove the **language** (grammar, viewport, split, bindings, observability, showcase) |
 | **M6** | Prove the **object** |
 | **M6.1** | Second sentence on hardware: `Tokyo → Time → Display` |
+| **M7** | Trust & longevity (cloud, survivability, openness position) |
 
 ## M6 goal
 
@@ -50,6 +51,7 @@ No new transforms, sources, debug tooling, or grammar work unless hardware expos
 ## References
 
 - [product-boundary.md](product-boundary.md)
+- [m7-trust-longevity.md](m7-trust-longevity.md)
 - [starter-kit.md](starter-kit.md)
 - [../hardware/m6-e2e-london-weather-light.md](../hardware/m6-e2e-london-weather-light.md)
 - [../hardware/mockup-sprint.md](../hardware/mockup-sprint.md)

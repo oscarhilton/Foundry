@@ -98,6 +98,47 @@ Ideal **physical-language** answer when we eventually ship it:
 
 Technical basis: Core firmware runs chain discovery on boot and in the main loop ([firmware/core/src/main.cpp](../hardware/firmware/core/src/main.cpp) — `discoverChain()`).
 
+## Longevity
+
+Internal alignment only — **not consumer-facing showcase copy yet.** See [m7-trust-longevity.md](m7-trust-longevity.md).
+
+**North star:** The user's sentence survives. Everything else is implementation.
+
+### Longevity principles
+
+- **Sentences execute on the Core** — grammar and runtime live on-device, not in a browser tab.
+- **Live data sources should not require a Foundry cloud** — weather/time fetch over Wi-Fi; architecture goal is direct or configurable sources.
+- **Hardware should degrade gracefully** if services disappear — a sentence like `London → Weather → Light` should not become inert because a vendor API changed; policy TBD.
+- **Long-term openness remains an active design goal** — without promising open PCB, open manufacturing, or open-source everything today.
+
+### Fail gracefully
+
+The physical counterpart to *the user's sentence survives.* Implementation TBD; direction is clear:
+
+| Failure | Desired behaviour |
+|---------|-------------------|
+| Weather API disappears | Sentence reports unavailable data — does not silently stop |
+| Cube disconnected | Sentence rebinds automatically when reassembled |
+| Network unavailable | Last known state remains visible on outputs |
+
+### Design direction (aspirational, not shipped)
+
+> Core runs locally. Cubes identify themselves over a documented protocol. The simulator is open source. Cloud services are optional. **The user's sentence survives.**
+
+Existing evidence today: chain discovery on Core ([firmware/core/src/main.cpp](../hardware/firmware/core/src/main.cpp)); simulator as language workshop (this repo).
+
+### Open questions (longevity)
+
+Deliberately unanswered. Log in silent tests; **do not commit roadmap:**
+
+| Question | Why it matters |
+|----------|----------------|
+| Can Foundry work without a Foundry cloud? | Buyer cloud-independence fear |
+| Does `London → Weather → Light` keep working if Foundry Ltd disappears? | Investment protection |
+| Can someone manufacture compatible cubes? | Ecosystem longevity; no position required yet |
+
+**Buyer signal:** *"What happens if Foundry goes away?"* means they are imagining spending real money — log verbatim; not a build trigger. See [silent-showcase-test.md](silent-showcase-test.md).
+
 ## Smart-home drift
 
 When a conversation drifts to "will it work with my Hue bulbs?", redirect:
