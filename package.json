@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "turbo run dev --filter=@foundry/simulator",
+    "dev:marketing": "turbo run dev --filter=@foundry/marketing",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test && node scripts/ux-smoke-test.mjs",
