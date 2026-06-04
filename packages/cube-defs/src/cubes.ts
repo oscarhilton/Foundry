@@ -16,6 +16,19 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
   },
   {
     schema: 1,
+    id: "identity/foundry",
+    label: "Foundry",
+    category: "identity",
+    role: "place",
+    colorAccent: "#6E5494",
+    capabilities: ["place", "repo"],
+    metadata: { city: "Foundry" },
+    registers: [],
+    topics: { publish: ["place/name"], subscribe: [] },
+    description: "Scope GitHub activity to this project",
+  },
+  {
+    schema: 1,
     id: "identity/tokyo",
     label: "Tokyo",
     category: "identity",
@@ -95,14 +108,26 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     id: "control/dial",
     label: "Dial",
     category: "control",
-    role: "control",
+    role: "transform",
     colorAccent: "#F4A261",
     capabilities: ["analog-input"],
     registers: [
       { name: "position", offset: 16, type: "uint16", scale: 0.001 },
     ],
     topics: { publish: ["control/dial"], subscribe: [] },
-    description: "Turn to scale or modulate signals",
+    description: "Select which weather field appears on the display, or scale light",
+  },
+  {
+    schema: 1,
+    id: "transform/split",
+    label: "Split",
+    category: "identity",
+    role: "transform",
+    colorAccent: "#2A9D8F",
+    capabilities: ["split"],
+    registers: [],
+    topics: { publish: [], subscribe: [] },
+    description: "Split weather into separate segments for each LCD",
   },
   {
     schema: 1,
@@ -350,6 +375,81 @@ export const PRESET_CHAINS: PresetChain[] = [
       "core/core",
     ],
   },
+  {
+    id: "weather-moods",
+    name: "Weather Moods",
+    description: "London weather as coloured ambient light",
+    cubes: [
+      "identity/london",
+      "identity/weather",
+      "output/light",
+      "core/core",
+    ],
+  },
+  {
+    id: "weather-dial-lcd",
+    name: "Weather Dial LCD",
+    description: "Dial selects temperature, rain, or full weather on LCD",
+    cubes: [
+      "identity/london",
+      "identity/weather",
+      "control/dial",
+      "output/lcd",
+      "core/core",
+    ],
+  },
+  {
+    id: "split-weather-dual-lcd",
+    name: "Split Weather LCD",
+    description: "Temperature on LCD1, rain on LCD2",
+    cubes: [
+      "identity/london",
+      "identity/weather",
+      "transform/split",
+      "output/lcd",
+      "output/lcd",
+      "core/core",
+    ],
+  },
+  {
+    id: "presence-weather-lcd",
+    name: "Presence Weather",
+    description: "London weather on LCD only when motion is detected",
+    cubes: [
+      "sensor/motion",
+      "identity/london",
+      "identity/weather",
+      "output/lcd",
+      "core/core",
+    ],
+  },
+  {
+    id: "activity-desk",
+    name: "Activity Desk",
+    description: "Foundry commit count on LCD",
+    cubes: [
+      "identity/foundry",
+      "source/github",
+      "output/lcd",
+      "core/core",
+    ],
+  },
+  {
+    id: "world-desk",
+    name: "World Desk",
+    description: "Tokyo clock, London weather, GitHub activity light",
+    cubes: [
+      "identity/tokyo",
+      "source/time",
+      "output/lcd",
+      "identity/london",
+      "identity/weather",
+      "output/lcd",
+      "source/github",
+      "output/light",
+      "core/core",
+    ],
+  },
 ];
 
 /** Starter kit cubes for delight validation and first hardware SKU. */
@@ -365,8 +465,10 @@ export const STARTER_CUBE_IDS = new Set([
 
 /** Hero presets shown by default in product mode. */
 export const HERO_PRESET_IDS = [
-  "weather-dial-light",
-  "london-weather-light",
+  "weather-moods",
+  "weather-dial-lcd",
+  "world-desk",
+  "split-weather-dual-lcd",
   "room-motion-chime",
 ] as const;
 

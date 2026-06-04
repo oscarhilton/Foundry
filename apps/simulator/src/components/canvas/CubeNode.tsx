@@ -199,7 +199,11 @@ function CubeNodeInner({
     if (id === "output/light") {
       if (visualState.isPrimaryLight) {
         return (
-          <LightVisual brightness={outputState.lightBrightness} animTime={animTime} />
+          <LightVisual
+            brightness={outputState.lightBrightness}
+            animTime={animTime}
+            mood={outputState.lightMood}
+          />
         );
       }
       return <LightVisual brightness={0.03} animTime={animTime} />;

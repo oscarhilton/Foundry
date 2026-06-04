@@ -1,5 +1,26 @@
 # Foundry Chain Grammar
 
+## What Foundry is
+
+**Before any cube ships, ask: Does this introduce a new kind of sentence?**
+
+Foundry optimises for *language*, not cube count. Prefer roughly **10 sources and 10 transforms** over many data feeds with few verbs. Sources publish facts; **transforms** change how those facts read on an output.
+
+## Noun → Verb → Output
+
+Identity cubes (London, Tokyo, Foundry) are **nouns**. Sources and transforms are **verbs**. Outputs (LCD, Light) are where the sentence becomes visible.
+
+| Noun | Verb | Output |
+|------|------|--------|
+| London | Weather | LCD |
+| Tokyo | Time | LCD |
+| Foundry | GitHub | LCD |
+| London | Weather | Light |
+
+Weather **binds to the first noun** in its positional window. Time binds to places in its window. Split **decomposes** a combined weather segment across LCDs.
+
+---
+
 Foundry chains are read **left to right** (top to bottom on mobile) like a sentence:
 
 `London → Weather → Clock → Display`
@@ -29,6 +50,30 @@ Time (`source/time`) is a **transform**, not a global clock. It only formats pla
 Time does **not** bind backwards across viewports. For city-specific times, put **Time after each city**:
 
 `Tokyo → Time → London → Time → LCD`
+
+## Light colour (weather moods)
+
+`London → Weather → Light` maps conditions to **colour** on the Light cube:
+
+| Condition | Colour |
+|-----------|--------|
+| Rainy | Blue |
+| Clear | Yellow |
+| Overcast | Grey |
+
+Brightness still follows temperature and rain. Light and LCD are independent.
+
+## Dial selects a weather field
+
+`London → Weather → Dial → LCD` — the Dial is a **transform**: position picks **temperature**, **rain**, or **full weather** on the display. `Weather → Dial → Light` still **scales** brightness (no LCD in that recipe).
+
+## Split decomposes segments
+
+`London → Weather → Split → LCD → LCD` — Split expands weather into separate consumable segments (e.g. `12°C` then `45% rain`) before viewport consumption. Without Split, clustered LCDs share segments via the remainder fold.
+
+## Motion gates content
+
+`Motion → London → Weather → LCD` — weather appears only while motion is active; otherwise `--`. Pure motion chains still broadcast `MOTION` to all LCDs.
 
 ## Weather binds to a place
 

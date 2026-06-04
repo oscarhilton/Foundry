@@ -7,6 +7,7 @@ import {
   hasMotionSensor,
   hasCalmModifier,
   hasTemperatureSensor,
+  hasLightOutput,
   hasWeatherSource,
   hasTimeSource,
 } from "./chain-parser.js";
@@ -27,9 +28,20 @@ import {
 } from "./device-registry.js";
 import {
   resolveViewportTextsForChain,
+  shouldBroadcastMotionToLcds,
   traceViewportConsumption,
   type ViewportConsumptionStep,
 } from "./segment-pipeline.js";
+import {
+  resolveLightBehaviour,
+  resolvePrimaryRecipeLabel,
+  matchLegacyRecipe,
+  type LightBehaviourId,
+} from "./output-bindings.js";
+import {
+  weatherToLightMood,
+  type LightMood,
+} from "./weather-light.js";
 import {
   defaultLiveWeatherCoords,
   resolvePlaceProfile,
@@ -55,6 +67,7 @@ export interface FoundryOutputState {
   powered: boolean;
   coreCount: number;
   lightBrightness: number;
+  lightMood: LightMood | null;
   chimeTriggered: boolean;
   chimeCount: number;
   activeRecipeId: string | null;
@@ -140,6 +153,7 @@ export class FoundryEngine {
       powered: false,
       coreCount: 0,
       lightBrightness: 0.02,
+      lightMood: null,
       chimeTriggered: false,
       chimeCount: 0,
       activeRecipeId: null,
@@ -193,7 +207,9 @@ export class FoundryEngine {
 
     const viewportTrace =
       parsed.powered && hasLcdOutput(parsed)
-        ? traceViewportConsumption(parsed, this.formatState(), resolveAddress)
+        ? traceViewportConsumption(parsed, this.formatState(), resolveAddress, {
+            motionDetected: this.outputState.motionDetected,
+          })
         : [];
 
     const chainMode = this.outputState.powered
@@ -403,8 +419,15 @@ export class FoundryEngine {
       return;
     }
 
-    this.outputState.activeRecipeId = this.context?.recipe.id ?? null;
-    this.outputState.activeRecipeName = this.context?.recipe.name ?? null;
+    const lightBehaviour = resolveLightBehaviour(this.parsed);
+    const legacy = matchLegacyRecipe(this.parsed);
+    this.outputState.activeRecipeId =
+      legacy?.id ?? lightBehaviour ?? this.context?.recipe?.id ?? null;
+    this.outputState.activeRecipeName =
+      legacy?.name ??
+      resolvePrimaryRecipeLabel(this.parsed, lightBehaviour) ??
+      this.context?.recipe?.name ??
+      (this.parsed.powered ? "manual composition" : null);
     this.outputState.placeLabel = this.context?.placeLabel ?? null;
 
     if (this.context?.placeLabel) {
@@ -492,7 +515,10 @@ export class FoundryEngine {
   }
 
   private applyRandom(value: number): number {
-    if (!this.context?.useRandom) return value;
+    const useRandom =
+      this.context?.useRandom ??
+      this.parsed?.cubes.some((c) => c.definition.id === "modifier/random");
+    if (!useRandom) return value;
     const jitter = perlin1D(this.noiseTime * 2.5) * 0.15;
     return Math.max(0, Math.min(1, value + jitter));
   }
@@ -541,60 +567,74 @@ export class FoundryEngine {
       return;
     }
 
-    if (!this.context) {
-      this.resetOutputs();
-      this.syncModifierNoise();
-      this.syncLcdFromChain();
-      return;
-    }
-
-    const { recipe, useCalm } = this.context;
+    const useCalm =
+      this.context?.useCalm ?? hasCalmModifier(this.parsed);
     const temp = this.outputState.weatherTemp ?? 14;
     const rain = useCalm
       ? this.smoothedRain
       : (this.outputState.weatherRain ?? 0.3);
 
-    switch (recipe.id) {
+    const lightBehaviour = resolveLightBehaviour(this.parsed);
+    this.applyLightBehaviour(lightBehaviour, temp, rain);
+
+    const legacyRecipe = matchLegacyRecipe(this.parsed);
+    if (legacyRecipe?.id === "tokyo-weather-music") {
+      const note = 48 + Math.round(((temp + 10) / 40) * 24);
+      const velocity = Math.round(40 + (1 - rain) * 60);
+      this.setMusicOutput(note, velocity);
+    }
+
+    this.syncModifierNoise();
+    this.syncLcdFromChain();
+  }
+
+  private applyLightBehaviour(
+    behaviour: LightBehaviourId | null,
+    temp: number,
+    rain: number,
+  ): void {
+    if (!hasLightOutput(this.parsed!)) {
+      this.outputState.lightMood = null;
+      return;
+    }
+    if (!behaviour) {
+      this.setLightOutput(0.02, null);
+      return;
+    }
+
+    switch (behaviour) {
       case "london-weather-light": {
         const brightness = this.applyRandom(weatherToBrightness(temp, rain));
-        this.setLightBrightness(brightness);
+        this.setLightOutput(brightness, weatherToLightMood(temp, rain));
         break;
       }
       case "weather-dial-light": {
         const base = weatherToBrightness(temp, rain);
         const scaled = base * (0.15 + this.dialPosition * 0.85);
-        this.setLightBrightness(this.applyRandom(scaled));
+        this.setLightOutput(
+          this.applyRandom(scaled),
+          weatherToLightMood(temp, rain),
+        );
         break;
       }
       case "time-calm-light": {
         const hour = this.outputState.timeHour ?? 0.5;
         const base = 0.2 + hour * 0.6;
-        this.setLightBrightness(this.applyRandom(base * 0.85 + 0.1));
+        this.setLightOutput(this.applyRandom(base * 0.85 + 0.1), "overcast");
         break;
       }
       case "github-activity-light": {
         const activity = this.outputState.githubActivity ?? 0.3;
-        this.setLightBrightness(this.applyRandom(activity));
+        this.setLightOutput(this.applyRandom(activity), null);
         break;
       }
       case "temperature-light": {
         const sensorTemp = this.outputState.sensorTemp ?? 20;
         const norm = Math.max(0, Math.min(1, (sensorTemp - 10) / 25));
-        this.setLightBrightness(this.applyRandom(norm));
+        this.setLightOutput(this.applyRandom(norm), norm > 0.55 ? "sun" : "overcast");
         break;
       }
-      case "tokyo-weather-music": {
-        const note = 48 + Math.round(((temp + 10) / 40) * 24);
-        const velocity = Math.round(40 + (1 - rain) * 60);
-        this.setMusicOutput(note, velocity);
-        break;
-      }
-      default:
-        break;
     }
-
-    this.syncModifierNoise();
-    this.syncLcdFromChain();
   }
 
   private formatState() {
@@ -651,13 +691,22 @@ export class FoundryEngine {
       for (const lcd of lcdOutputs) {
         texts[lcd.instanceId] = text;
       }
-    } else if (hasMotionSensor(chain) && this.outputState.motionDetected) {
+    } else if (
+      hasMotionSensor(chain) &&
+      this.outputState.motionDetected &&
+      shouldBroadcastMotionToLcds(chain)
+    ) {
       for (const lcd of lcdOutputs) {
         texts[lcd.instanceId] = "MOTION";
       }
     } else {
       compileChainToGraph(chain);
-      Object.assign(texts, resolveViewportTextsForChain(chain, this.formatState()));
+      Object.assign(
+        texts,
+        resolveViewportTextsForChain(chain, this.formatState(), {
+          motionDetected: this.outputState.motionDetected,
+        }),
+      );
     }
 
     this.outputState.lcdTexts = texts;
@@ -672,6 +721,7 @@ export class FoundryEngine {
 
   private resetOutputs(): void {
     this.outputState.lightBrightness = 0.02;
+    this.outputState.lightMood = null;
     this.outputState.musicNote = null;
     this.outputState.musicVelocity = null;
     this.outputState.lcdText = null;
@@ -681,20 +731,21 @@ export class FoundryEngine {
     this.outputState.modifierCalmNoise = null;
   }
 
-  private setLightBrightness(value: number): void {
+  private setLightOutput(brightness: number, mood: LightMood | null): void {
     if (!this.outputState.powered) {
       this.outputState.lightBrightness = 0.02;
+      this.outputState.lightMood = null;
       return;
     }
-    const brightness = Math.max(0.02, Math.min(1, value));
-    this.outputState.lightBrightness = brightness;
-    this.router.publish(
-      "output/light/brightness",
-      brightness,
+    const b = Math.max(0.02, Math.min(1, brightness));
+    this.outputState.lightBrightness = b;
+    this.outputState.lightMood = mood;
+    const source =
       this.context?.lightInstanceId ??
-        this.context?.outputInstanceId ??
-        "runtime",
-    );
+      this.parsed?.cubes.find((c) => c.definition.id === "output/light")
+        ?.instanceId ??
+      "runtime";
+    this.router.publish("output/light/brightness", b, source);
   }
 
   private setMusicOutput(note: number, velocity: number): void {
@@ -728,6 +779,18 @@ export class FoundryEngine {
   }
 }
 
+export {
+  weatherToLightMood,
+  LIGHT_MOOD_COLORS,
+} from "./weather-light.js";
+export type { LightMood } from "./weather-light.js";
+export {
+  resolveLightBehaviour,
+  resolvePrimaryRecipeLabel,
+} from "./output-bindings.js";
+export {
+  shouldBroadcastMotionToLcds,
+} from "./segment-pipeline.js";
 export {
   SignalRouter,
   smoothValue,

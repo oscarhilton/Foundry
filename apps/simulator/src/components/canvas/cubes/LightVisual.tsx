@@ -4,12 +4,21 @@ import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { lerp, warmGlowColor } from "../animations";
 
+export type LightMoodProp = "rain" | "sun" | "overcast" | null;
+
 interface LightVisualProps {
   brightness: number;
   animTime: number;
+  mood?: LightMoodProp;
 }
 
-export function LightVisual({ brightness, animTime }: LightVisualProps) {
+const MOOD_COLORS: Record<Exclude<LightMoodProp, null>, string> = {
+  rain: "#457B9D",
+  sun: "#FFD166",
+  overcast: "#9CA3AF",
+};
+
+export function LightVisual({ brightness, animTime, mood = null }: LightVisualProps) {
   const displayBrightness = useRef(brightness);
   const lastFrame = useRef(animTime);
 
@@ -24,7 +33,8 @@ export function LightVisual({ brightness, animTime }: LightVisualProps) {
   const b = Math.max(0.02, Math.min(1, displayBrightness.current));
   const cx = CUBE_SIZE / 2;
   const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
-  const glow = warmGlowColor(b);
+  const glow =
+    mood != null ? MOOD_COLORS[mood] : warmGlowColor(b);
   const breathe = b > 0.15 ? 1 + Math.sin(animTime * 0.0012) * 0.03 * b : 1;
   const blur = 8 + b * 20;
 

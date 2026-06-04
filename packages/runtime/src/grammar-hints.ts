@@ -6,11 +6,16 @@ import {
   isChainPowered,
 } from "./chain-parser.js";
 
+const SPLIT_CUBE = "transform/split";
+
 export const CITY_TIME_GRAMMAR_HINT =
   "Tip: put Time after each city to show city-specific times (e.g. Tokyo → Time → London → Time → LCD).";
 
 export const CITY_WEATHER_GRAMMAR_HINT =
   "Tip: place Weather after each city to compare weather across cities.";
+
+export const SPLIT_WEATHER_GRAMMAR_HINT =
+  "Tip: add Split before multiple LCDs to show temperature and rain on separate displays.";
 
 function isSignalCube(cube: ParsedChainSlot): boolean {
   return cube.definition.role !== "core" && cube.definition.id !== "output/lcd";
@@ -102,6 +107,51 @@ export function needsCityWeatherGrammarHint(chain: ParsedChain): boolean {
   return false;
 }
 
+function windowHasWeatherWithoutSplit(cubes: ParsedChainSlot[]): boolean {
+  const hasWeather = cubes.some((c) => c.definition.id === "identity/weather");
+  const hasSplit = cubes.some((c) => c.definition.id === SPLIT_CUBE);
+  return hasWeather && !hasSplit;
+}
+
+/** Weather + clustered LCDs without Split — suggest explicit decomposition. */
+export function needsSplitWeatherGrammarHint(chain: ParsedChain): boolean {
+  if (!isChainPowered(chain) || !hasLcdOutput(chain) || !hasWeatherSource(chain)) {
+    return false;
+  }
+
+  const lcds = chain.cubes.filter((c) => c.definition.id === "output/lcd");
+  if (lcds.length < 2) return false;
+
+  for (let i = 0; i < lcds.length; i++) {
+    const lcd = lcds[i]!;
+    const lcdIndex = chain.cubes.findIndex(
+      (c) => c.instanceId === lcd.instanceId,
+    );
+    const prevLcdIndex =
+      i === 0
+        ? -1
+        : chain.cubes.findIndex((c) => c.instanceId === lcds[i - 1]!.instanceId);
+
+    const window = windowCubesBeforeLcd(chain, lcdIndex, prevLcdIndex);
+    if (windowHasWeatherWithoutSplit(window)) {
+      let j = i + 1;
+      while (j < lcds.length) {
+        const nextIdx = chain.cubes.findIndex(
+          (c) => c.instanceId === lcds[j]!.instanceId,
+        );
+        const between = chain.cubes
+          .slice(lcdIndex + 1, nextIdx)
+          .filter(isSignalCube);
+        if (between.length > 0) break;
+        j++;
+      }
+      if (j > i + 1) return true;
+    }
+  }
+
+  return false;
+}
+
 export function collectGrammarHints(chain: ParsedChain): string[] {
   const hints: string[] = [];
   if (needsCityTimeGrammarHint(chain)) {
@@ -109,6 +159,9 @@ export function collectGrammarHints(chain: ParsedChain): string[] {
   }
   if (needsCityWeatherGrammarHint(chain)) {
     hints.push(CITY_WEATHER_GRAMMAR_HINT);
+  }
+  if (needsSplitWeatherGrammarHint(chain)) {
+    hints.push(SPLIT_WEATHER_GRAMMAR_HINT);
   }
   return hints;
 }

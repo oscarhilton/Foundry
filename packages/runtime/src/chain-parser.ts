@@ -263,6 +263,14 @@ export function hasTimeCube(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "source/time");
 }
 
+export function hasDialCube(chain: ParsedChain): boolean {
+  return chain.cubes.some((c) => c.definition.id === "control/dial");
+}
+
+export function hasSplitCube(chain: ParsedChain): boolean {
+  return chain.cubes.some((c) => c.definition.id === "transform/split");
+}
+
 /** @deprecated Use hasTimeCube — id-based, not role source. */
 export const hasTimeSource = hasTimeCube;
 

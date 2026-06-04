@@ -16,6 +16,7 @@ const SHELF_OUTPUT_STATE: FoundryOutputState = {
   powered: false,
   coreCount: 0,
   lightBrightness: 0.02,
+  lightMood: null,
   chimeTriggered: false,
   chimeCount: 0,
   activeRecipeId: null,

@@ -2,6 +2,10 @@
 
 Modular physical computing — snap cubes into a sentence, get ambient behaviour.
 
+**Before any cube ships, ask: Does this introduce a new kind of sentence?** Foundry optimises for chain *language*, not hardware SKU count. Aim for roughly ten sources and ten transforms — verbs matter more than data feeds.
+
+Chains read as **Noun → Verb → Output** (e.g. `London → Weather → LCD`). Full rules: [docs/grammar.md](docs/grammar.md).
+
 ## Structure
 
 - `apps/simulator` — React simulator (drag cubes, see outputs, signal log)

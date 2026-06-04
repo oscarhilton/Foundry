@@ -200,6 +200,9 @@ export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function Chai
   const cityWeatherHint = warnings.some((w) =>
     w.includes("place Weather after each city"),
   );
+  const splitWeatherHint = warnings.some((w) =>
+    w.includes("add Split before multiple LCDs"),
+  );
 
   const primaryLightId = firstId(chain, "output/light");
 
@@ -264,6 +267,12 @@ export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function Chai
       {cityWeatherHint && outputState.powered && (
         <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800">
           Place Weather after each city to compare weather across cities
+        </p>
+      )}
+
+      {splitWeatherHint && outputState.powered && (
+        <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800">
+          Add Split before multiple LCDs to show temperature and rain on separate displays
         </p>
       )}
 

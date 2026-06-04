@@ -44,12 +44,48 @@ export function formatWeather(
   return placeLabel ? `${placeLabel}\n${line}` : line;
 }
 
+export function formatWeatherTempLine(
+  weatherTemp: number | null | undefined,
+  placeLabel?: string,
+): string {
+  const line = `${Math.round(weatherTemp ?? 14)}°C`;
+  return placeLabel ? `${placeLabel}\n${line}` : line;
+}
+
+export function formatWeatherRainLine(
+  weatherRain: number | null | undefined,
+): string {
+  const rain = Math.round((weatherRain ?? 0.3) * 100);
+  return `${rain}% rain`;
+}
+
 export function formatWeatherCompact(weatherTemp: number | null | undefined): string {
   return `${Math.round(weatherTemp ?? 14)}°C`;
 }
 
-export function formatGithub(githubActivity: number | null | undefined): string {
-  return `${Math.round((githubActivity ?? 0) * 20)}/hr`;
+/** Dial in window with weather: pick one field for LCD. */
+export function pickWeatherSegmentForDial(
+  dialPosition: number,
+  weatherTemp: number | null | undefined,
+  weatherRain: number | null | undefined,
+  placeLabel?: string,
+): string {
+  if (dialPosition < 0.34) {
+    return formatWeatherTempLine(weatherTemp, placeLabel);
+  }
+  if (dialPosition < 0.67) {
+    return formatWeatherRainLine(weatherRain);
+  }
+  return formatWeather(weatherTemp, weatherRain, placeLabel);
+}
+
+export function formatGithub(
+  githubActivity: number | null | undefined,
+  repoLabel?: string,
+): string {
+  const commits = Math.max(0, Math.round((githubActivity ?? 0.15) * 280));
+  const line = `${commits} commits`;
+  return repoLabel ? `${repoLabel}\n${line}` : line;
 }
 
 export function formatControlPercent(value: number): string {

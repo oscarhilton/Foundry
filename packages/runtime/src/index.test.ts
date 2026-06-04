@@ -468,6 +468,26 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("does not MOTION-broadcast when weather is in chain", () => {
+    engine.setChain([
+      { instanceId: "motion", definitionId: "sensor/motion" },
+      { instanceId: "temp", definitionId: "sensor/temperature" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    engine.mockAdapters.triggerMotion(true);
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
+    expect(lcdTexts.lcd2).toMatch(/18°C · 40% rain/);
+
+    engine.destroy();
+  });
+
   it("concatenates temp and github on single LCD when both are in chain", () => {
     engine.setChain(
       withCore(
@@ -481,7 +501,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("temperature-light");
-    expect(state.lcdText).toMatch(/^\d+°C \d+\/hr$/);
+    expect(state.lcdText).toMatch(/^\d+°C Foundry\n\d+ commits$/);
 
     engine.destroy();
   });
@@ -557,7 +577,7 @@ describe("FoundryEngine", () => {
 
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/°C/);
-    expect(lcdTexts.lcd1).toMatch(/\/hr/);
+    expect(lcdTexts.lcd1).toMatch(/commits/);
     expect(lcdTexts.lcd1).toMatch(/18°C · 40% rain/);
     expect(lcdTexts.lcd2).toMatch(/%/);
 
@@ -625,7 +645,7 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("broadcasts MOTION to all LCDs then restores windows", () => {
+  it("restores positional LCD windows after motion clears", () => {
     engine.setChain([
       { instanceId: "motion", definitionId: "sensor/motion" },
       { instanceId: "temp", definitionId: "sensor/temperature" },
@@ -639,8 +659,8 @@ describe("FoundryEngine", () => {
 
     engine.mockAdapters.triggerMotion(true);
     let { lcdTexts } = engine.getOutputState();
-    expect(lcdTexts.lcd1).toBe("MOTION");
-    expect(lcdTexts.lcd2).toBe("MOTION");
+    expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
+    expect(lcdTexts.lcd2).toMatch(/18°C · 40% rain/);
 
     engine.mockAdapters.triggerMotion(false);
     lcdTexts = engine.getOutputState().lcdTexts;
@@ -707,7 +727,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("temperature-light");
-    expect(state.lcdText).toMatch(/^\d+°C \d+\/hr$/);
+    expect(state.lcdText).toMatch(/^\d+°C Foundry\n\d+ commits$/);
 
     engine.destroy();
   });
@@ -892,6 +912,8 @@ describe("FoundryEngine", () => {
     ).toBe(false);
     expect(state.musicNote).not.toBeNull();
     expect(state.activeRecipeId).toBe("tokyo-weather-music");
+    expect(state.lightMood).toBeTruthy();
+    expect(state.lightBrightness).toBeGreaterThan(0.05);
 
     engine.destroy();
   });

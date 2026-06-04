@@ -1,6 +1,5 @@
 import type { ParsedChain } from "./chain-parser.js";
 import {
-  chainHasPattern,
   getActiveVisualOutput,
   getNearestControl,
   getPrimaryAudioOutput,
@@ -13,6 +12,7 @@ import {
   hasMotionSensor,
   hasMusicOutput,
   hasTemperatureSensor,
+  hasDialCube,
   hasTimeSource,
   hasTokyoPlace,
   hasWeatherSource,
@@ -55,8 +55,7 @@ export const RECIPES: Recipe[] = [
         () =>
           hasWeatherSource(chain) &&
           hasLightOutput(chain) &&
-          chain.controls.some((c) => c.definition.id === "control/dial") &&
-          chainHasPattern(chain, ["source", "control", "output"]),
+          hasDialCube(chain),
       ),
   },
   {
@@ -121,7 +120,7 @@ export const RECIPES: Recipe[] = [
           chain.place !== undefined &&
           hasWeatherSource(chain) &&
           hasLightOutput(chain) &&
-          !chain.controls.some((c) => c.definition.id === "control/dial"),
+          !hasDialCube(chain),
       ),
   },
   {

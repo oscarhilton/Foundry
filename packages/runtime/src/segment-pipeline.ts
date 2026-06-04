@@ -1,4 +1,8 @@
 import type { ParsedChain, ParsedChainSlot } from "./chain-parser.js";
+import {
+  hasMotionSensor,
+  hasWeatherSource,
+} from "./chain-parser.js";
 import type { PlaceProfile } from "./place-profile.js";
 import { resolvePlaceProfilesFromSlots } from "./place-profile.js";
 import {
@@ -10,6 +14,9 @@ import {
   formatTemp,
   formatTime,
   formatWeather,
+  pickWeatherSegmentForDial,
+  formatWeatherTempLine,
+  formatWeatherRainLine,
   type OutputFormatState,
 } from "./output-formatters.js";
 
@@ -31,6 +38,9 @@ export interface SegmentBuildContext {
   hasTimeTransform: boolean;
   timeOnlyWindow: boolean;
   hasDial: boolean;
+  /** Dial selects weather field on LCD (not scale-only). */
+  dialSelectsWeather: boolean;
+  hasSplit: boolean;
   hasSlider: boolean;
   places: PlaceProfile[];
   hasCalm: boolean;
@@ -106,6 +116,11 @@ export function buildSegmentContext(
     hasTimeTransform,
     timeOnlyWindow,
     hasDial: cubes.some((c) => c.definition.id === "control/dial"),
+    dialSelectsWeather:
+      cubes.some((c) => c.definition.id === "control/dial") &&
+      hasWeatherSource &&
+      !cubes.some((c) => c.definition.id === "output/light"),
+    hasSplit: cubes.some((c) => c.definition.id === "transform/split"),
     hasSlider: cubes.some((c) => c.definition.id === "control/slider"),
     places,
     hasCalm: cubes.some((c) => c.definition.id === "modifier/calm"),
@@ -123,11 +138,31 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
   if (ctx.hasWeatherSource) {
     const boundPlace =
       ctx.places.length > 0 ? ctx.places[0]!.label : undefined;
-    segments.push(
-      formatWeather(fmt.weatherTemp, fmt.weatherRain, boundPlace),
-    );
+    if (ctx.hasSplit) {
+      segments.push(
+        formatWeatherTempLine(fmt.weatherTemp, boundPlace),
+      );
+      segments.push(formatWeatherRainLine(fmt.weatherRain));
+    } else if (ctx.dialSelectsWeather) {
+      segments.push(
+        pickWeatherSegmentForDial(
+          fmt.dialPosition,
+          fmt.weatherTemp,
+          fmt.weatherRain,
+          boundPlace,
+        ),
+      );
+    } else {
+      segments.push(
+        formatWeather(fmt.weatherTemp, fmt.weatherRain, boundPlace),
+      );
+    }
   }
-  if (ctx.hasGithub) segments.push(formatGithub(fmt.githubActivity));
+  if (ctx.hasGithub) {
+    const repoLabel =
+      ctx.places.length > 0 ? ctx.places[0]!.label : "Foundry";
+    segments.push(formatGithub(fmt.githubActivity, repoLabel));
+  }
   if (ctx.hasTimeTransform) {
     if (ctx.places.length > 0) {
       for (const place of ctx.places) {
@@ -137,12 +172,14 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
       segments.push(formatTime(fmt.timeHour));
     }
   }
-  if (ctx.hasDial) segments.push(formatControlPercent(fmt.dialPosition));
+  if (ctx.hasDial && !ctx.dialSelectsWeather) {
+    segments.push(formatControlPercent(fmt.dialPosition));
+  }
   if (ctx.hasSlider) segments.push(formatControlPercent(fmt.sliderPosition));
   if (!ctx.hasTimeTransform) {
-    // Weather binds to the first place in the window; omit duplicate place labels on LCD.
+    // Weather/GitHub bind to the first place; omit duplicate place labels on LCD.
     const skipPlaceLabels =
-      ctx.hasWeatherSource && ctx.places.length > 0;
+      (ctx.hasWeatherSource || ctx.hasGithub) && ctx.places.length > 0;
     if (!skipPlaceLabels) {
       for (const place of ctx.places) {
         segments.push(place.label);
@@ -169,13 +206,35 @@ function isSignalCube(cube: ParsedChainSlot): boolean {
   return cube.definition.role !== "core" && cube.definition.id !== "output/lcd";
 }
 
+function windowNeedsMotionGate(cubes: ParsedChainSlot[]): boolean {
+  const hasMotion = cubes.some((c) => c.definition.id === "sensor/motion");
+  if (!hasMotion) return false;
+  return cubes.some(
+    (c) =>
+      c.definition.id === "identity/weather" ||
+      c.definition.role === "place" ||
+      c.definition.id === "source/github",
+  );
+}
+
+export interface SegmentPipelineOptions {
+  motionDetected?: boolean;
+}
+
 function segmentsForWindowCubes(
   chain: ParsedChain,
   cubes: ParsedChainSlot[],
   lcdChainIndex: number,
   fmt: OutputFormatState,
+  options: SegmentPipelineOptions = {},
 ): ConsumablePayload {
   if (!cubes.some(isSignalCube)) return [];
+  if (
+    windowNeedsMotionGate(cubes) &&
+    options.motionDetected === false
+  ) {
+    return [];
+  }
   return buildSegments(buildSegmentContext(cubes, fmt, chain, lcdChainIndex));
 }
 
@@ -189,6 +248,7 @@ interface ViewportWindow {
 function computeViewportWindows(
   chain: ParsedChain,
   fmt: OutputFormatState,
+  options: SegmentPipelineOptions = {},
 ): ViewportWindow[] {
   const viewports = chain.cubes.filter((c) => c.definition.id === "output/lcd");
   let windowStart = 0;
@@ -203,7 +263,13 @@ function computeViewportWindows(
       instanceId: viewport.instanceId,
       label: viewport.definition.label,
       chainIndex,
-      segments: segmentsForWindowCubes(chain, windowCubes, chainIndex, fmt),
+      segments: segmentsForWindowCubes(
+        chain,
+        windowCubes,
+        chainIndex,
+        fmt,
+        options,
+      ),
     });
     windowStart = chainIndex + 1;
   }
@@ -256,6 +322,7 @@ function clusterSuffixSegments(
   lastClusterChainIndex: number,
   nextWindowWithContent: ViewportWindow | undefined,
   fmt: OutputFormatState,
+  options: SegmentPipelineOptions = {},
 ): ConsumablePayload {
   if (nextWindowWithContent && nextWindowWithContent.segments.length > 0) {
     return [];
@@ -269,15 +336,16 @@ function clusterSuffixSegments(
     .slice(lastClusterChainIndex + 1, suffixEnd)
     .filter(isSignalCube);
 
-  return segmentsForWindowCubes(chain, suffixCubes, suffixEnd, fmt);
+  return segmentsForWindowCubes(chain, suffixCubes, suffixEnd, fmt, options);
 }
 
 function runViewportConsumption(
   chain: ParsedChain,
   fmt: OutputFormatState,
   resolveAddress?: (targetId: string) => string | undefined,
+  options: SegmentPipelineOptions = {},
 ): ViewportConsumptionResult {
-  const windows = computeViewportWindows(chain, fmt);
+  const windows = computeViewportWindows(chain, fmt, options);
   const texts: Record<string, string> = {};
   const steps: ViewportConsumptionStep[] = [];
 
@@ -327,6 +395,7 @@ function runViewportConsumption(
       cluster[cluster.length - 1]!.chainIndex,
       nextWindowWithContent,
       fmt,
+      options,
     );
 
     if (suffix.length > 0) {
@@ -353,17 +422,30 @@ export function traceViewportConsumption(
   chain: ParsedChain,
   fmt: OutputFormatState,
   resolveAddress?: (targetId: string) => string | undefined,
+  options: SegmentPipelineOptions = {},
 ): ViewportConsumptionStep[] {
-  return runViewportConsumption(chain, fmt, resolveAddress).steps;
+  return runViewportConsumption(chain, fmt, resolveAddress, options).steps;
 }
 
 /** Resolve rendered text per viewport instance from chain order and format state. */
 export function resolveViewportTextsForChain(
   chain: ParsedChain,
   fmt: OutputFormatState,
+  options: SegmentPipelineOptions = {},
 ): Record<string, string> {
-  return runViewportConsumption(chain, fmt).texts;
+  return runViewportConsumption(chain, fmt, undefined, options).texts;
 }
+
+/** MOTION broadcast only when motion is not gating richer upstream content. */
+export function shouldBroadcastMotionToLcds(chain: ParsedChain): boolean {
+  if (!hasMotionSensor(chain)) return false;
+  if (hasWeatherSource(chain)) return false;
+  if (chain.cubes.some((c) => c.definition.id === "source/github")) {
+    return false;
+  }
+  return true;
+}
+
 
 /** @deprecated Use resolveViewportTextsForChain — kept for compatibility. */
 export const resolveLcdTextsForChain = resolveViewportTextsForChain;
