@@ -378,7 +378,7 @@ export const PRESET_CHAINS: PresetChain[] = [
   {
     id: "weather-moods",
     name: "Weather Moods",
-    description: "London weather as coloured ambient light",
+    description: "Weather as ambient colour — blue for rain, yellow when dry",
     cubes: [
       "identity/london",
       "identity/weather",
@@ -437,7 +437,7 @@ export const PRESET_CHAINS: PresetChain[] = [
   {
     id: "world-desk",
     name: "World Desk",
-    description: "Tokyo clock, London weather, GitHub activity light",
+    description: "Tokyo time, London weather, GitHub activity light — three sentences at once",
     cubes: [
       "identity/tokyo",
       "source/time",
