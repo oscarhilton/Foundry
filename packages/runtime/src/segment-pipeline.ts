@@ -1,5 +1,7 @@
 import type { ParsedChain, ParsedChainSlot } from "./chain-parser.js";
 import {
+  dialSelectsWeatherInSlots,
+  dialTunesWeatherInSlots,
   hasMotionSensor,
   hasWeatherSource,
 } from "./chain-parser.js";
@@ -16,6 +18,7 @@ import {
   formatTemp,
   formatTime,
   formatWeather,
+  formatWeatherDialLightViewport,
   pickWeatherSegmentForDial,
   buildSplitWeatherSegments,
   renderSplitWeatherChunk,
@@ -40,8 +43,10 @@ export interface SegmentBuildContext {
   hasTimeTransform: boolean;
   timeOnlyWindow: boolean;
   hasDial: boolean;
-  /** Dial selects weather field on LCD (not scale-only). */
+  /** Weather → Dial: dial selects weather field on LCD. */
   dialSelectsWeather: boolean;
+  /** Dial → Weather: dial tunes threshold; omit dial % segment on LCD. */
+  dialTunesWeather: boolean;
   hasSplit: boolean;
   hasSlider: boolean;
   places: PlaceProfile[];
@@ -49,6 +54,10 @@ export interface SegmentBuildContext {
   hasRandom: boolean;
   hasButton: boolean;
   hasLight: boolean;
+  /** Light exists anywhere in the chain (not only the LCD upstream window). */
+  hasLightInChain: boolean;
+  /** Single composite weather–dial–light LCD (one viewport, light scales via dial). */
+  useWeatherDialLightComposite: boolean;
   buttonControlsLight: boolean;
 }
 
@@ -111,6 +120,30 @@ export function buildSegmentContext(
     };
   }
 
+  const hasDial = cubes.some((c) => c.definition.id === "control/dial");
+  const hasLightInWindow = cubes.some(
+    (c) => c.definition.id === "output/light",
+  );
+  const hasLightInChain = chain
+    ? chain.cubes.some((c) => c.definition.id === "output/light")
+    : hasLightInWindow;
+  const lcdCount = chain
+    ? chain.cubes.filter((c) => c.definition.id === "output/lcd").length
+    : 1;
+  const dialTunesWeather = dialTunesWeatherInSlots(cubes);
+  const dialSelectsWeather =
+    hasDial &&
+    hasWeatherSource &&
+    dialSelectsWeatherInSlots(cubes) &&
+    !hasLightInChain;
+  const useWeatherDialLightComposite =
+    hasDial &&
+    hasWeatherSource &&
+    hasLightInChain &&
+    lcdCount === 1 &&
+    dialSelectsWeatherInSlots(cubes) &&
+    !dialTunesWeatherInSlots(cubes);
+
   return {
     fmt: windowFmt,
     hasTemperatureSensor: cubes.some(
@@ -120,18 +153,18 @@ export function buildSegmentContext(
     hasGithub: cubes.some((c) => c.definition.id === "source/github"),
     hasTimeTransform,
     timeOnlyWindow,
-    hasDial: cubes.some((c) => c.definition.id === "control/dial"),
-    dialSelectsWeather:
-      cubes.some((c) => c.definition.id === "control/dial") &&
-      hasWeatherSource &&
-      !cubes.some((c) => c.definition.id === "output/light"),
+    hasDial,
+    dialSelectsWeather,
+    dialTunesWeather,
     hasSplit: cubes.some((c) => c.definition.id === "transform/split"),
     hasSlider: cubes.some((c) => c.definition.id === "control/slider"),
     places,
     hasCalm: cubes.some((c) => c.definition.id === "modifier/calm"),
     hasRandom: cubes.some((c) => c.definition.id === "modifier/random"),
     hasButton: cubes.some((c) => c.definition.id === "control/button"),
-    hasLight: cubes.some((c) => c.definition.id === "output/light"),
+    hasLight: hasLightInWindow,
+    hasLightInChain,
+    useWeatherDialLightComposite,
     buttonControlsLight: fmt.buttonControlsLight,
   };
 }
@@ -139,12 +172,24 @@ export function buildSegmentContext(
 export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
   const { fmt } = ctx;
   const segments: Segment[] = [];
+  const dialScalesLight = ctx.useWeatherDialLightComposite;
 
   if (ctx.hasTemperatureSensor) segments.push(formatTemp(fmt.sensorTemp));
   if (ctx.hasWeatherSource) {
     const boundPlace =
       ctx.places.length > 0 ? ctx.places[0]!.label : undefined;
-    if (ctx.hasSplit) {
+    if (dialScalesLight) {
+      segments.push(
+        formatWeatherDialLightViewport(
+          fmt.weatherTemp,
+          fmt.weatherRain,
+          boundPlace,
+          ctx.hasCalm ? fmt.modifierCalmNoise : null,
+          fmt.lightBrightness,
+          fmt.lightMood,
+        ),
+      );
+    } else if (ctx.hasSplit) {
       segments.push(
         ...buildSplitWeatherSegments(
           fmt.weatherTemp,
@@ -181,7 +226,12 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
       segments.push(formatTime(fmt.timeHour));
     }
   }
-  if (ctx.hasDial && !ctx.dialSelectsWeather) {
+  if (
+    ctx.hasDial &&
+    !ctx.dialSelectsWeather &&
+    !ctx.dialTunesWeather &&
+    !dialScalesLight
+  ) {
     segments.push(formatControlPercent(fmt.dialPosition));
   }
   if (ctx.hasSlider) segments.push(formatControlPercent(fmt.sliderPosition));
@@ -195,8 +245,8 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
       }
     }
   }
-  if (ctx.hasCalm) {
-    segments.push(formatModifierNoise("CALM", fmt.modifierCalmNoise));
+  if (ctx.hasCalm && !dialScalesLight) {
+    segments.push(formatModifierNoise("Calm", fmt.modifierCalmNoise));
   }
   if (ctx.hasRandom) {
     segments.push(formatModifierNoise("RND", fmt.modifierRandom));
@@ -204,7 +254,7 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
   if (ctx.hasButton && !ctx.buttonControlsLight) {
     segments.push(formatButtonCircuit(fmt.buttonCircuitClosed));
   }
-  if (ctx.hasLight) {
+  if (ctx.hasLight && !dialScalesLight) {
     if (ctx.buttonControlsLight) {
       segments.push(formatLightLcd(fmt.lightBrightness));
     } else {

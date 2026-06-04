@@ -5,10 +5,10 @@
 
  RUN  v2.1.9 /Users/oscarhilts/Documents/scratch/Foundry/packages/cube-defs
 
- ✓ src/cubes.test.ts (7 tests) 3ms
+ ✓ src/cubes.test.ts (7 tests) 7ms
 
  Test Files  1 passed (1)
       Tests  7 passed (7)
-   Start at  20:56:21
-   Duration  601ms (transform 56ms, setup 0ms, collect 64ms, tests 3ms, environment 0ms, prepare 164ms)
+   Start at  21:19:54
+   Duration  693ms (transform 76ms, setup 0ms, collect 85ms, tests 7ms, environment 0ms, prepare 209ms)
 

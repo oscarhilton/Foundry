@@ -1,4 +1,5 @@
 import { hourFractionInTimezone } from "./place-profile.js";
+import type { LightMood } from "./weather-light.js";
 
 export interface OutputFormatState {
   timeHour: number | null;
@@ -9,6 +10,7 @@ export interface OutputFormatState {
   dialPosition: number;
   sliderPosition: number;
   lightBrightness: number;
+  lightMood: LightMood | null;
   modifierRandom: number | null;
   modifierCalmNoise: number | null;
   /** Latched circuit: false = OPEN, true = CLOSED. */
@@ -163,7 +165,39 @@ export function formatButtonCircuit(closed: boolean): string {
 }
 
 export function formatLightLcd(brightness: number): string {
-  return `Light\n${formatControlPercent(brightness)}`;
+  return formatLightBrightnessMood(brightness, null);
+}
+
+function formatMoodLabel(mood: LightMood): string {
+  return mood.charAt(0).toUpperCase() + mood.slice(1);
+}
+
+export function formatLightBrightnessMood(
+  brightness: number,
+  mood: LightMood | null,
+): string {
+  const pct = formatControlPercent(brightness);
+  if (!mood) return `Light\n${pct}`;
+  return `Light\n${pct} · ${formatMoodLabel(mood)}`;
+}
+
+/** LCD when dial scales light: weather context + optional calm + light summary. */
+export function formatWeatherDialLightViewport(
+  weatherTemp: number | null | undefined,
+  weatherRain: number | null | undefined,
+  placeLabel: string | undefined,
+  calmNoise: number | null | undefined,
+  brightness: number,
+  mood: LightMood | null,
+): string {
+  const lines: string[] = [
+    formatWeather(weatherTemp, weatherRain, placeLabel),
+  ];
+  if (calmNoise != null) {
+    lines.push(formatModifierNoise("Calm", calmNoise));
+  }
+  lines.push(formatLightBrightnessMood(brightness, mood));
+  return lines.join("\n");
 }
 
 export function formatModifierNoise(

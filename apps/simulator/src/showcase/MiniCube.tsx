@@ -1,16 +1,11 @@
 import type { ReactNode } from "react";
 import { getCubeDefinition } from "@foundry/cube-defs";
-import type { FoundryOutputState, LightMood } from "@foundry/runtime";
+import type { FoundryOutputState } from "@foundry/runtime";
 import { CubeIcon } from "../components/canvas/cubes/CubeIcon";
+import { panelFill } from "../components/canvas/cubes/LightVisual";
 import { COLORS } from "../components/canvas/design-tokens";
 
 const MINI = 56;
-
-const MOOD_COLORS: Record<LightMood, string> = {
-  rain: "#457B9D",
-  sun: "#FFD166",
-  overcast: "#9CA3AF",
-};
 
 interface MiniCubeProps {
   definitionId: string;
@@ -53,26 +48,41 @@ export function MiniCube({ definitionId, instanceId, outputState }: MiniCubeProp
       </div>
     );
   } else if (isLight) {
-    const mood = outputState.lightMood;
-    const glow =
-      mood != null ? MOOD_COLORS[mood] : `rgba(255, 209, 102, ${0.3 + outputState.lightBrightness * 0.7})`;
+    const fill = panelFill(outputState.lightBrightness, outputState.lightMood);
     stateBand = (
-      <div className="flex items-center justify-center mb-1 h-6">
+      <div className="flex items-center justify-center mb-1 h-6 px-1 w-full">
         <div
-          className="rounded-full"
+          className="w-full max-w-[28px] aspect-square border"
           style={{
-            width: 20,
-            height: 20,
-            background: glow,
-            boxShadow: `0 0 12px ${glow}`,
+            background: fill,
+            borderColor: COLORS.stroke,
           }}
         />
       </div>
     );
   } else if (definitionId === "control/dial") {
+    const pct = Math.round(outputState.dialPosition * 100);
+    const angle = outputState.dialPosition * Math.PI * 2 - Math.PI / 2;
+    const ringR = 9;
+    const cx = 10;
+    const cy = 10;
+    const dotX = cx + Math.cos(angle) * ringR;
+    const dotY = cy + Math.sin(angle) * ringR;
     stateBand = (
-      <div className="text-center text-[7px] text-foundry-muted mb-1 font-mono">
-        {Math.round(outputState.dialPosition * 100)}%
+      <div className="flex flex-col items-center mb-1">
+        <svg width={20} height={20} viewBox="0 0 20 20" aria-hidden>
+          <circle
+            cx={cx}
+            cy={cy}
+            r={ringR}
+            fill="none"
+            stroke={COLORS.stroke}
+            strokeWidth={1}
+          />
+          <circle cx={dotX} cy={dotY} r={1.5} fill={COLORS.ink} opacity={0.85} />
+          <circle cx={cx} cy={cy} r={2.5} fill={COLORS.stroke} opacity={0.6} />
+        </svg>
+        <span className="text-[6px] text-foundry-muted font-mono -mt-0.5">{pct}%</span>
       </div>
     );
   } else if (definitionId === "sensor/motion" && outputState.motionDetected) {

@@ -6,7 +6,7 @@ import type { FoundryOutputState } from "@foundry/runtime";
 import { BaseCubeShell } from "./cubes/BaseCubeShell";
 import { CubeIcon } from "./cubes/CubeIcon";
 import { LightVisual } from "./cubes/LightVisual";
-import { DialVisual } from "./cubes/DialVisual";
+import { WheelVisual } from "./cubes/WheelVisual";
 import { MotionVisual } from "./cubes/MotionVisual";
 import { ChimeVisual } from "./cubes/ChimeVisual";
 import { WeatherVisual } from "./cubes/WeatherVisual";
@@ -217,7 +217,7 @@ function CubeNodeInner({
     }
     if (id === "control/dial" && visualState.isPrimaryDial && onDialChange) {
       return (
-        <DialVisual
+        <WheelVisual
           dialPosition={outputState.dialPosition}
           onDialChange={onDialChange}
           animTime={animTime}
