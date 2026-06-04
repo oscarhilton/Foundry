@@ -13,7 +13,7 @@ import {
   type OutputFormatState,
 } from "./output-formatters.js";
 
-/** Formatted token shown on a viewport, e.g. "12°C 45%". */
+/** Formatted token shown on a viewport, e.g. "London\\n12°C · 45% rain". */
 export type Segment = string;
 
 export type ConsumablePayload = Segment[];
@@ -28,7 +28,8 @@ export interface SegmentBuildContext {
   hasTemperatureSensor: boolean;
   hasWeatherSource: boolean;
   hasGithub: boolean;
-  hasTimeSource: boolean;
+  hasTimeTransform: boolean;
+  timeOnlyWindow: boolean;
   hasDial: boolean;
   hasSlider: boolean;
   places: PlaceProfile[];
@@ -38,23 +39,55 @@ export interface SegmentBuildContext {
   hasLight: boolean;
 }
 
-export interface SegmentConsumer {
-  instanceId: string;
-  consume(payload: ConsumablePayload): ConsumerResult;
+/** Wall-clock mode: only the Time cube in window, before the first LCD in the chain. */
+function isWallClockWindow(
+  cubes: ParsedChainSlot[],
+  chain: ParsedChain,
+  lcdChainIndex: number,
+): boolean {
+  const signalCubes = cubes.filter(isSignalCube);
+  if (signalCubes.length !== 1) return false;
+  if (signalCubes[0]!.definition.id !== "source/time") return false;
+  const hasLcdBefore = chain.cubes
+    .slice(0, lcdChainIndex)
+    .some((c) => c.definition.id === "output/lcd");
+  return !hasLcdBefore;
+}
+
+/** Viewport consumption trace step — grammar visible in debug. */
+export interface ViewportConsumptionStep {
+  targetId: string;
+  label: string;
+  address?: string;
+  payloadBefore: Segment[];
+  consumed: Segment[];
+  remainderAfter: Segment[];
+  rendered: string;
+}
+
+export interface ViewportConsumptionResult {
+  texts: Record<string, string>;
+  steps: ViewportConsumptionStep[];
 }
 
 export function buildSegmentContext(
   cubes: ParsedChainSlot[],
   fmt: OutputFormatState,
+  chain?: ParsedChain,
+  lcdChainIndex = 0,
 ): SegmentBuildContext {
   const places = resolvePlaceProfilesFromSlots(cubes);
   const hasWeatherSource = cubes.some(
     (c) => c.definition.id === "identity/weather",
   );
-  const hasTimeSource = cubes.some((c) => c.definition.id === "source/time");
+  const hasTimeTransform = cubes.some((c) => c.definition.id === "source/time");
+  const timeOnlyWindow =
+    hasTimeTransform &&
+    chain != null &&
+    isWallClockWindow(cubes, chain, lcdChainIndex);
 
   let windowFmt = fmt;
-  if (hasWeatherSource && places.length === 1) {
+  if (hasWeatherSource && places.length > 0) {
     const place = places[0]!;
     windowFmt = {
       ...fmt,
@@ -70,7 +103,8 @@ export function buildSegmentContext(
     ),
     hasWeatherSource,
     hasGithub: cubes.some((c) => c.definition.id === "source/github"),
-    hasTimeSource,
+    hasTimeTransform,
+    timeOnlyWindow,
     hasDial: cubes.some((c) => c.definition.id === "control/dial"),
     hasSlider: cubes.some((c) => c.definition.id === "control/slider"),
     places,
@@ -87,23 +121,28 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
 
   if (ctx.hasTemperatureSensor) segments.push(formatTemp(fmt.sensorTemp));
   if (ctx.hasWeatherSource) {
-    segments.push(formatWeather(fmt.weatherTemp, fmt.weatherRain));
+    const boundPlace =
+      ctx.places.length > 0 ? ctx.places[0]!.label : undefined;
+    segments.push(
+      formatWeather(fmt.weatherTemp, fmt.weatherRain, boundPlace),
+    );
   }
   if (ctx.hasGithub) segments.push(formatGithub(fmt.githubActivity));
-  if (ctx.hasTimeSource) {
+  if (ctx.hasTimeTransform) {
     if (ctx.places.length > 0) {
       for (const place of ctx.places) {
         segments.push(formatPlaceTime(place.label, place.timezone));
       }
-    } else {
+    } else if (ctx.timeOnlyWindow) {
       segments.push(formatTime(fmt.timeHour));
     }
   }
   if (ctx.hasDial) segments.push(formatControlPercent(fmt.dialPosition));
   if (ctx.hasSlider) segments.push(formatControlPercent(fmt.sliderPosition));
-  if (!ctx.hasTimeSource) {
+  if (!ctx.hasTimeTransform) {
+    // Weather binds to the first place in the window; omit duplicate place labels on LCD.
     const skipPlaceLabels =
-      ctx.hasWeatherSource && ctx.places.length === 1;
+      ctx.hasWeatherSource && ctx.places.length > 0;
     if (!skipPlaceLabels) {
       for (const place of ctx.places) {
         segments.push(place.label);
@@ -126,65 +165,23 @@ export function renderSegments(segments: ConsumablePayload): string {
   return segments.length > 0 ? concatLcdSegments(segments) : "--";
 }
 
-/** Viewport (LCD) consumes one or more segments and passes the rest downstream. */
-export function createViewportConsumer(instanceId: string): SegmentConsumer {
-  return {
-    instanceId,
-    consume(payload: ConsumablePayload): ConsumerResult {
-      if (payload.length === 0) {
-        return { consumed: [], remainder: [] };
-      }
-      if (payload.length === 1) {
-        return { consumed: [payload[0]!], remainder: [] };
-      }
-      const perBucket = Math.ceil(payload.length / 1);
-      const consumed = payload.slice(0, perBucket);
-      const remainder = payload.slice(perBucket);
-      return { consumed, remainder };
-    },
-  };
-}
-
-export function distributePayloadToViewports(
-  payload: ConsumablePayload,
-  viewportCount: number,
-): string[] {
-  if (viewportCount === 0) return [];
-  if (viewportCount === 1) {
-    return payload.length > 0 ? [renderSegments(payload)] : ["--"];
-  }
-  if (payload.length === 0) {
-    return Array.from({ length: viewportCount }, () => "--");
-  }
-  if (payload.length <= viewportCount) {
-    const result = [...payload];
-    while (result.length < viewportCount) result.push("--");
-    return result;
-  }
-
-  const perBucket = Math.ceil(payload.length / viewportCount);
-  const result: string[] = [];
-  for (let i = 0; i < viewportCount; i++) {
-    const chunk = payload.slice(i * perBucket, (i + 1) * perBucket);
-    result.push(chunk.length > 0 ? renderSegments(chunk) : "--");
-  }
-  return result;
-}
-
 function isSignalCube(cube: ParsedChainSlot): boolean {
   return cube.definition.role !== "core" && cube.definition.id !== "output/lcd";
 }
 
 function segmentsForWindowCubes(
+  chain: ParsedChain,
   cubes: ParsedChainSlot[],
+  lcdChainIndex: number,
   fmt: OutputFormatState,
 ): ConsumablePayload {
   if (!cubes.some(isSignalCube)) return [];
-  return buildSegments(buildSegmentContext(cubes, fmt));
+  return buildSegments(buildSegmentContext(cubes, fmt, chain, lcdChainIndex));
 }
 
 interface ViewportWindow {
   instanceId: string;
+  label: string;
   chainIndex: number;
   segments: ConsumablePayload;
 }
@@ -204,8 +201,9 @@ function computeViewportWindows(
     const windowCubes = chain.cubes.slice(windowStart, chainIndex);
     windows.push({
       instanceId: viewport.instanceId,
+      label: viewport.definition.label,
       chainIndex,
-      segments: segmentsForWindowCubes(windowCubes, fmt),
+      segments: segmentsForWindowCubes(chain, windowCubes, chainIndex, fmt),
     });
     windowStart = chainIndex + 1;
   }
@@ -213,15 +211,150 @@ function computeViewportWindows(
   return windows;
 }
 
-function suffixSegmentsForCluster(
+/** Remainder fold: one viewport consumes the next segment from shared upstream. */
+function consumeForViewport(
+  payloadBefore: ConsumablePayload,
+  singleViewportEatsAll: boolean,
+): ConsumerResult {
+  if (payloadBefore.length === 0) {
+    return { consumed: [], remainder: [] };
+  }
+  if (singleViewportEatsAll) {
+    return { consumed: [...payloadBefore], remainder: [] };
+  }
+  return {
+    consumed: [payloadBefore[0]!],
+    remainder: payloadBefore.slice(1),
+  };
+}
+
+function windowSignalCubes(
   chain: ParsedChain,
-  lastChainIndex: number,
+  fromChainIndex: number,
+  toChainIndex: number,
+): ParsedChainSlot[] {
+  return chain.cubes
+    .slice(fromChainIndex + 1, toChainIndex)
+    .filter(isSignalCube);
+}
+
+/** Empty window that only contains Time after an LCD — do not load-share cluster with prior LCD. */
+function isOrphanTimeWindow(
+  chain: ParsedChain,
+  window: ViewportWindow,
+  priorLcdChainIndex: number,
+): boolean {
+  const cubes = windowSignalCubes(chain, priorLcdChainIndex, window.chainIndex);
+  return (
+    cubes.some((c) => c.definition.id === "source/time") &&
+    !cubes.some((c) => c.definition.role === "place")
+  );
+}
+
+function clusterSuffixSegments(
+  chain: ParsedChain,
+  lastClusterChainIndex: number,
+  nextWindowWithContent: ViewportWindow | undefined,
   fmt: OutputFormatState,
 ): ConsumablePayload {
+  if (nextWindowWithContent && nextWindowWithContent.segments.length > 0) {
+    return [];
+  }
+
+  const suffixEnd = nextWindowWithContent
+    ? nextWindowWithContent.chainIndex
+    : chain.cubes.length;
+
   const suffixCubes = chain.cubes
-    .slice(lastChainIndex + 1)
+    .slice(lastClusterChainIndex + 1, suffixEnd)
     .filter(isSignalCube);
-  return segmentsForWindowCubes(suffixCubes, fmt);
+
+  return segmentsForWindowCubes(chain, suffixCubes, suffixEnd, fmt);
+}
+
+function runViewportConsumption(
+  chain: ParsedChain,
+  fmt: OutputFormatState,
+  resolveAddress?: (targetId: string) => string | undefined,
+): ViewportConsumptionResult {
+  const windows = computeViewportWindows(chain, fmt);
+  const texts: Record<string, string> = {};
+  const steps: ViewportConsumptionStep[] = [];
+
+  let i = 0;
+  while (i < windows.length) {
+    let j = i + 1;
+    while (j < windows.length && windows[j]!.segments.length === 0) {
+      const priorLcdChainIndex = windows[j - 1]!.chainIndex;
+      if (isOrphanTimeWindow(chain, windows[j]!, priorLcdChainIndex)) {
+        break;
+      }
+      j++;
+    }
+
+    const cluster = windows.slice(i, j);
+    const upstreamPayload = [...windows[i]!.segments];
+    const nextWindowWithContent = windows[j];
+    const singleViewport = cluster.length === 1;
+
+    let remainder = [...upstreamPayload];
+    const clusterSteps: ViewportConsumptionStep[] = [];
+
+    for (const w of cluster) {
+      const payloadBefore = [...remainder];
+      const { consumed, remainder: nextRemainder } = consumeForViewport(
+        payloadBefore,
+        singleViewport && upstreamPayload.length > 0,
+      );
+      remainder = nextRemainder;
+      const rendered =
+        consumed.length > 0 ? renderSegments(consumed) : "--";
+
+      clusterSteps.push({
+        targetId: w.instanceId,
+        label: w.label,
+        address: resolveAddress?.(w.instanceId),
+        payloadBefore,
+        consumed,
+        remainderAfter: [...remainder],
+        rendered,
+      });
+      texts[w.instanceId] = rendered;
+    }
+
+    const suffix = clusterSuffixSegments(
+      chain,
+      cluster[cluster.length - 1]!.chainIndex,
+      nextWindowWithContent,
+      fmt,
+    );
+
+    if (suffix.length > 0) {
+      let suffixIdx = 0;
+      for (const step of clusterSteps) {
+        if (step.rendered === "--" && suffixIdx < suffix.length) {
+          const seg = suffix[suffixIdx++]!;
+          step.consumed = [seg];
+          step.rendered = seg;
+          texts[step.targetId] = seg;
+        }
+      }
+    }
+
+    steps.push(...clusterSteps);
+    i = j;
+  }
+
+  return { texts, steps };
+}
+
+/** Trace viewport consumption (payload / consumed / remainder) per instanceId. */
+export function traceViewportConsumption(
+  chain: ParsedChain,
+  fmt: OutputFormatState,
+  resolveAddress?: (targetId: string) => string | undefined,
+): ViewportConsumptionStep[] {
+  return runViewportConsumption(chain, fmt, resolveAddress).steps;
 }
 
 /** Resolve rendered text per viewport instance from chain order and format state. */
@@ -229,41 +362,7 @@ export function resolveViewportTextsForChain(
   chain: ParsedChain,
   fmt: OutputFormatState,
 ): Record<string, string> {
-  const windows = computeViewportWindows(chain, fmt);
-  const texts: Record<string, string> = {};
-
-  let i = 0;
-  while (i < windows.length) {
-    let j = i + 1;
-    while (j < windows.length && windows[j]!.segments.length === 0) {
-      j++;
-    }
-
-    const clusterSize = j - i;
-    const upstreamPayload = windows[i]!.segments;
-    const distributed = distributePayloadToViewports(
-      upstreamPayload,
-      clusterSize,
-    );
-    const backfill = suffixSegmentsForCluster(
-      chain,
-      windows[j - 1]!.chainIndex,
-      fmt,
-    );
-
-    let backfillIdx = 0;
-    for (let k = 0; k < clusterSize; k++) {
-      let text = distributed[k] ?? "--";
-      if (text === "--" && backfillIdx < backfill.length) {
-        text = backfill[backfillIdx++]!;
-      }
-      texts[windows[i + k]!.instanceId] = text;
-    }
-
-    i = j;
-  }
-
-  return texts;
+  return runViewportConsumption(chain, fmt).texts;
 }
 
 /** @deprecated Use resolveViewportTextsForChain — kept for compatibility. */
@@ -279,4 +378,31 @@ export function resolveViewportTextForWindow(
   if (signalCubes.length === 0) return "--";
   const segments = buildSegments(buildSegmentContext(cubes, fmt));
   return renderSegments(segments);
+}
+
+/** @deprecated Use distributePayloadToViewports via viewport consumption. */
+export function distributePayloadToViewports(
+  payload: ConsumablePayload,
+  viewportCount: number,
+): string[] {
+  if (viewportCount === 0) return [];
+  if (viewportCount === 1) {
+    return payload.length > 0 ? [renderSegments(payload)] : ["--"];
+  }
+  if (payload.length === 0) {
+    return Array.from({ length: viewportCount }, () => "--");
+  }
+  if (payload.length <= viewportCount) {
+    const result = [...payload];
+    while (result.length < viewportCount) result.push("--");
+    return result;
+  }
+
+  const perBucket = Math.ceil(payload.length / viewportCount);
+  const result: string[] = [];
+  for (let k = 0; k < viewportCount; k++) {
+    const chunk = payload.slice(k * perBucket, (k + 1) * perBucket);
+    result.push(chunk.length > 0 ? renderSegments(chunk) : "--");
+  }
+  return result;
 }

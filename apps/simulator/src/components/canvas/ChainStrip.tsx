@@ -194,6 +194,12 @@ export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function Chai
   const multiDisplayHint = warnings.some((w) =>
     w.includes("Multiple displays share"),
   );
+  const cityTimeHint = warnings.some((w) =>
+    w.includes("put Time after each city"),
+  );
+  const cityWeatherHint = warnings.some((w) =>
+    w.includes("place Weather after each city"),
+  );
 
   const primaryLightId = firstId(chain, "output/light");
 
@@ -246,6 +252,18 @@ export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function Chai
       {multiDisplayHint && outputState.powered && (
         <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800">
           Extra displays split the same upstream information — like adding another monitor
+        </p>
+      )}
+
+      {cityTimeHint && outputState.powered && (
+        <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800">
+          Put Time after each city to show city-specific times (e.g. Tokyo → Time → London → Time → LCD)
+        </p>
+      )}
+
+      {cityWeatherHint && outputState.powered && (
+        <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800">
+          Place Weather after each city to compare weather across cities
         </p>
       )}
 

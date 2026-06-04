@@ -239,7 +239,7 @@ describe("FoundryEngine", () => {
 
     const { lcdText, modifierCalmNoise } = engine.getOutputState();
     expect(modifierCalmNoise).not.toBeNull();
-    expect(lcdText).toMatch(/^12°C 45% CALM \d+%$/);
+    expect(lcdText).toMatch(/^London\n12°C · 45% rain CALM \d+%$/);
 
     engine.destroy();
   });
@@ -258,7 +258,7 @@ describe("FoundryEngine", () => {
 
     const { lcdText, modifierRandom } = engine.getOutputState();
     expect(modifierRandom).not.toBeNull();
-    expect(lcdText).toMatch(/^12°C 45% RND \d+%$/);
+    expect(lcdText).toMatch(/^London\n12°C · 45% rain RND \d+%$/);
 
     engine.destroy();
   });
@@ -381,9 +381,28 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const state = engine.getOutputState();
-    expect(state.lcdText).toBe("12°C 45%");
+    expect(state.lcdText).toBe("London\n12°C · 45% rain");
 
     engine.destroy();
+  });
+
+  it("does not republish unchanged output/lcd/text for a viewport", () => {
+    const lcdSignals: SignalMessage[] = [];
+    const eng = new FoundryEngine({
+      dialDefault: 0.65,
+      onSignal: (msg) => {
+        if (msg.topic === "output/lcd/text") lcdSignals.push(msg);
+      },
+    });
+    eng.setChain(withCore("source/time", "output/lcd"));
+    eng.start();
+    const countAfterStart = lcdSignals.length;
+    expect(countAfterStart).toBeGreaterThan(0);
+
+    eng.setDialPosition(0.65);
+    expect(lcdSignals.length).toBe(countAfterStart);
+
+    eng.destroy();
   });
 
   it("shows weather on LCD in composite weather-dial-light chain", () => {
@@ -401,24 +420,24 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toBe("12°C 45% 50% 40%");
+    expect(state.lcdText).toBe("London\n12°C · 45% rain 50% 40%");
 
     engine.destroy();
   });
 
-  it("concatenates temp and time on single LCD", () => {
+  it("omits time on LCD when time shares a window with other signals (no places)", () => {
     engine.setChain(
       withCore("sensor/temperature", "source/time", "output/lcd"),
     );
     engine.start();
 
     const state = engine.getOutputState();
-    expect(state.lcdText).toMatch(/^\d+°C \d{2}:\d{2}$/);
+    expect(state.lcdText).toMatch(/^\d+°C$/);
 
     engine.destroy();
   });
 
-  it("concatenates all segments on single LCD when multiple sources present", () => {
+  it("omits time when mixed with weather on one LCD", () => {
     engine.setChain(
       withCore(
         "sensor/temperature",
@@ -431,7 +450,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const state = engine.getOutputState();
-    expect(state.lcdText).toMatch(/^\d+°C 18°C 40% \d{2}:\d{2}$/);
+    expect(state.lcdText).toMatch(/^\d+°C 18°C · 40% rain$/);
 
     engine.destroy();
   });
@@ -480,7 +499,7 @@ describe("FoundryEngine", () => {
 
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
-    expect(lcdTexts.lcd2).toBe("18°C 40%");
+    expect(lcdTexts.lcd2).toBe("18°C · 40% rain");
 
     engine.destroy();
   });
@@ -500,8 +519,8 @@ describe("FoundryEngine", () => {
 
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
-    expect(lcdTexts.lcd2).toBe("18°C 40%");
-    expect(lcdTexts.lcd3).toMatch(/^\d{2}:\d{2}$/);
+    expect(lcdTexts.lcd2).toBe("18°C · 40% rain");
+    expect(lcdTexts.lcd3).toBe("--");
 
     engine.destroy();
   });
@@ -539,8 +558,7 @@ describe("FoundryEngine", () => {
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/°C/);
     expect(lcdTexts.lcd1).toMatch(/\/hr/);
-    expect(lcdTexts.lcd1).toMatch(/18°C 40%/);
-    expect(lcdTexts.lcd2).toMatch(/\d{2}:\d{2}/);
+    expect(lcdTexts.lcd1).toMatch(/18°C · 40% rain/);
     expect(lcdTexts.lcd2).toMatch(/%/);
 
     engine.destroy();
@@ -563,7 +581,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 21, rain: 0.68 });
 
     const { lcdTexts } = engine.getOutputState();
-    expect(lcdTexts.lcd1).toBe("12°C 45%");
+    expect(lcdTexts.lcd1).toBe("London\n12°C · 45% rain");
     expect(lcdTexts.lcd2).toBe("50%");
     expect(lcdTexts.lcd3).toMatch(/^\d+%$/);
     expect(lcdTexts.lcd4).toMatch(/^RND \d+%$/);
@@ -601,7 +619,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
 
     const { lcdTexts } = engine.getOutputState();
-    expect(lcdTexts.lcd1).toBe("12°C 45%");
+    expect(lcdTexts.lcd1).toBe("London\n12°C · 45% rain");
     expect(lcdTexts.lcd2).toMatch(/^CALM \d+%$/);
 
     engine.destroy();
@@ -627,7 +645,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.triggerMotion(false);
     lcdTexts = engine.getOutputState().lcdTexts;
     expect(lcdTexts.lcd1).toMatch(/^\d+°C$/);
-    expect(lcdTexts.lcd2).toBe("18°C 40%");
+    expect(lcdTexts.lcd2).toBe("18°C · 40% rain");
 
     engine.destroy();
   });
@@ -647,7 +665,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toBe("12°C 45% 50% 40%");
+    expect(state.lcdText).toBe("London\n12°C · 45% rain 50% 40%");
     expect(state.lightBrightness).toBeGreaterThan(0.1);
 
     engine.destroy();
@@ -839,7 +857,7 @@ describe("FoundryEngine", () => {
 
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toMatch(/^Tokyo \d{2}:\d{2}$/);
-    expect(lcdTexts.lcd2).toBe("12°C 45%");
+    expect(lcdTexts.lcd2).toBe("London\n12°C · 45% rain");
     expect(lcdTexts.lcd2).not.toMatch(/\d{2}:\d{2}/);
 
     engine.destroy();

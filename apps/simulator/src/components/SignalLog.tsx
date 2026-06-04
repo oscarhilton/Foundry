@@ -42,9 +42,15 @@ export function SignalLog() {
                 second: "2-digit",
               })}
             </span>
-            <span className="text-[#457B9D] shrink-0">{msg.topic}</span>
+            <span className="text-[#457B9D] shrink-0">
+              {msg.topic}
+              {msg.targetId ? ` → ${msg.targetId}` : ""}
+            </span>
             <span className="text-foundry-ink">{formatValue(msg.value)}</span>
-            <span className="text-foundry-muted truncate">{msg.source}</span>
+            <span className="text-foundry-muted truncate">
+              {msg.targetAddress ? `${msg.targetAddress} · ` : ""}
+              {msg.source}
+            </span>
           </div>
         ))}
       </div>

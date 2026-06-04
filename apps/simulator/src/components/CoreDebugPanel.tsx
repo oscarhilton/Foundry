@@ -1,9 +1,58 @@
+import type { ReactNode } from "react";
 import { formatPowerBattery } from "@foundry/runtime";
 import { useSimulatorStore } from "../store";
 
 function formatValue(value: unknown): string {
   if (typeof value === "number") return value.toFixed(3).replace(/\.?0+$/, "");
   return String(value);
+}
+
+function formatSegmentList(segments: string[]): string {
+  if (segments.length === 0) return "—";
+  if (segments.length === 1) return segments[0]!;
+  return segments.join(", ");
+}
+
+function ViewportSegmentBracket({ segments }: { segments: string[] }) {
+  return (
+    <p className="whitespace-pre-line text-foundry-ink">
+      [{formatSegmentList(segments)}]
+    </p>
+  );
+}
+
+function ViewportRenderedArrow({ rendered }: { rendered: string }) {
+  const lines = rendered.split("\n");
+  return (
+    <div className="pt-1 text-foundry-ink">
+      <p className="whitespace-pre-line">
+        → {lines[0]}
+        {lines.slice(1).map((line, i) => (
+          <span key={i} className="block pl-4">
+            {line}
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
+function TopicStreamValue({ value }: { value: unknown }): ReactNode {
+  const text = formatValue(value);
+  if (!text.includes("\n")) {
+    return <span className="text-foundry-ink">{text}</span>;
+  }
+  const lines = text.split("\n");
+  return (
+    <span className="text-foundry-ink whitespace-pre-line">
+      {lines[0]}
+      {lines.slice(1).map((line, i) => (
+        <span key={i} className="block pl-4">
+          {line}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 export function CoreDebugPanel() {
@@ -161,12 +210,60 @@ export function CoreDebugPanel() {
             <h3 className="text-xs font-medium uppercase tracking-wider text-foundry-muted mb-2">
               Recipe engine
             </h3>
-            <p className="text-sm">
-              {outputState.activeRecipeName ?? (
-                <span className="text-foundry-muted">No active recipe</span>
+            <div className="text-sm space-y-1">
+              {outputState.powered ? (
+                <>
+                  <p>
+                    Active chain:{" "}
+                    <span className="font-medium">
+                      {snapshot?.chainMode === "recipe"
+                        ? snapshot.activeRecipe ?? "recipe"
+                        : "manual composition"}
+                    </span>
+                  </p>
+                  <p>
+                    Recipe:{" "}
+                    {outputState.activeRecipeName ?? (
+                      <span className="text-foundry-muted">none</span>
+                    )}
+                  </p>
+                </>
+              ) : (
+                <p className="text-foundry-muted">Chain unpowered</p>
               )}
-            </p>
+            </div>
           </section>
+
+          {snapshot?.viewportTrace && snapshot.viewportTrace.length > 0 && (
+            <section>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-foundry-muted mb-2">
+                Viewport consumption
+              </h3>
+              <div className="space-y-4 text-[10px] font-mono">
+                {snapshot.viewportTrace.map((step) => (
+                  <div
+                    key={step.targetId}
+                    className="border border-foundry-border rounded-lg p-3 space-y-1.5 bg-gray-50/50"
+                  >
+                    <p className="text-foundry-muted uppercase tracking-wide text-[9px]">
+                      AVAILABLE TO viewport {step.targetId}
+                      {step.address ? ` (${step.address})` : ""}
+                    </p>
+                    <ViewportSegmentBracket segments={step.payloadBefore} />
+                    <p className="text-foundry-muted uppercase tracking-wide text-[9px] pt-1">
+                      VIEWPORT {step.targetId} CONSUMED
+                    </p>
+                    <ViewportSegmentBracket segments={step.consumed} />
+                    <p className="text-foundry-muted uppercase tracking-wide text-[9px] pt-1">
+                      REMAINDER AFTER viewport {step.targetId}
+                    </p>
+                    <ViewportSegmentBracket segments={step.remainderAfter} />
+                    <ViewportRenderedArrow rendered={step.rendered} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section>
             <h3 className="text-xs font-medium uppercase tracking-wider text-foundry-muted mb-2">
@@ -215,15 +312,17 @@ export function CoreDebugPanel() {
               ) : (
                 signalLog.slice(0, 20).map((msg, i) => (
                   <div
-                    key={`${msg.ts}-${msg.topic}-${i}`}
-                    className="flex gap-2 px-3 py-1 border-b border-gray-50"
+                    key={`${msg.ts}-${msg.topic}-${msg.targetId ?? ""}-${i}`}
+                    className="flex flex-wrap gap-x-2 gap-y-0.5 px-3 py-1 border-b border-gray-50"
                   >
-                    <span className="text-[#457B9D] shrink-0 w-32 truncate">
+                    <span className="text-[#457B9D] shrink-0">
                       {msg.topic}
+                      {msg.targetId ? ` → ${msg.targetId}` : ""}
+                      {msg.targetAddress ? ` (${msg.targetAddress})` : ""}
                     </span>
-                    <span>{formatValue(msg.value)}</span>
-                    <span className="text-foundry-muted truncate ml-auto">
-                      {msg.source}
+                    <TopicStreamValue value={msg.value} />
+                    <span className="text-foundry-muted truncate w-full">
+                      src {msg.source}
                     </span>
                   </div>
                 ))

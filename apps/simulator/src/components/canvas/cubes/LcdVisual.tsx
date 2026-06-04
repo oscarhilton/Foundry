@@ -46,6 +46,7 @@ export function LcdVisual({ text, animTime, lcdChangedAt }: LcdVisualProps) {
       color: COLORS.ink,
       opacity: textOpacity,
       lineHeight: 1.2,
+      whiteSpace: "pre-line",
     };
 
     if (isShort) {

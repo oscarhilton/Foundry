@@ -36,10 +36,12 @@ export function formatTemp(sensorTemp: number | null | undefined): string {
 export function formatWeather(
   weatherTemp: number | null | undefined,
   weatherRain: number | null | undefined,
+  placeLabel?: string,
 ): string {
   const temp = Math.round(weatherTemp ?? 14);
   const rain = Math.round((weatherRain ?? 0.3) * 100);
-  return `${temp}°C ${rain}%`;
+  const line = `${temp}°C · ${rain}% rain`;
+  return placeLabel ? `${placeLabel}\n${line}` : line;
 }
 
 export function formatWeatherCompact(weatherTemp: number | null | undefined): string {

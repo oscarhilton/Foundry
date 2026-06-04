@@ -8,6 +8,7 @@ export type CubeCategory =
 export type CubeRole =
   | "place"
   | "source"
+  | "transform"
   | "modifier"
   | "control"
   | "sensor"

@@ -84,11 +84,11 @@ When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/t
 
 1. **Motion** — `MOTION` while `sensor/motion` is active (broadcast to all LCDs; overrides windows)
 2. **Temperature sensor** — `16°C`
-3. **Weather** — `18°C 40%`
+3. **Weather** — `London` + `12°C · 40% rain` when the first place in the window binds Weather; `12°C · 40% rain` when no place is present
 4. **GitHub** — `14/hr`
-5. **Time** — `14:32`
+5. **Time (transform)** — `London 14:32` when a place shares the window; wall-clock `14:32` only when Time is alone in the window; no segment when Time follows consumed places
 6. **Dial / Slider** — e.g. `65%`
-7. **Place** — place label, e.g. `London`
+7. **Place** — place label when Time and Weather are not already showing that place, e.g. `London`
 8. **Calm modifier** — `CALM 45%` (Perlin noise level; label only when value unavailable)
 9. **Random modifier** — `RND 72%` (Perlin noise level; label only when value unavailable)
 10. **Button** — `BTN`
@@ -107,14 +107,20 @@ When a chain has **one** `output/lcd`, all segments from modules before that LCD
 When a chain has **two or more** LCDs, the Core resolves text using the **left-hand rule** (modules only affect LCDs to their right) plus **positional windows** and **load sharing**:
 
 1. **Positional windows** — each LCD initially collects segments from modules after the previous LCD (or chain start) up to before this LCD. Core is never in a window.
-2. **Load sharing** — when consecutive LCDs share one upstream window (later LCDs in the run have empty windows), segments are distributed across that run — one segment per LCD when possible, rather than concatenating everything on the first screen.
-3. **Backfill** — after load sharing, any `--` slots in the run are filled left-to-right from modules **after** the run (e.g. Random trailing an LCD cluster). Extra suffix segments are dropped when there are fewer empty slots than segments.
+2. **Viewport consumption** — when consecutive LCDs share one upstream window (later LCDs in the run have empty windows), a **remainder fold** assigns one segment per viewport; empty slots remain `--` unless trailing modifiers follow the cluster (not the next positional window).
+3. **Trailing modifiers** — modules after an LCD cluster (with no intervening LCD that has its own upstream window) may fill `--` slots left-to-right (e.g. Random after `LCD, LCD`).
 
-**Interleaved** chains keep strict windows: `Tokyo, Time, LCD, London, Weather, LCD` → LCD1 = `Tokyo 07:03`, LCD2 = `12°C 45%` (London weather from place profile).
+**Interleaved** chains keep strict windows: `Tokyo, Time, LCD, London, Weather, LCD` → LCD1 = `Tokyo 07:03`, LCD2 = `London` + `12°C · 45% rain` (Weather binds to London in that window).
 
-**Clustered** LCDs share upstream load: `Weather, Dial, Light, LCD, LCD, LCD, LCD, Random` → LCD1 = `12°C 45%`, LCD2 = `50%`, LCD3 = `72%`, LCD4 = `RND 68%`.
+**Clustered** LCDs share upstream load: `London, Weather, Dial, Light, LCD, LCD, LCD, LCD, Random` → LCD1 = `London` + `12°C · 45% rain`, LCD2 = `50%`, LCD3 = `72%`, LCD4 = `RND 68%`.
 
-Each LCD receives its own `output/lcd/text` publish with `source` set to that LCD's instance id. State is exposed as `lcdTexts: Record<instanceId, string>`; `lcdText` mirrors the first LCD for compatibility.
+Each LCD receives its own `output/lcd/text` publish:
+
+- `source` — always `core` (Core resolves viewport text from the chain)
+- `targetId` — viewport instance id (routing identity; required for LCD text)
+- `targetAddress` — optional I²C address from device discovery (transport metadata)
+
+The signal router stores latest values per `topic::targetId`, not per topic alone. State is exposed as `lcdTexts: Record<instanceId, string>`; `lcdText` mirrors the first LCD for compatibility.
 
 While motion is active, **all** LCDs broadcast `MOTION`; when motion clears, the window layout is restored.
 
@@ -122,11 +128,16 @@ While motion is active, **all** LCDs broadcast `MOTION`; when motion clears, the
 
 ```typescript
 {
+  topic: string;
   value: number | string | boolean;
-  ts: number;      // Unix ms
-  source: string; // cube instance id or "core"
+  ts: number;           // Unix ms
+  source: string;      // publisher instance id or "core"
+  targetId?: string;   // viewport instanceId — routing identity for per-display topics
+  targetAddress?: string; // I²C address — transport metadata; may change on hot-swap
 }
 ```
+
+LCD text must include `targetId`. Route by instance identity first; display `targetAddress` second.
 
 ## Chain Order Semantics
 

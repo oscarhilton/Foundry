@@ -5,13 +5,27 @@ export interface SignalMessage {
   value: SignalValue;
   ts: number;
   source: string;
+  /** Viewport / device instanceId — routing identity for per-target latest. */
+  targetId?: string;
+  /** I²C address — transport metadata for debug and hardware. */
+  targetAddress?: string;
 }
 
 export type SignalHandler = (message: SignalMessage) => void;
 
+export interface PublishOptions {
+  source: string;
+  targetId?: string;
+  targetAddress?: string;
+}
+
 export interface SignalRouterOptions {
   maxLogSize?: number;
   onPublish?: (message: SignalMessage) => void;
+}
+
+export function latestKey(topic: string, targetId?: string): string {
+  return targetId ? `${topic}::${targetId}` : topic;
 }
 
 export class SignalRouter {
@@ -26,14 +40,26 @@ export class SignalRouter {
     this.onPublish = options.onPublish;
   }
 
-  publish(topic: string, value: SignalValue, source = "core"): void {
+  publish(
+    topic: string,
+    value: SignalValue,
+    sourceOrOptions: string | PublishOptions = "core",
+  ): void {
+    const options: PublishOptions =
+      typeof sourceOrOptions === "string"
+        ? { source: sourceOrOptions }
+        : sourceOrOptions;
+
     const message: SignalMessage = {
       topic,
       value,
       ts: Date.now(),
-      source,
+      source: options.source,
+      targetId: options.targetId,
+      targetAddress: options.targetAddress,
     };
-    this.latest.set(topic, message);
+
+    this.latest.set(latestKey(topic, options.targetId), message);
     this.log.unshift(message);
     if (this.log.length > this.maxLogSize) {
       this.log.length = this.maxLogSize;
@@ -47,7 +73,6 @@ export class SignalRouter {
       }
     }
 
-    // Wildcard subscribers (e.g. "weather/*")
     for (const [pattern, patternHandlers] of this.subscribers) {
       if (pattern.endsWith("/*")) {
         const prefix = pattern.slice(0, -2);
@@ -66,18 +91,13 @@ export class SignalRouter {
     }
     this.subscribers.get(topic)!.add(handler);
 
-    const latest = this.latest.get(topic);
-    if (latest) {
-      handler(latest);
-    }
-
     return () => {
       this.subscribers.get(topic)?.delete(handler);
     };
   }
 
-  getLatest(topic: string): SignalMessage | undefined {
-    return this.latest.get(topic);
+  getLatest(topic: string, targetId?: string): SignalMessage | undefined {
+    return this.latest.get(latestKey(topic, targetId));
   }
 
   getLog(limit = 100): SignalMessage[] {

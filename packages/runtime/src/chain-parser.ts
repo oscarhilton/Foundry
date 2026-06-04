@@ -4,6 +4,7 @@ import {
   isVisualOutput,
   type CubeDefinition,
 } from "@foundry/cube-defs";
+import { collectGrammarHints } from "./grammar-hints.js";
 
 export interface ParsedChainSlot {
   instanceId: string;
@@ -107,6 +108,9 @@ export function parseChain(cubes: ChainCubeInput[]): ParsedChain {
     warnings,
   };
   chain.powered = isChainPowered(chain);
+  if (chain.powered) {
+    warnings.push(...collectGrammarHints(chain));
+  }
   return chain;
 }
 
@@ -255,9 +259,12 @@ export function hasTemperatureSensor(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "sensor/temperature");
 }
 
-export function hasTimeSource(chain: ParsedChain): boolean {
+export function hasTimeCube(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "source/time");
 }
+
+/** @deprecated Use hasTimeCube — id-based, not role source. */
+export const hasTimeSource = hasTimeCube;
 
 export function hasTokyoPlace(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "identity/tokyo");

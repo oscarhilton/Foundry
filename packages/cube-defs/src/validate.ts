@@ -13,7 +13,16 @@ export const CUBE_DEFINITION_JSON_SCHEMA = {
       enum: ["identity", "control", "sensor", "output", "core"],
     },
     role: {
-      enum: ["place", "source", "modifier", "control", "sensor", "output", "core"],
+      enum: [
+        "place",
+        "source",
+        "transform",
+        "modifier",
+        "control",
+        "sensor",
+        "output",
+        "core",
+      ],
     },
     colorAccent: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
     capabilities: { type: "array", items: { type: "string" } },

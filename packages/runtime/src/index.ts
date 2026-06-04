@@ -19,7 +19,17 @@ import {
   getRemainderEdges,
   hasRemainderEdge,
 } from "./capability-graph.js";
-import { resolveViewportTextsForChain } from "./segment-pipeline.js";
+import {
+  buildDeviceRegistry,
+  debugAddressFor,
+  registryToDiscoveredList,
+  type DiscoveredDevice,
+} from "./device-registry.js";
+import {
+  resolveViewportTextsForChain,
+  traceViewportConsumption,
+  type ViewportConsumptionStep,
+} from "./segment-pipeline.js";
 import {
   defaultLiveWeatherCoords,
   resolvePlaceProfile,
@@ -30,6 +40,7 @@ import {
   SignalRouter,
   smoothValue,
   weatherToBrightness,
+  latestKey,
   type SignalMessage,
 } from "./signal-router.js";
 import { perlin1D, perlin2D, perlinNormalized1D } from "./perlin.js";
@@ -84,10 +95,16 @@ export interface CoreDebugSnapshot {
     address: string;
   }>;
   activeRecipe: string | null;
-  bindings: Array<{ topic: string; value: string | number | boolean; source: string }>;
+  chainMode: string;
+  viewportTrace: ViewportConsumptionStep[];
+  bindings: Array<{
+    topic: string;
+    value: string | number | boolean;
+    source: string;
+    targetId?: string;
+    targetAddress?: string;
+  }>;
 }
-
-const I2C_BASE = 0x50;
 
 export class FoundryEngine {
   readonly router: SignalRouter;
@@ -106,6 +123,7 @@ export class FoundryEngine {
   private chimeCount = 0;
   private noiseTime = 0;
   private outputState: FoundryOutputState;
+  private devices = new Map<string, DiscoveredDevice>();
   private timeTimer?: ReturnType<typeof setInterval>;
   private tempTimer?: ReturnType<typeof setInterval>;
 
@@ -163,27 +181,48 @@ export class FoundryEngine {
     return { ...this.outputState };
   }
 
+  getDevice(instanceId: string): DiscoveredDevice | undefined {
+    return this.devices.get(instanceId);
+  }
+
   getCoreDebugSnapshot(): CoreDebugSnapshot {
     const parsed = this.parsed ?? parseChain(this.chain);
     const log = this.router.getLog(20);
+    const resolveAddress = (targetId: string) =>
+      this.devices.get(targetId)?.address;
+
+    const viewportTrace =
+      parsed.powered && hasLcdOutput(parsed)
+        ? traceViewportConsumption(parsed, this.formatState(), resolveAddress)
+        : [];
+
+    const chainMode = this.outputState.powered
+      ? this.outputState.activeRecipeName
+        ? "recipe"
+        : "manual"
+      : "unpowered";
 
     return {
       powered: this.outputState.powered,
       coreCount: parsed.coreCount,
       chainLength: parsed.cubes.length,
-      discovered: parsed.cubes.map((c, index) => ({
-        instanceId: c.instanceId,
-        label: c.definition.label,
-        id: c.definition.id,
-        role: c.definition.role,
-        index,
-        address: `0x${(I2C_BASE + index).toString(16).toUpperCase()}`,
+      discovered: registryToDiscoveredList(this.devices).map((d) => ({
+        instanceId: d.instanceId,
+        label: d.label,
+        id: d.cubeId,
+        role: d.role,
+        index: d.chainIndex,
+        address: d.address ?? debugAddressFor(d.instanceId),
       })),
       activeRecipe: this.outputState.activeRecipeName,
+      chainMode,
+      viewportTrace,
       bindings: log.map((m) => ({
         topic: m.topic,
         value: m.value,
         source: m.source,
+        targetId: m.targetId,
+        targetAddress: m.targetAddress,
       })),
     };
   }
@@ -348,6 +387,7 @@ export class FoundryEngine {
   private rebind(): void {
     this.clearBindings();
     this.parsed = parseChain(this.chain);
+    this.devices = buildDeviceRegistry(this.parsed);
     this.context = buildRecipeContext(this.parsed);
 
     this.outputState.powered = this.parsed.powered;
@@ -591,6 +631,18 @@ export class FoundryEngine {
     const lcdOutputs = chain.cubes.filter((c) => c.definition.id === "output/lcd");
     const texts: Record<string, string> = {};
 
+    const publishViewport = (instanceId: string, text: string) => {
+      const prev = this.router.getLatest("output/lcd/text", instanceId);
+      if (prev?.value === text) return;
+
+      const device = this.getDevice(instanceId);
+      this.router.publish("output/lcd/text", text, {
+        source: "core",
+        targetId: instanceId,
+        targetAddress: device?.address ?? debugAddressFor(instanceId),
+      });
+    };
+
     if (!hasLcdSignalModules(chain)) {
       const text = formatPowerBattery(
         this.outputState.powerSource,
@@ -614,7 +666,7 @@ export class FoundryEngine {
       : null;
 
     for (const [instanceId, text] of Object.entries(texts)) {
-      this.router.publish("output/lcd/text", text, instanceId);
+      publishViewport(instanceId, text);
     }
   }
 
@@ -680,6 +732,7 @@ export {
   SignalRouter,
   smoothValue,
   weatherToBrightness,
+  latestKey,
   parseChain,
   isChainPowered,
   buildRecipeContext,
@@ -697,6 +750,9 @@ export {
   hasRemainderEdge,
   getRemainderEdges,
   resolveViewportTextsForChain,
+  traceViewportConsumption,
+  buildDeviceRegistry,
+  debugAddressFor,
 };
 export { resolveLcdTextsForChain } from "./segment-pipeline.js";
 export {
@@ -708,9 +764,11 @@ export type {
   Segment,
   ConsumablePayload,
   ConsumerResult,
-  SegmentConsumer,
   SegmentBuildContext,
+  ViewportConsumptionStep,
 } from "./segment-pipeline.js";
+export type { DiscoveredDevice } from "./device-registry.js";
+export type { PublishOptions } from "./signal-router.js";
 export type {
   CapabilityGraph,
   GraphNode,
@@ -718,4 +776,10 @@ export type {
   GraphEdgeChannel,
   GraphNodeKind,
 } from "./capability-graph.js";
-export type { SignalMessage, ChainCubeInput, ParsedChain, RecipeContext, PlaceProfile };
+export type {
+  SignalMessage,
+  ChainCubeInput,
+  ParsedChain,
+  RecipeContext,
+  PlaceProfile,
+};
