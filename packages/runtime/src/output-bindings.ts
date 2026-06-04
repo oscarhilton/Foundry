@@ -1,5 +1,7 @@
 import type { ParsedChain } from "./chain-parser.js";
 import {
+  getNearestControl,
+  hasButtonControl,
   hasCalmModifier,
   hasDialCube,
   hasLightOutput,
@@ -17,7 +19,8 @@ export type LightBehaviourId =
   | "weather-dial-light"
   | "time-calm-light"
   | "github-activity-light"
-  | "temperature-light";
+  | "temperature-light"
+  | "button-light";
 
 /** Which light driver applies — independent of LCD segment pipeline. */
 export function resolveLightBehaviour(
@@ -56,6 +59,13 @@ export function resolveLightBehaviour(
     return "london-weather-light";
   }
 
+  if (hasButtonControl(chain) && hasLightOutput(chain)) {
+    const nearest = getNearestControl(chain);
+    if (nearest?.definition.id === "control/button") {
+      return "button-light";
+    }
+  }
+
   return null;
 }
 
@@ -68,6 +78,7 @@ export function resolvePrimaryRecipeLabel(
   if (lightBehaviour === "time-calm-light") return "Time Calm Light";
   if (lightBehaviour === "github-activity-light") return "GitHub Activity Light";
   if (lightBehaviour === "temperature-light") return "Temperature Light";
+  if (lightBehaviour === "button-light") return "Button Light";
 
   if (!isChainPowered(chain)) return null;
   if (hasMotionSensor(chain) && chain.cubes.some((c) => c.definition.id === "output/chime")) {

@@ -121,6 +121,41 @@ When several LCDs share one upstream window (no modules between them), segments 
 
 **Trailing modifiers** — modules after an LCD cluster (with no following LCD that has its own window) can fill `--` slots left by viewport consumption (e.g. `LCD, LCD, Random`).
 
+## Button (gate / contact)
+
+The Button is a **gate** or **contact**, not a software boolean:
+
+| State | Meaning |
+|-------|---------|
+| OPEN | No flow through the circuit |
+| CLOSED | Flow allowed |
+
+Press **toggles** the latched circuit (desk behaviour). On the wire, `control/button/press` uses `false` = OPEN and `true` = CLOSED; the simulator and Core Debug show **OPEN** / **CLOSED**.
+
+### `Button → Light`
+
+Press toggles the light: **closed** → full brightness, **open** → dim idle level.
+
+### `Button → Light → LCD`
+
+Press toggles the light; the LCD shows the **output’s current state** (e.g. `Light` + `2%`), not a static badge. The button segment is omitted when it is the nearest control driving the light.
+
+### `Button → Chime`
+
+`Button → Chime` (preset **Button Chime**): each press that **closes** the circuit triggers the chime once.
+
+## Output → LCD
+
+When an output cube sits immediately before an LCD, the display shows that output’s **live telemetry**:
+
+| Chain | LCD shows |
+|-------|-----------|
+| `Light → LCD` | Brightness as `45%` (or `Light` + percent when a control drives the light) |
+| `Button → LCD` | `OPEN` or `CLOSED` |
+| `Button → Light → LCD` | Current light level (`Light` + brightness) |
+
+Recipe matching (London Weather Light, Button Light, etc.) is separate from which segments appear on the LCD.
+
 ## Light + LCD
 
 `London → Weather → Light → LCD` runs the weather light recipe *and* shows upstream segments on the LCD. The Light cube is not “turned off” because an LCD is present.

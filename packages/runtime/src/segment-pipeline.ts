@@ -7,8 +7,10 @@ import type { PlaceProfile } from "./place-profile.js";
 import { resolvePlaceProfilesFromSlots } from "./place-profile.js";
 import {
   concatLcdSegments,
+  formatButtonCircuit,
   formatControlPercent,
   formatGithub,
+  formatLightLcd,
   formatModifierNoise,
   formatPlaceTime,
   formatTemp,
@@ -47,6 +49,7 @@ export interface SegmentBuildContext {
   hasRandom: boolean;
   hasButton: boolean;
   hasLight: boolean;
+  buttonControlsLight: boolean;
 }
 
 /** Wall-clock mode: only the Time cube in window, before the first LCD in the chain. */
@@ -129,6 +132,7 @@ export function buildSegmentContext(
     hasRandom: cubes.some((c) => c.definition.id === "modifier/random"),
     hasButton: cubes.some((c) => c.definition.id === "control/button"),
     hasLight: cubes.some((c) => c.definition.id === "output/light"),
+    buttonControlsLight: fmt.buttonControlsLight,
   };
 }
 
@@ -197,8 +201,16 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
   if (ctx.hasRandom) {
     segments.push(formatModifierNoise("RND", fmt.modifierRandom));
   }
-  if (ctx.hasButton) segments.push("BTN");
-  if (ctx.hasLight) segments.push(formatControlPercent(fmt.lightBrightness));
+  if (ctx.hasButton && !ctx.buttonControlsLight) {
+    segments.push(formatButtonCircuit(fmt.buttonCircuitClosed));
+  }
+  if (ctx.hasLight) {
+    if (ctx.buttonControlsLight) {
+      segments.push(formatLightLcd(fmt.lightBrightness));
+    } else {
+      segments.push(formatControlPercent(fmt.lightBrightness));
+    }
+  }
 
   return segments;
 }

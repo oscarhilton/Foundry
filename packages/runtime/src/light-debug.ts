@@ -31,6 +31,7 @@ const MODE_LABELS: Record<LightBehaviourId, string> = {
   "weather-dial-light": "Weather Dial",
   "temperature-light": "Temperature",
   "time-calm-light": "Time Calm",
+  "button-light": "Button Circuit",
 };
 
 function moodLabel(mood: LightMood | null): string | null {
@@ -76,6 +77,11 @@ export function buildLightDebugOutput(
       driverTopic = "time/hour";
       driverValue = state.timeHour ?? 0.5;
       driverSummary = "time/hour + calm → brightness";
+      break;
+    case "button-light":
+      driverTopic = "control/button/press";
+      driverValue = null;
+      driverSummary = "circuit CLOSED → full brightness, OPEN → dim";
       break;
   }
 

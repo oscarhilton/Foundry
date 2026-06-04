@@ -83,6 +83,8 @@ export interface FoundryOutputState {
   sliderPosition: number;
   motionDetected: boolean;
   buttonPressed: boolean;
+  /** Latched contact: false = OPEN, true = CLOSED. */
+  buttonCircuitClosed: boolean;
   githubActivity: number | null;
   musicNote: number | null;
   musicVelocity: number | null;
@@ -170,6 +172,7 @@ export class FoundryEngine {
       sliderPosition: this.sliderPosition,
       motionDetected: false,
       buttonPressed: false,
+      buttonCircuitClosed: false,
       githubActivity: null,
       musicNote: null,
       musicVelocity: null,
@@ -346,15 +349,19 @@ export class FoundryEngine {
 
   triggerButton(): void {
     if (!this.outputState.powered) return;
-    this.router.publish("control/button/press", true, "ui/button");
+    const wasClosed = this.outputState.buttonCircuitClosed;
+    this.outputState.buttonCircuitClosed = !wasClosed;
+    const closed = this.outputState.buttonCircuitClosed;
+
+    this.router.publish("control/button/press", closed, "ui/button");
     this.outputState.buttonPressed = true;
-    if (this.context?.recipe.id === "button-chime") {
+    if (!wasClosed && closed && this.context?.recipe.id === "button-chime") {
       this.fireChime();
     }
     setTimeout(() => {
       this.outputState.buttonPressed = false;
-      this.router.publish("control/button/press", false, "ui/button");
     }, 200);
+    this.recalculateOutputs();
   }
 
   private syncPlaceAdapters(): void {
@@ -672,10 +679,18 @@ export class FoundryEngine {
         this.setLightOutput(this.applyRandom(norm), norm > 0.55 ? "sun" : "overcast");
         break;
       }
+      case "button-light": {
+        const closed = this.outputState.buttonCircuitClosed;
+        this.setLightOutput(closed ? 1 : 0.02, null);
+        break;
+      }
     }
   }
 
   private formatState() {
+    const lightBehaviour = this.parsed
+      ? resolveLightBehaviour(this.parsed)
+      : null;
     return {
       timeHour: this.outputState.timeHour,
       sensorTemp: this.outputState.sensorTemp,
@@ -687,6 +702,8 @@ export class FoundryEngine {
       lightBrightness: this.outputState.lightBrightness,
       modifierRandom: this.outputState.modifierRandom,
       modifierCalmNoise: this.outputState.modifierCalmNoise,
+      buttonCircuitClosed: this.outputState.buttonCircuitClosed,
+      buttonControlsLight: lightBehaviour === "button-light",
     };
   }
 
@@ -767,6 +784,7 @@ export class FoundryEngine {
     this.outputState.chimeTriggered = false;
     this.outputState.modifierRandom = null;
     this.outputState.modifierCalmNoise = null;
+    this.outputState.buttonCircuitClosed = false;
   }
 
   private setLightOutput(brightness: number, mood: LightMood | null): void {

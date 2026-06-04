@@ -41,6 +41,15 @@ People learn by pattern substitution. The product should make vocabulary obvious
 | Verbs | Weather, Time, GitHub |
 | Outputs | Light, Display |
 
+Desk controls use the same pattern — see [grammar.md](grammar.md#button-gate--contact):
+
+```
+Button → Light
+Button → Light → Display
+```
+
+Press toggles the circuit; a display after the light shows how bright it is.
+
 ---
 
 ## 3. Ambient certainty, not dashboards

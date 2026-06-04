@@ -72,6 +72,7 @@ Namespace: `{domain}/{signal}[/{variant}]`
 | `github/activity` | number | Activity score 0–1 |
 | `sensor/motion` | boolean | Motion detected |
 | `control/dial` | number | Dial position 0–1 |
+| `control/button/press` | boolean | Latched circuit: `false` = OPEN, `true` = CLOSED (toggle on press) |
 | `output/light/brightness` | number | Final light brightness 0–1 |
 | `output/chime/trigger` | boolean | Chime fire event |
 | `output/music/note` | number | MIDI note number |
@@ -91,8 +92,8 @@ When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/t
 7. **Place** — place label when Time and Weather are not already showing that place, e.g. `London`
 8. **Calm modifier** — `CALM 45%` (Perlin noise level; label only when value unavailable)
 9. **Random modifier** — `RND 72%` (Perlin noise level; label only when value unavailable)
-10. **Button** — `BTN`
-11. **Light output** — brightness as `45%`
+10. **Button** — `OPEN` or `CLOSED` (latched circuit; `control/button/press`: `false` = OPEN, `true` = CLOSED)
+11. **Light output** — brightness as `45%`, or `Light` + newline + percent when Button is the nearest control driving the light (e.g. `Light\n100%`)
 
 LCD content is independent of the active behaviour recipe.
 

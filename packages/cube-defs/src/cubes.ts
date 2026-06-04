@@ -139,7 +139,7 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     capabilities: ["digital-input"],
     registers: [{ name: "pressed", offset: 16, type: "uint8" }],
     topics: { publish: ["control/button/press"], subscribe: [] },
-    description: "Press to trigger events",
+    description: "Toggle contact — OPEN or CLOSED; drives outputs downstream",
   },
   {
     schema: 1,

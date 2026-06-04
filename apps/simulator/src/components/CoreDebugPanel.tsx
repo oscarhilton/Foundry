@@ -7,6 +7,13 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
+function formatTopicValue(topic: string, value: unknown): string {
+  if (topic === "control/button/press" && typeof value === "boolean") {
+    return value ? "CLOSED" : "OPEN";
+  }
+  return formatValue(value);
+}
+
 function ViewportSegmentBracket({ segments }: { segments: string[] }) {
   if (segments.length === 0) {
     return (
@@ -45,8 +52,14 @@ function ViewportRenderedArrow({ rendered }: { rendered: string }) {
   );
 }
 
-function TopicStreamValue({ value }: { value: unknown }): ReactNode {
-  const text = formatValue(value);
+function TopicStreamValue({
+  topic,
+  value,
+}: {
+  topic: string;
+  value: unknown;
+}): ReactNode {
+  const text = formatTopicValue(topic, value);
   if (!text.includes("\n")) {
     return <span className="text-foundry-ink">{text}</span>;
   }
@@ -414,7 +427,7 @@ export function CoreDebugPanel() {
                       {msg.targetId ? ` → ${msg.targetId}` : ""}
                       {msg.targetAddress ? ` (${msg.targetAddress})` : ""}
                     </span>
-                    <TopicStreamValue value={msg.value} />
+                    <TopicStreamValue topic={msg.topic} value={msg.value} />
                     <span className="text-foundry-muted truncate w-full">
                       src {msg.source}
                     </span>

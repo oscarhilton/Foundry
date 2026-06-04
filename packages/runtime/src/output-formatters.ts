@@ -11,6 +11,10 @@ export interface OutputFormatState {
   lightBrightness: number;
   modifierRandom: number | null;
   modifierCalmNoise: number | null;
+  /** Latched circuit: false = OPEN, true = CLOSED. */
+  buttonCircuitClosed: boolean;
+  /** Button is nearest control driving the light (omit button segment on LCD). */
+  buttonControlsLight: boolean;
 }
 
 export function formatTime(timeHour: number | null | undefined): string {
@@ -152,6 +156,14 @@ export function formatGithub(
 
 export function formatControlPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
+}
+
+export function formatButtonCircuit(closed: boolean): string {
+  return closed ? "CLOSED" : "OPEN";
+}
+
+export function formatLightLcd(brightness: number): string {
+  return `Light\n${formatControlPercent(brightness)}`;
 }
 
 export function formatModifierNoise(

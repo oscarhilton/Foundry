@@ -6,6 +6,7 @@ import {
   smoothValue,
   matchRecipe,
   isChainPowered,
+  resolveLightBehaviour,
   type SignalMessage,
 } from "./index.js";
 import { formatPowerBattery } from "./output-formatters.js";
@@ -326,6 +327,68 @@ describe("FoundryEngine", () => {
 
     engine.triggerButton();
     expect(engine.getOutputState().chimeCount).toBe(0);
+
+    engine.destroy();
+  });
+
+  it("fires chime only when circuit closes, not when opening", () => {
+    engine.setChain(withCore("control/button", "output/chime"));
+    engine.start();
+
+    engine.triggerButton();
+    expect(engine.getOutputState().chimeCount).toBe(1);
+
+    engine.triggerButton();
+    expect(engine.getOutputState().chimeCount).toBe(1);
+
+    engine.triggerButton();
+    expect(engine.getOutputState().chimeCount).toBe(2);
+
+    engine.destroy();
+  });
+
+  it("button-light toggles brightness and LCD telemetry", () => {
+    const chain = withCore("control/button", "output/light", "output/lcd");
+    engine.setChain(chain);
+    engine.start();
+
+    const parsed = parseChain(chain);
+    expect(resolveLightBehaviour(parsed)).toBe("button-light");
+
+    let state = engine.getOutputState();
+    expect(state.activeRecipeName).toBe("Button Light");
+    expect(state.lightBrightness).toBeCloseTo(0.02, 2);
+    const lcdId = "cube-2";
+    expect(state.lcdTexts[lcdId]).toBe("Light\n2%");
+
+    engine.triggerButton();
+    state = engine.getOutputState();
+    expect(state.buttonCircuitClosed).toBe(true);
+    expect(state.lightBrightness).toBeCloseTo(1, 2);
+    expect(state.lcdTexts[lcdId]).toBe("Light\n100%");
+
+    engine.triggerButton();
+    state = engine.getOutputState();
+    expect(state.buttonCircuitClosed).toBe(false);
+    expect(state.lightBrightness).toBeCloseTo(0.02, 2);
+    expect(state.lcdTexts[lcdId]).toBe("Light\n2%");
+
+    const snap = engine.getCoreDebugSnapshot();
+    const lcdStep = snap.viewportTrace.find((s) => s.targetId === lcdId);
+    expect(lcdStep?.rendered).toBe("Light\n2%");
+
+    engine.destroy();
+  });
+
+  it("shows OPEN on LCD for button without light", () => {
+    engine.setChain(withCore("control/button", "output/lcd"));
+    engine.start();
+
+    const lcdId = "cube-1";
+    expect(engine.getOutputState().lcdTexts[lcdId]).toBe("OPEN");
+
+    engine.triggerButton();
+    expect(engine.getOutputState().lcdTexts[lcdId]).toBe("CLOSED");
 
     engine.destroy();
   });
