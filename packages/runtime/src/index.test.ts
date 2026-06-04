@@ -381,6 +381,236 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("uses dial threshold for rain-motion-chime when Dial tunes Weather", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "control/dial",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.55 });
+    engine.setDialPosition(1);
+
+    engine.mockAdapters.triggerMotion(true);
+    expect(engine.getOutputState().chimeCount).toBe(0);
+
+    engine.setDialPosition(0);
+    engine.mockAdapters.triggerMotion(false);
+    engine.mockAdapters.triggerMotion(true);
+    expect(engine.getOutputState().chimeCount).toBe(1);
+
+    const face = engine.getOutputState().weatherFace;
+    expect(face?.mode).toBe("threshold");
+    expect(face?.detail).toBe(
+      `> ${Math.round((0.15 + 0 * 0.7) * 100)}%`,
+    );
+
+    engine.destroy();
+  });
+
+  it("latches weather face when chain becomes unpowered", () => {
+    engine.setChain(
+      withCore("identity/london", "control/dial", "identity/weather"),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.2 });
+    engine.setDialPosition(0.5);
+
+    expect(engine.getOutputState().weatherFace?.detail).toBe("> 50%");
+
+    engine.setChain(makeChain("identity/london", "control/dial", "identity/weather"));
+    const state = engine.getOutputState();
+    expect(state.powered).toBe(false);
+    expect(state.weatherFace?.detail).toBe("> 50%");
+    expect(state.weatherFace?.latched).toBe(true);
+
+    engine.destroy();
+  });
+
+  it("reports chime gate closed when rain is below threshold", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.37 });
+
+    const gate = engine.getCoreDebugSnapshot().chimeGate;
+    expect(gate?.rainPercent).toBe(37);
+    expect(gate?.thresholdPercent).toBe(50);
+    expect(gate?.gate).toBe("closed");
+    expect(gate?.thresholdSource).toBe("default");
+    expect(gate?.hint).toBe("Waiting for rain ≥ 50%");
+
+    engine.destroy();
+  });
+
+  it("reports chime gate open when rain meets threshold", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.72 });
+
+    const gate = engine.getCoreDebugSnapshot().chimeGate;
+    expect(gate?.rainPercent).toBe(72);
+    expect(gate?.gate).toBe("open");
+    expect(gate?.hint).toBe("Motion will chime");
+
+    engine.destroy();
+  });
+
+  it("reports dial-sourced chime threshold when Dial tunes Weather", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "control/dial",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.37 });
+    engine.setDialPosition(0.5);
+
+    const gate = engine.getCoreDebugSnapshot().chimeGate;
+    expect(gate?.thresholdSource).toBe("dial");
+    expect(gate?.thresholdPercent).toBe(50);
+    expect(gate?.gate).toBe("closed");
+
+    engine.destroy();
+  });
+
+  it("does not report chime gate for non-rain-motion recipes", () => {
+    engine.setChain(withCore("sensor/motion", "output/chime"));
+    engine.start();
+
+    expect(engine.getCoreDebugSnapshot().chimeGate).toBeNull();
+
+    engine.destroy();
+  });
+
+  it("shows bound weather on Weather cube face for London → Weather → Core", () => {
+    engine.setChain(withCore("identity/london", "identity/weather"));
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.8 });
+
+    const state = engine.getOutputState();
+    expect(state.lcdTexts).toEqual({});
+    expect(state.weatherFace?.text).toBe("London\n12°C · 45% rain");
+    expect(state.weatherFace?.headline).toBe("OVERCAST");
+    expect(state.weatherFace?.detail).toBe("12°C · 45% rain");
+    expect(state.weatherFace?.placeLabel).toBe("London");
+    expect(state.weatherFace?.latched).toBe(true);
+
+    const snap = engine.getCoreDebugSnapshot();
+    expect(snap.weatherFace?.label).toBe("Weather");
+    expect(snap.weatherFace?.face.text).toBe("London\n12°C · 45% rain");
+    expect(snap.weatherFace?.runtime.modeLabel).toBe("Live condition");
+    expect(snap.weatherFace?.runtime.moodLabel).toBe("Overcast");
+    expect(snap.weatherFace?.runtime.currentRainPercent).toBe(80);
+    expect(snap.weatherFace?.runtime.gate).toBeNull();
+    expect(snap.weatherFace?.runtime.thresholdPercent).toBeNull();
+
+    engine.destroy();
+  });
+
+  it("reports threshold weather face debug when Dial tunes Weather", () => {
+    engine.setChain(
+      withCore("identity/london", "control/dial", "identity/weather"),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.167 });
+    engine.setDialPosition(0.15 / 0.7);
+
+    const snap = engine.getCoreDebugSnapshot();
+    expect(snap.weatherFace?.face.mode).toBe("threshold");
+    expect(snap.weatherFace?.runtime.modeLabel).toBe("Rain threshold");
+    expect(snap.weatherFace?.runtime.thresholdPercent).toBe(30);
+    expect(snap.weatherFace?.runtime.currentRainPercent).toBe(17);
+    expect(snap.weatherFace?.runtime.gate).toBe("closed");
+    expect(snap.weatherFace?.runtime.moodLabel).toBeNull();
+
+    engine.destroy();
+  });
+
+  it("reports weather face gate open when rain meets dial threshold", () => {
+    engine.setChain(
+      withCore("identity/london", "control/dial", "identity/weather"),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.62 });
+    engine.setDialPosition(0.15 / 0.7);
+
+    const snap = engine.getCoreDebugSnapshot();
+    expect(snap.weatherFace?.runtime.gate).toBe("open");
+
+    engine.destroy();
+  });
+
+  it("shows weather on both Weather face and LCD when LCD is downstream", () => {
+    engine.setChain(
+      withCore("identity/london", "identity/weather", "output/lcd"),
+    );
+    engine.start();
+
+    const state = engine.getOutputState();
+    expect(state.weatherFace?.placeLabel).toBe("London");
+    expect(state.weatherFace?.text).toBe("London\n12°C · 45% rain");
+    expect(Object.values(state.lcdTexts)[0]).toBe(state.weatherFace?.text);
+
+    engine.destroy();
+  });
+
+  it("shows weather face without place when no place cube in chain", () => {
+    engine.setChain(withCore("identity/weather"));
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 14, rain: 0.45 });
+
+    const face = engine.getOutputState().weatherFace;
+    expect(face?.text).toBe("14°C · 45% rain");
+    expect(face?.placeLabel).toBeNull();
+
+    engine.destroy();
+  });
+
+  it("clears weather face when Weather cube is removed from powered chain", () => {
+    engine.setChain(withCore("identity/london", "identity/weather"));
+    engine.start();
+    expect(engine.getOutputState().weatherFace).not.toBeNull();
+
+    engine.setChain(withCore("identity/london"));
+    expect(engine.getOutputState().weatherFace).toBeNull();
+
+    engine.destroy();
+  });
+
+  it("does not re-commit weather face when place-scoped display is unchanged", () => {
+    engine.setChain(withCore("identity/london", "identity/weather"));
+    engine.start();
+    const first = engine.getOutputState().weatherFace;
+
+    engine.mockAdapters.setWeather({ temp: 99, rain: 0.99 });
+    const second = engine.getOutputState().weatherFace;
+    expect(second).toBe(first);
+
+    engine.destroy();
+  });
+
   it("does not fire chime on motion when dry for rain-motion-chime", () => {
     engine.setChain(
       withCore(

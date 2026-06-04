@@ -10,6 +10,7 @@ import {
   hasLightOutput,
   hasWeatherSource,
   hasTimeSource,
+  dialTunesWeather,
 } from "./chain-parser.js";
 import type { RecipeContext } from "./recipes.js";
 import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
@@ -39,13 +40,29 @@ import {
   type LightBehaviourId,
 } from "./output-bindings.js";
 import { buildLightDebugOutput, type LightDebugOutput } from "./light-debug.js";
+import {
+  buildChimeGateDebugOutput,
+  type ChimeGateDebugOutput,
+} from "./chime-debug.js";
+import {
+  buildWeatherFaceDebugContext,
+  type WeatherFaceDebugContext,
+} from "./weather-face-debug.js";
 import { isRaining, weatherToLightMood, type LightMood } from "./weather-light.js";
 import {
   defaultLiveWeatherCoords,
   resolvePlaceProfile,
+  resolvePlaceProfilesFromSlots,
   hourFractionInTimezone,
   type PlaceProfile,
 } from "./place-profile.js";
+import {
+  buildConditionFaceState,
+  buildThresholdFaceState,
+  dialToRainThreshold,
+  weatherFaceContentKey,
+  type WeatherFaceState,
+} from "./weather-face.js";
 import {
   SignalRouter,
   smoothValue,
@@ -93,6 +110,8 @@ export interface FoundryOutputState {
   modifierCalmNoise: number | null;
   powerSource: "usb" | "battery";
   batteryPercent: number;
+  /** Latched e-ink face on Weather cube; persists when unpowered. */
+  weatherFace: WeatherFaceState | null;
 }
 
 export interface CoreDebugSnapshot {
@@ -118,6 +137,14 @@ export interface CoreDebugSnapshot {
     targetAddress?: string;
   }>;
   lightOutput: LightDebugOutput | null;
+  weatherFace: {
+    instanceId: string;
+    label: string;
+    address: string;
+    face: WeatherFaceState;
+    runtime: WeatherFaceDebugContext;
+  } | null;
+  chimeGate: ChimeGateDebugOutput | null;
 }
 
 export class FoundryEngine {
@@ -181,6 +208,7 @@ export class FoundryEngine {
       modifierCalmNoise: null,
       powerSource: "usb",
       batteryPercent: 100,
+      weatherFace: null,
     };
   }
 
@@ -245,6 +273,53 @@ export class FoundryEngine {
           )
         : null;
 
+    const weatherCube = parsed.cubes.find(
+      (c) => c.definition.id === "identity/weather",
+    );
+    const weatherFace =
+      weatherCube && this.outputState.weatherFace
+        ? {
+            instanceId: weatherCube.instanceId,
+            label: weatherCube.definition.label,
+            address:
+              this.devices.get(weatherCube.instanceId)?.address ??
+              debugAddressFor(weatherCube.instanceId),
+            face: this.outputState.weatherFace,
+            runtime: buildWeatherFaceDebugContext(
+              parsed,
+              this.outputState.weatherFace,
+              {
+                weatherRain: this.outputState.weatherRain,
+                smoothedRain: this.smoothedRain,
+              },
+            ),
+          }
+        : null;
+
+    const chimeGate =
+      parsed.powered && this.outputState.activeRecipeId === "rain-motion-chime"
+        ? buildChimeGateDebugOutput(
+            parsed,
+            {
+              activeRecipeId: this.outputState.activeRecipeId,
+              activeRecipeName: this.outputState.activeRecipeName,
+              weatherRain: this.outputState.weatherRain,
+              smoothedRain: this.smoothedRain,
+              dialPosition: this.dialPosition,
+            },
+            (() => {
+              const chime = parsed.cubes.find(
+                (c) => c.definition.id === "output/chime",
+              );
+              if (!chime) return "";
+              return (
+                this.devices.get(chime.instanceId)?.address ??
+                debugAddressFor(chime.instanceId)
+              );
+            })(),
+          )
+        : null;
+
     return {
       powered: this.outputState.powered,
       coreCount: parsed.coreCount,
@@ -261,6 +336,8 @@ export class FoundryEngine {
       chainMode,
       viewportTrace,
       lightOutput,
+      weatherFace,
+      chimeGate,
       bindings: log.map((m) => ({
         topic: m.topic,
         value: m.value,
@@ -473,7 +550,6 @@ export class FoundryEngine {
     this.unsubscribers.push(
       this.router.subscribe("weather/temp", (msg) => {
         this.outputState.weatherTemp = msg.value as number;
-        this.recalculateOutputs();
       }),
     );
 
@@ -523,7 +599,10 @@ export class FoundryEngine {
             const rain = useCalm
               ? this.smoothedRain
               : (this.outputState.weatherRain ?? 0.3);
-            if (isRaining(rain)) this.fireChime();
+            const threshold = dialTunesWeather(this.parsed)
+              ? dialToRainThreshold(this.dialPosition)
+              : 0.5;
+            if (isRaining(rain, threshold)) this.fireChime();
           }
         }
         this.lastMotion = detected;
@@ -635,6 +714,43 @@ export class FoundryEngine {
 
     this.syncModifierNoise();
     this.syncLcdFromChain();
+    this.syncWeatherFace(temp, rain);
+  }
+
+  /** Commit Weather cube face when powered; latched across unpowered (e-ink). */
+  private syncWeatherFace(temp: number, rain: number): void {
+    const parsed = this.parsed;
+    if (!parsed || !hasWeatherSource(parsed)) {
+      if (parsed?.powered) {
+        this.outputState.weatherFace = null;
+      }
+      return;
+    }
+    if (!parsed.powered) return;
+
+    const placeLabel = parsed.places[0]?.definition.label;
+    let displayTemp = temp;
+    let displayRain = rain;
+    if (!dialTunesWeather(parsed) && parsed.places.length > 0) {
+      const profile = resolvePlaceProfilesFromSlots(parsed.cubes)[0];
+      if (profile) {
+        displayTemp = profile.mockBaseTemp;
+        displayRain = profile.mockRainBias;
+      }
+    }
+
+    const next: WeatherFaceState = dialTunesWeather(parsed)
+      ? { ...buildThresholdFaceState(this.dialPosition), latched: true }
+      : {
+          ...buildConditionFaceState(displayTemp, displayRain, placeLabel),
+          latched: true,
+        };
+
+    const prev = this.outputState.weatherFace;
+    if (prev && weatherFaceContentKey(prev) === weatherFaceContentKey(next)) {
+      return;
+    }
+    this.outputState.weatherFace = next;
   }
 
   private applyLightBehaviour(
@@ -704,6 +820,7 @@ export class FoundryEngine {
       dialPosition: this.outputState.dialPosition,
       sliderPosition: this.outputState.sliderPosition,
       lightBrightness: this.outputState.lightBrightness,
+      lightMood: this.outputState.lightMood,
       modifierRandom: this.outputState.modifierRandom,
       modifierCalmNoise: this.outputState.modifierCalmNoise,
       buttonCircuitClosed: this.outputState.buttonCircuitClosed,
@@ -858,6 +975,29 @@ export {
   resolveLightBehaviour,
   resolvePrimaryRecipeLabel,
 } from "./output-bindings.js";
+export {
+  buildWeatherFaceDebugContext,
+} from "./weather-face-debug.js";
+export type { WeatherFaceDebugContext } from "./weather-face-debug.js";
+export {
+  buildChimeGateDebugOutput,
+} from "./chime-debug.js";
+export type { ChimeGateDebugOutput } from "./chime-debug.js";
+export {
+  buildConditionFaceState,
+  buildThresholdFaceState,
+  dialToRainThreshold,
+  formatWeatherFaceMood,
+  truncatePlaceLabel,
+  weatherFaceContentKey,
+  WEATHER_FACE_COLORS,
+  WEATHER_FACE_EINK_INK,
+} from "./weather-face.js";
+export type {
+  WeatherFaceState,
+  WeatherFaceSymbol,
+  WeatherFaceMode,
+} from "./weather-face.js";
 export {
   buildLightDebugOutput,
   formatLightMoodLabel,
