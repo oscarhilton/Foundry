@@ -140,6 +140,42 @@ describe("Recipes", () => {
     expect(recipe?.id).toBe("room-motion-chime");
   });
 
+  it("matches Rain Motion Chime in Place → Weather → Motion → Chime order", () => {
+    const chain = parseChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    expect(matchRecipe(chain)?.id).toBe("rain-motion-chime");
+  });
+
+  it("does not match rain-motion-chime when Chime is before Motion", () => {
+    const chain = parseChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "output/chime",
+        "sensor/motion",
+      ),
+    );
+    expect(matchRecipe(chain)?.id).not.toBe("rain-motion-chime");
+  });
+
+  it("does not match rain-motion-chime when Motion is before Weather", () => {
+    const chain = parseChain(
+      withCore(
+        "sensor/motion",
+        "identity/london",
+        "identity/weather",
+        "output/chime",
+      ),
+    );
+    expect(matchRecipe(chain)?.id).not.toBe("rain-motion-chime");
+  });
+
   it("matches Button Chime", () => {
     const chain = parseChain(withCore("control/button", "output/chime"));
     expect(matchRecipe(chain)?.id).toBe("button-chime");
@@ -307,6 +343,78 @@ describe("FoundryEngine", () => {
 
     engine.mockAdapters.triggerMotion(true);
     expect(engine.getOutputState().chimeCount).toBe(1);
+
+    engine.destroy();
+  });
+
+  it("fires chime on motion when rainy for rain-motion-chime", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.8 });
+
+    engine.mockAdapters.triggerMotion(true);
+    expect(engine.getOutputState().chimeCount).toBe(1);
+
+    engine.destroy();
+  });
+
+  it("does not fire chime on motion when dry for rain-motion-chime", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 20, rain: 0.1 });
+
+    engine.mockAdapters.triggerMotion(true);
+    expect(engine.getOutputState().chimeCount).toBe(0);
+
+    engine.destroy();
+  });
+
+  it("does not fire chime when Chime is upstream of Motion", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "output/chime",
+        "sensor/motion",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.8 });
+
+    engine.mockAdapters.triggerMotion(true);
+    expect(engine.getOutputState().chimeCount).toBe(0);
+
+    engine.destroy();
+  });
+
+  it("does not fire chime when Motion is upstream of Weather", () => {
+    engine.setChain(
+      withCore(
+        "sensor/motion",
+        "identity/london",
+        "identity/weather",
+        "output/chime",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.8 });
+
+    engine.mockAdapters.triggerMotion(true);
+    expect(engine.getOutputState().chimeCount).toBe(0);
 
     engine.destroy();
   });

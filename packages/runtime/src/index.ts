@@ -39,10 +39,7 @@ import {
   type LightBehaviourId,
 } from "./output-bindings.js";
 import { buildLightDebugOutput, type LightDebugOutput } from "./light-debug.js";
-import {
-  weatherToLightMood,
-  type LightMood,
-} from "./weather-light.js";
+import { isRaining, weatherToLightMood, type LightMood } from "./weather-light.js";
 import {
   defaultLiveWeatherCoords,
   resolvePlaceProfile,
@@ -514,12 +511,19 @@ export class FoundryEngine {
       this.router.subscribe("sensor/motion", (msg) => {
         const detected = msg.value as boolean;
         this.outputState.motionDetected = detected;
-        if (
-          this.context?.recipe.id === "room-motion-chime" &&
-          detected &&
-          !this.lastMotion
-        ) {
-          this.fireChime();
+        if (detected && !this.lastMotion) {
+          if (this.context?.recipe.id === "room-motion-chime") {
+            this.fireChime();
+          } else if (
+            this.context?.recipe.id === "rain-motion-chime" &&
+            this.parsed
+          ) {
+            const useCalm = hasCalmModifier(this.parsed);
+            const rain = useCalm
+              ? this.smoothedRain
+              : (this.outputState.weatherRain ?? 0.3);
+            if (isRaining(rain)) this.fireChime();
+          }
         }
         this.lastMotion = detected;
         this.recalculateOutputs();

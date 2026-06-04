@@ -286,6 +286,18 @@ export const PRESET_CHAINS: PresetChain[] = [
     cubes: ["sensor/motion", "output/chime", "core/core"],
   },
   {
+    id: "rain-motion-chime",
+    name: "Rain Motion Chime",
+    description: "Chime when motion happens while it's raining",
+    cubes: [
+      "identity/london",
+      "identity/weather",
+      "sensor/motion",
+      "output/chime",
+      "core/core",
+    ],
+  },
+  {
     id: "github-activity",
     name: "GitHub Activity",
     description: "Software activity as ambient light",

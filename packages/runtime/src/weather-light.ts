@@ -1,8 +1,13 @@
 /** Ambient light mood from weather — blue rain, yellow sun, grey overcast. */
 export type LightMood = "rain" | "sun" | "overcast";
 
+/** Same breakpoint as rain mood — keep chime and light behaviour aligned. */
+export function isRaining(rain: number): boolean {
+  return rain >= 0.5;
+}
+
 export function weatherToLightMood(_temp: number, rain: number): LightMood {
-  if (rain >= 0.5) return "rain";
+  if (isRaining(rain)) return "rain";
   if (rain <= 0.28) return "sun";
   return "overcast";
 }

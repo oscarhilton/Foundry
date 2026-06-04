@@ -122,6 +122,34 @@ export function isChainPowered(chain: ParsedChain): boolean {
   return countCore(chain) === 1 && chain.cubes.length >= 2;
 }
 
+/** Left-to-right: each definitionId appears after the previous (sentence order). */
+export function cubesAppearInOrder(
+  chain: ParsedChain,
+  definitionIds: string[],
+): boolean {
+  let lastIndex = -1;
+  for (const id of definitionIds) {
+    const index = chain.cubes.findIndex((c) => c.definition.id === id);
+    if (index === -1) return false;
+    if (index <= lastIndex) return false;
+    lastIndex = index;
+  }
+  return true;
+}
+
+/** Place → module: every place cube sits to the left of the given cube id. */
+export function hasPlaceBefore(chain: ParsedChain, cubeId: string): boolean {
+  const moduleIndex = chain.cubes.findIndex((c) => c.definition.id === cubeId);
+  if (moduleIndex === -1) return true;
+  for (const place of chain.places) {
+    const placeIndex = chain.cubes.findIndex(
+      (c) => c.instanceId === place.instanceId,
+    );
+    if (placeIndex !== -1 && placeIndex >= moduleIndex) return false;
+  }
+  return true;
+}
+
 export function chainHasPattern(
   chain: ParsedChain,
   roles: Array<CubeDefinition["role"] | "*">,

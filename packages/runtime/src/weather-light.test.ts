@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { weatherToLightMood } from "./weather-light.js";
+import { isRaining, weatherToLightMood } from "./weather-light.js";
+
+describe("isRaining", () => {
+  it("uses the same threshold as rain mood", () => {
+    expect(isRaining(0.5)).toBe(true);
+    expect(isRaining(0.49)).toBe(false);
+  });
+});
 
 describe("weatherToLightMood", () => {
   it("maps heavy rain to rain", () => {

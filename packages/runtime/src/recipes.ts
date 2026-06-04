@@ -1,5 +1,6 @@
 import type { ParsedChain } from "./chain-parser.js";
 import {
+  cubesAppearInOrder,
   getActiveVisualOutput,
   getNearestControl,
   getPrimaryAudioOutput,
@@ -11,6 +12,7 @@ import {
   hasLightOutput,
   hasMotionSensor,
   hasMusicOutput,
+  hasPlaceBefore,
   hasTemperatureSensor,
   hasDialCube,
   hasTimeSource,
@@ -39,11 +41,36 @@ export const RECIPES: Recipe[] = [
       powered(chain, () => hasButtonControl(chain) && hasChimeOutput(chain)),
   },
   {
+    id: "rain-motion-chime",
+    name: "Rain Motion Chime",
+    description: "Chime when motion happens while it's raining",
+    match: (chain) =>
+      powered(
+        chain,
+        () =>
+          hasMotionSensor(chain) &&
+          hasChimeOutput(chain) &&
+          hasWeatherSource(chain) &&
+          cubesAppearInOrder(chain, [
+            "identity/weather",
+            "sensor/motion",
+            "output/chime",
+          ]) &&
+          hasPlaceBefore(chain, "identity/weather"),
+      ),
+  },
+  {
     id: "room-motion-chime",
     name: "Room Motion Chime",
     description: "Motion triggers chime output",
     match: (chain) =>
-      powered(chain, () => hasMotionSensor(chain) && hasChimeOutput(chain)),
+      powered(
+        chain,
+        () =>
+          hasMotionSensor(chain) &&
+          hasChimeOutput(chain) &&
+          !hasWeatherSource(chain),
+      ),
   },
   {
     id: "weather-dial-light",
