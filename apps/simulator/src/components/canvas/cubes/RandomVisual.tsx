@@ -7,6 +7,9 @@ interface RandomVisualProps {
 }
 
 export function RandomVisual({ animTime, active, noiseValue }: RandomVisualProps) {
+  const label =
+    active && noiseValue != null ? `${Math.round(noiseValue * 100)}%` : undefined;
+
   return (
     <NoiseFieldVisual
       animTime={animTime}
@@ -15,6 +18,7 @@ export function RandomVisual({ animTime, active, noiseValue }: RandomVisualProps
       accent="#9B59B6"
       contrast={0.9}
       active={active}
+      centerLabel={label}
     />
   );
 }

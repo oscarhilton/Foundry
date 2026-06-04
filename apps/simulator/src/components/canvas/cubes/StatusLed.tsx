@@ -1,27 +1,32 @@
-import { Circle } from "react-konva";
 import { CUBE_FACE, COLORS } from "../design-tokens";
-import { CUBE_SIZE } from "../layout";
 
 interface StatusLedProps {
   color?: string;
   active?: boolean;
   pulse?: number;
+  inChain?: boolean;
 }
 
 export function StatusLed({
   color = COLORS.ledBlue,
   active = false,
   pulse = 1,
+  inChain = false,
 }: StatusLedProps) {
-  const opacity = active ? 0.5 + pulse * 0.5 : 0.15;
+  const opacity = active ? 0.55 + pulse * 0.45 : inChain ? 0.2 : 0.15;
+  const size = inChain ? 7 : CUBE_FACE.ledRadius * 2;
 
   return (
-    <Circle
-      x={CUBE_SIZE / 2}
-      y={CUBE_FACE.ledY}
-      radius={CUBE_FACE.ledRadius}
-      fill={active ? color : COLORS.connectorGrey}
-      opacity={opacity}
-    />
+    <div className="flex items-center justify-center w-full h-full">
+      <div
+        className="rounded-full shrink-0"
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: active ? color : COLORS.connectorGrey,
+          opacity,
+        }}
+      />
+    </div>
   );
 }

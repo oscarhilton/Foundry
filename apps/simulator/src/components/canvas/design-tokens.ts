@@ -6,8 +6,6 @@ export const COLORS = {
   rule: "#1D1D1F",
   stroke: "#E8E8E8",
   muted: "#86868B",
-  pogo: "#C9A227",
-  magnet: "#2A2A2A",
   ledRed: "#E63946",
   ledBlue: "#457B9D",
   ledGreen: "#22C55E",
@@ -25,13 +23,20 @@ export const FONTS = {
 } as const;
 
 export const CUBE_SHELL = {
-  cornerRadius: 6,
+  cornerRadius: 8,
   shadowBlur: 6,
   shadowOpacity: 0.05,
   shadowOffsetY: 1,
   accentStripeHeight: 2,
-  accentStripeOpacity: 0.4,
+  accentStripeOpacity: 0.5,
+  chainShadow: "0 1px 2px rgba(0,0,0,0.06), 0 4px 14px rgba(0,0,0,0.07)",
+  chainBorder: "#D4D4D8",
 } as const;
+
+export const CUBE_ICON_BADGE_SIZE = 18;
+
+export const CUBE_ICON_SIZE = 28;
+export const CUBE_ICON_STROKE = 1.75;
 
 export const CUBE_FACE = {
   iconTop: 18,

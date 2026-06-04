@@ -67,12 +67,31 @@ describe("ChainParser", () => {
     ).toBe(false);
   });
 
-  it("warns when multiple visual outputs are present", () => {
+  it("does not warn when light and LCD are both present", () => {
+    const chain = parseChain(withCore("output/light", "output/lcd"));
+    expect(
+      chain.warnings.some((w) => w.includes("only the last visual")),
+    ).toBe(false);
+    expect(
+      chain.warnings.some((w) => w.includes("Multiple displays share")),
+    ).toBe(false);
+  });
+
+  it("hints when multiple LCD viewports share upstream segments", () => {
     const chain = parseChain(
-      withCore("output/light", "output/lcd"),
+      withCore("output/lcd", "output/lcd", "output/lcd"),
     );
     expect(
-      chain.warnings.some((w) => w.includes("Multiple visual outputs")),
+      chain.warnings.some((w) => w.includes("Multiple displays share")),
+    ).toBe(true);
+  });
+
+  it("warns when multiple Light cubes are present", () => {
+    const chain = parseChain(
+      withCore("output/light", "output/light"),
+    );
+    expect(
+      chain.warnings.some((w) => w.includes("Multiple Light cubes")),
     ).toBe(true);
   });
 });
@@ -838,7 +857,7 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("allows light and music in the same chain without visual conflict warning", () => {
+  it("allows light and music in the same chain without light conflict warning", () => {
     engine.setChain([
       { instanceId: "tokyo", definitionId: "identity/tokyo" },
       { instanceId: "weather", definitionId: "identity/weather" },
@@ -851,7 +870,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(
-      state.warnings.some((w) => w.includes("Multiple visual outputs")),
+      state.warnings.some((w) => w.includes("Multiple Light cubes")),
     ).toBe(false);
     expect(state.musicNote).not.toBeNull();
     expect(state.activeRecipeId).toBe("tokyo-weather-music");

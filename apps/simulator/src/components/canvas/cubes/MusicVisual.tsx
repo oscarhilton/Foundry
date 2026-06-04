@@ -1,4 +1,4 @@
-import { Rect } from "react-konva";
+import { SvgRect } from "../svg/primitives";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { decayPulse } from "../animations";
 
@@ -28,7 +28,7 @@ export function MusicVisual({
       {[0, 1, 2].map((i) => {
         const h = active ? 6 + v * 16 * pulse * (1 + i * 0.15) : 3;
         return (
-          <Rect
+          <SvgRect
             key={i}
             x={34 + i * 10}
             y={baseY - h}

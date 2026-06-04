@@ -1,6 +1,6 @@
-import { Rect } from "react-konva";
+import { SvgRect, SvgText } from "../svg/primitives";
 import { perlin2D } from "@foundry/runtime";
-import { CUBE_FACE } from "../design-tokens";
+import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
 interface NoiseFieldVisualProps {
@@ -10,6 +10,7 @@ interface NoiseFieldVisualProps {
   accent: string;
   contrast: number;
   active: boolean;
+  centerLabel?: string;
 }
 
 const COLS = 6;
@@ -26,11 +27,11 @@ export function NoiseFieldVisual({
   accent,
   contrast,
   active,
+  centerLabel,
 }: NoiseFieldVisualProps) {
   if (!active) return null;
 
-  const phase =
-    (phaseOffset ?? 0) * 4 + (animTime * speed) / 1000;
+  const phase = (phaseOffset ?? 0) * 4 + (animTime * speed) / 1000;
 
   const cells: React.ReactNode[] = [];
   for (let row = 0; row < ROWS; row++) {
@@ -38,7 +39,7 @@ export function NoiseFieldVisual({
       const n = perlin2D(col * 0.55, row * 0.55 + phase);
       const opacity = Math.max(0.08, Math.min(0.85, (n * 0.5 + 0.5) * contrast));
       cells.push(
-        <Rect
+        <SvgRect
           key={`${row}-${col}`}
           x={PAD_X + col * CELL_W + 0.5}
           y={PAD_Y + row * CELL_H + 0.5}
@@ -52,5 +53,22 @@ export function NoiseFieldVisual({
     }
   }
 
-  return <>{cells}</>;
+  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2 + 6;
+
+  return (
+    <>
+      {cells}
+      {centerLabel && (
+        <SvgText
+          x={CUBE_SIZE / 2}
+          y={cy}
+          text={centerLabel}
+          fontSize={11}
+          fill={COLORS.ink}
+          textAnchor="middle"
+          opacity={0.65}
+        />
+      )}
+    </>
+  );
 }

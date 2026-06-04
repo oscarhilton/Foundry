@@ -13,10 +13,13 @@ import {
 import type { RecipeContext } from "./recipes.js";
 import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
+import { formatPowerBattery } from "./output-formatters.js";
 import {
-  formatPowerBattery,
-  resolveLcdTextsForChain,
-} from "./output-formatters.js";
+  compileChainToGraph,
+  getRemainderEdges,
+  hasRemainderEdge,
+} from "./capability-graph.js";
+import { resolveViewportTextsForChain } from "./segment-pipeline.js";
 import {
   defaultLiveWeatherCoords,
   resolvePlaceProfile,
@@ -601,7 +604,8 @@ export class FoundryEngine {
         texts[lcd.instanceId] = "MOTION";
       }
     } else {
-      Object.assign(texts, resolveLcdTextsForChain(chain, this.formatState()));
+      compileChainToGraph(chain);
+      Object.assign(texts, resolveViewportTextsForChain(chain, this.formatState()));
     }
 
     this.outputState.lcdTexts = texts;
@@ -689,5 +693,29 @@ export {
   perlin1D,
   perlin2D,
   perlinNormalized1D,
+  compileChainToGraph,
+  hasRemainderEdge,
+  getRemainderEdges,
+  resolveViewportTextsForChain,
 };
+export { resolveLcdTextsForChain } from "./segment-pipeline.js";
+export {
+  buildSegments,
+  buildSegmentContext,
+  distributePayloadToViewports,
+} from "./segment-pipeline.js";
+export type {
+  Segment,
+  ConsumablePayload,
+  ConsumerResult,
+  SegmentConsumer,
+  SegmentBuildContext,
+} from "./segment-pipeline.js";
+export type {
+  CapabilityGraph,
+  GraphNode,
+  GraphEdge,
+  GraphEdgeChannel,
+  GraphNodeKind,
+} from "./capability-graph.js";
 export type { SignalMessage, ChainCubeInput, ParsedChain, RecipeContext, PlaceProfile };

@@ -10,7 +10,6 @@ export default {
           ink: "#1A1A1A",
           muted: "#6B6B6B",
           border: "#1A1A1A",
-          pogo: "#C9A227",
         },
       },
       fontFamily: {

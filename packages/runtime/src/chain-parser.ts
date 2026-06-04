@@ -63,9 +63,17 @@ export function parseChain(cubes: ChainCubeInput[]): ParsedChain {
     warnings.push("Multiple Core cubes detected — chain unpowered");
   }
 
-  if (visualOutputs.length > 1) {
+  const lightOutputs = outputs.filter((c) => c.definition.id === "output/light");
+  const lcdOutputs = outputs.filter((c) => c.definition.id === "output/lcd");
+
+  if (lightOutputs.length > 1) {
     warnings.push(
-      "Multiple visual outputs detected; only the last visual output is active",
+      "Multiple Light cubes detected; only the first drives brightness",
+    );
+  }
+  if (lcdOutputs.length > 1) {
+    warnings.push(
+      "Multiple displays share upstream information — each viewport shows the next segment",
     );
   }
   const musicOutputs = audioOutputs.filter((c) => c.definition.id === "output/music");
@@ -171,9 +179,12 @@ export function getNearestControl(
   return nearest ?? chain.controls[chain.controls.length - 1];
 }
 
+/** Primary visual output for recipe routing (e.g. light binding) — not LCD text. */
 export function getActiveVisualOutput(
   chain: ParsedChain,
 ): ParsedChainSlot | undefined {
+  const light = chain.cubes.find((c) => c.definition.id === "output/light");
+  if (light) return light;
   return chain.visualOutputs[chain.visualOutputs.length - 1];
 }
 

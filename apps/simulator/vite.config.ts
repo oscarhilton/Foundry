@@ -20,7 +20,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          konva: ["konva", "react-konva"],
           vendor: ["react", "react-dom"],
         },
       },

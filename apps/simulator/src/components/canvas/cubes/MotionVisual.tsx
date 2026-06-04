@@ -1,4 +1,4 @@
-import { Arc, Line } from "react-konva";
+import { SvgArc, SvgLine } from "../svg/primitives";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { decayPulse } from "../animations";
@@ -27,7 +27,7 @@ export function MotionVisual({
 
   return (
     <>
-      <Arc
+      <SvgArc
         x={cx}
         y={cy}
         innerRadius={10}
@@ -38,7 +38,7 @@ export function MotionVisual({
         strokeWidth={1.5}
         opacity={pulse}
       />
-      <Line
+      <SvgLine
         points={[cx, cy, sweepX, sweepY]}
         stroke={COLORS.ledGreen}
         strokeWidth={1.5}

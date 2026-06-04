@@ -1,20 +1,3 @@
-import Konva from "konva";
-
-export function tweenTo(
-  node: Konva.Node,
-  attrs: Konva.NodeConfig,
-  duration = 0.25,
-): Promise<void> {
-  return new Promise((resolve) => {
-    node.to({
-      ...attrs,
-      duration,
-      easing: Konva.Easings.EaseOut,
-      onFinish: () => resolve(),
-    });
-  });
-}
-
 export function warmGlowColor(brightness: number): string {
   const b = Math.max(0, Math.min(1, brightness));
   const r = Math.round(255);

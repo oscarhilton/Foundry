@@ -1,4 +1,4 @@
-import { Line } from "react-konva";
+import { SvgLine } from "../svg/primitives";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
@@ -18,7 +18,7 @@ export function WeatherVisual({ rain, animTime }: WeatherVisualProps) {
       {[0, 1].map((i) => {
         const dropOffset = (animTime * 0.04 + i * 30) % 12;
         return (
-          <Line
+          <SvgLine
             key={i}
             points={[
               cx - 4 + i * 8,

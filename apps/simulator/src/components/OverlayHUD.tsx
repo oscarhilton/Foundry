@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { useSimulatorStore, PRESET_CHAINS, HERO_PRESET_IDS } from "../store";
+import { useSimulatorStore } from "../store";
 
 const SignalLog = lazy(() =>
   import("./SignalLog").then((m) => ({ default: m.SignalLog })),
@@ -11,234 +11,27 @@ const ValidationPanel = lazy(() =>
   import("./ValidationPanel").then((m) => ({ default: m.ValidationPanel })),
 );
 
+/** Modals, toast, and workshop drawer — fixed only where overlay behavior is required. */
 export function OverlayHUD() {
   const productMode = useSimulatorStore((s) => s.productMode);
   const showAdvanced = useSimulatorStore((s) => s.showAdvanced);
   const showCoreDebug = useSimulatorStore((s) => s.showCoreDebug);
-  const showAllPresets = useSimulatorStore((s) => s.showAllPresets);
-  const useLiveWeather = useSimulatorStore((s) => s.useLiveWeather);
-  const selectedPresetId = useSimulatorStore((s) => s.selectedPresetId);
-  const activeRecipeName = useSimulatorStore((s) => s.activeRecipeName);
-  const outputState = useSimulatorStore((s) => s.outputState);
-  const warnings = useSimulatorStore((s) => s.warnings);
   const shareToast = useSimulatorStore((s) => s.shareToast);
-  const loadPreset = useSimulatorStore((s) => s.loadPreset);
-  const toggleProductMode = useSimulatorStore((s) => s.toggleProductMode);
-  const toggleAdvanced = useSimulatorStore((s) => s.toggleAdvanced);
-  const toggleCoreDebug = useSimulatorStore((s) => s.toggleCoreDebug);
-  const toggleLiveWeather = useSimulatorStore((s) => s.toggleLiveWeather);
-  const toggleAllPresets = useSimulatorStore((s) => s.toggleAllPresets);
-  const toggleValidationPanel = useSimulatorStore((s) => s.toggleValidationPanel);
-  const exportChain = useSimulatorStore((s) => s.exportChain);
-  const importChain = useSimulatorStore((s) => s.importChain);
-  const showShareToast = useSimulatorStore((s) => s.showShareToast);
-  const audioUnlocked = useSimulatorStore((s) => s.audioUnlocked);
-  const soundEnabled = useSimulatorStore((s) => s.soundEnabled);
-  const toggleSound = useSimulatorStore((s) => s.toggleSound);
 
   const builderMode = !productMode;
-  const heroPresets = PRESET_CHAINS.filter((p) =>
-    (HERO_PRESET_IDS as readonly string[]).includes(p.id),
-  );
-  const visiblePresets =
-    productMode && !showAllPresets ? heroPresets : PRESET_CHAINS;
-  const multipleLightsWarning = warnings.some((w) =>
-    w.includes("Multiple visual outputs"),
-  );
-
-  const handleExport = () => {
-    const json = exportChain();
-    const encoded = btoa(unescape(encodeURIComponent(json)));
-    const url = `${window.location.origin}${window.location.pathname}?chain=${encoded}`;
-    navigator.clipboard.writeText(url).catch(() => {});
-    showShareToast("Link copied — send this chain to a friend");
-  };
-
-  const handleImportUrl = () => {
-    const params = new URLSearchParams(window.location.search);
-    const chainParam = params.get("chain");
-    if (chainParam) {
-      try {
-        const json = decodeURIComponent(escape(atob(chainParam)));
-        importChain(json);
-      } catch {
-        // ignore
-      }
-    }
-  };
 
   return (
     <>
-      {!outputState.powered && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-          <span className="pointer-events-auto text-xs px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800">
-            Chain unpowered — add exactly one Core cube
-          </span>
-        </div>
-      )}
-
-      {multipleLightsWarning && outputState.powered && (
-        <div className="fixed top-28 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-          <span className="pointer-events-auto text-xs px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-gray-700">
-            One visual output drives the chain — extra displays stay dim
-          </span>
-        </div>
-      )}
-
       {shareToast && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div
+          className="pointer-events-none fixed bottom-8 left-1/2 z-50 -translate-x-1/2 pb-[env(safe-area-inset-bottom)]"
+          role="status"
+        >
           <span className="pointer-events-auto text-sm px-4 py-2 rounded-full bg-foundry-ink text-white shadow-lg">
             {shareToast}
           </span>
         </div>
       )}
-
-      <div className="fixed top-0 left-0 right-0 z-10 pointer-events-none p-4 flex flex-col items-center gap-3">
-        <div className="pointer-events-auto flex items-center gap-3 bg-white/90 backdrop-blur-sm border border-foundry-border rounded-full px-4 py-2 shadow-sm">
-          <span className="text-sm font-medium tracking-tight pr-2 border-r border-foundry-border">
-            Foundry
-          </span>
-          {outputState.powered ? (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">
-              Powered
-            </span>
-          ) : (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-              Unpowered
-            </span>
-          )}
-          {activeRecipeName ? (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-foundry-ink text-white">
-              {activeRecipeName}
-            </span>
-          ) : (
-            <span className="text-xs text-foundry-muted">No recipe</span>
-          )}
-        </div>
-
-        <div className="pointer-events-auto flex flex-wrap justify-center gap-2 max-w-5xl max-h-24 overflow-y-auto">
-          {visiblePresets.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => loadPreset(preset.id)}
-              title={preset.description}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                selectedPresetId === preset.id
-                  ? "bg-foundry-ink text-white border-foundry-ink"
-                  : "bg-white/90 backdrop-blur-sm border-foundry-border hover:bg-white"
-              }`}
-            >
-              {preset.name}
-            </button>
-          ))}
-          {productMode && (
-            <button
-              type="button"
-              onClick={toggleAllPresets}
-              className="text-xs px-3 py-1.5 rounded-full border border-foundry-border bg-white/90 backdrop-blur-sm hover:bg-white text-foundry-muted"
-            >
-              {showAllPresets ? "Fewer" : "More"}
-            </button>
-          )}
-        </div>
-
-        <div className="pointer-events-auto fixed top-4 right-4 flex items-center gap-2 flex-wrap justify-end max-w-md">
-          <button
-            type="button"
-            onClick={toggleSound}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-              audioUnlocked && soundEnabled
-                ? "bg-[#8338EC] text-white border-[#8338EC]"
-                : "bg-white/90 backdrop-blur-sm border-foundry-border hover:bg-white"
-            }`}
-            title={
-              !audioUnlocked
-                ? "Click anywhere to enable sound"
-                : soundEnabled
-                  ? "Mute sound"
-                  : "Unmute sound"
-            }
-          >
-            {!audioUnlocked ? "Sound off" : soundEnabled ? "Sound on" : "Muted"}
-          </button>
-
-          {productMode ? (
-            <button
-              type="button"
-              onClick={toggleProductMode}
-              className="text-xs px-3 py-1.5 rounded-full border border-foundry-border bg-white/90 backdrop-blur-sm hover:bg-white text-foundry-muted"
-              title="Show developer tools"
-            >
-              Advanced
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={toggleProductMode}
-                className="text-xs px-3 py-1.5 rounded-full border border-foundry-border bg-white/90 backdrop-blur-sm hover:bg-white"
-              >
-                Product mode
-              </button>
-              <button
-                type="button"
-                onClick={toggleCoreDebug}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  showCoreDebug
-                    ? "bg-[#1D3557] text-white border-[#1D3557]"
-                    : "bg-white/90 backdrop-blur-sm border-foundry-border hover:bg-white"
-                }`}
-              >
-                Core Debug
-              </button>
-              <button
-                type="button"
-                onClick={toggleAdvanced}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  showAdvanced
-                    ? "bg-foundry-ink text-white border-foundry-ink"
-                    : "bg-white/90 backdrop-blur-sm border-foundry-border hover:bg-white"
-                }`}
-              >
-                Workshop
-              </button>
-              <button
-                type="button"
-                onClick={toggleValidationPanel}
-                className="text-xs px-3 py-1.5 rounded-full border border-foundry-border bg-white/90 backdrop-blur-sm hover:bg-white"
-              >
-                Validate
-              </button>
-              <button
-                type="button"
-                onClick={toggleLiveWeather}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  useLiveWeather
-                    ? "bg-[#457B9D] text-white border-[#457B9D]"
-                    : "bg-white/90 backdrop-blur-sm border-foundry-border hover:bg-white"
-                }`}
-              >
-                {useLiveWeather ? "Live" : "Mock"}
-              </button>
-              <button
-                type="button"
-                onClick={handleExport}
-                className="text-xs px-3 py-1.5 rounded-full border border-foundry-border bg-white/90 backdrop-blur-sm hover:bg-white"
-              >
-                Share
-              </button>
-              <button
-                type="button"
-                onClick={handleImportUrl}
-                className="text-xs px-3 py-1.5 rounded-full border border-foundry-border bg-white/90 backdrop-blur-sm hover:bg-white"
-              >
-                Load URL
-              </button>
-            </>
-          )}
-        </div>
-      </div>
 
       {showCoreDebug && (
         <Suspense fallback={null}>
@@ -250,11 +43,12 @@ export function OverlayHUD() {
       </Suspense>
 
       <div
-        className={`fixed top-0 right-0 h-full w-80 z-20 bg-white border-l border-foundry-border shadow-lg transition-transform duration-300 pointer-events-auto ${
+        className={`pointer-events-auto fixed inset-y-0 right-0 z-20 h-full w-full max-w-[100vw] border-l border-foundry-border bg-white shadow-lg transition-transform duration-300 md:w-80 ${
           builderMode && showAdvanced ? "translate-x-0" : "translate-x-full"
         }`}
+        aria-hidden={!(builderMode && showAdvanced)}
       >
-        <div className="p-4 h-full flex flex-col">
+        <div className="flex h-full flex-col p-4">
           <Suspense fallback={null}>
             <SignalLog />
           </Suspense>

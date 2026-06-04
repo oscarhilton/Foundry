@@ -1,4 +1,4 @@
-import { Rect } from "react-konva";
+import { SvgRect } from "../svg/primitives";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 
 interface GitHubVisualProps {
@@ -14,7 +14,7 @@ export function GitHubVisual({ activity, animTime }: GitHubVisualProps) {
   return (
     <>
       {[0, 1, 2].map((i) => (
-        <Rect
+        <SvgRect
           key={i}
           x={28 + i * 12}
           y={baseY - (6 + a * 10 * flicker) * (0.8 + i * 0.15)}

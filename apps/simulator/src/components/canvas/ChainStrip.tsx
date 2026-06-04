@@ -1,23 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useState, forwardRef } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Group, Arrow, Line, Text } from "react-konva";
-import type Konva from "konva";
-import { getDefinition, useSimulatorStore } from "../../store";
+import { useDroppable } from "@dnd-kit/core";
 import {
-  CUBE_SIZE,
-  CONNECTOR_W,
-  getChainSlotPosition,
-  findNearestChainSlot,
-  isNearChainStrip,
-  type StageLayout,
-} from "./layout";
+  SortableContext,
+  horizontalListSortingStrategy,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { getDefinition, useSimulatorStore } from "../../store";
+import { CUBE_SIZE } from "./layout";
 import { CubeNode, type CubeVisualState } from "./CubeNode";
-import { tweenTo } from "./animations";
+import { ChainConnector } from "./ChainConnector";
+import { ChainInsertGap } from "./ChainInsertGap";
 import { useAnimTime } from "./useAnimTime";
 import { useEffectTimestamps } from "./effect-timestamps";
+import { useCanvasLayout } from "./CanvasLayoutContext";
 
 interface ChainStripProps {
-  layout: StageLayout;
+  insertIndex?: number | null;
   onCubeHover?: (label: string, description: string, clientX: number, clientY: number) => void;
   onCubeHoverEnd?: () => void;
 }
@@ -28,24 +29,117 @@ function firstId(chain: { instanceId: string; definitionId: string }[], defId: s
 
 const DIAL_HINT_DELAY_MS = 10_000;
 
-export function ChainStrip({ layout, onCubeHover, onCubeHoverEnd }: ChainStripProps) {
+interface SortableChainCubeProps {
+  instanceId: string;
+  isDropTarget: boolean;
+  visualState: CubeVisualState & {
+    isPrimaryLight: boolean;
+    isPrimaryDial: boolean;
+    isInactiveLight: boolean;
+    isInactiveMusic: boolean;
+    isInactiveChime: boolean;
+    dialHintPulse: boolean;
+    isPrimaryChime: boolean;
+    isPrimaryMusic: boolean;
+    lcdText: string | null;
+    isPrimaryButton: boolean;
+    isPrimarySlider: boolean;
+  };
+  onCubeClick: (defId: string) => void;
+  onCubeHover?: ChainStripProps["onCubeHover"];
+  onCubeHoverEnd?: ChainStripProps["onCubeHoverEnd"];
+}
+
+function SortableChainCube({
+  instanceId,
+  isDropTarget,
+  visualState,
+  onCubeClick,
+  onCubeHover,
+  onCubeHoverEnd,
+}: SortableChainCubeProps) {
+  const cube = useSimulatorStore((s) => s.chain.find((c) => c.instanceId === instanceId));
+  const removeCube = useSimulatorStore((s) => s.removeCube);
+  const setDialPosition = useSimulatorStore((s) => s.setDialPosition);
+  const setSliderPosition = useSimulatorStore((s) => s.setSliderPosition);
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: instanceId });
+
+  const def = cube ? getDefinition(cube.definitionId) : null;
+  if (!def || !cube) return null;
+
+  const sortableTransform = CSS.Transform.toString(transform);
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="flex shrink-0 flex-col items-center gap-1.5"
+      style={{
+        transform: sortableTransform ?? undefined,
+        transition: isDragging ? undefined : transition,
+        zIndex: isDragging ? 10 : undefined,
+        opacity: isDragging ? 0 : 1,
+        minHeight: isDragging ? CUBE_SIZE : undefined,
+      }}
+    >
+      <CubeNode
+        definition={def}
+        visualState={visualState}
+        isDropTarget={isDropTarget}
+        dragScale={isDragging ? 1.04 : 1}
+        dragListeners={listeners}
+        dragAttributes={attributes}
+        onDblClick={() => removeCube(cube.instanceId)}
+        onClick={() => onCubeClick(def.id)}
+        onDialChange={setDialPosition}
+        onSliderChange={setSliderPosition}
+        onHoverStart={(definition, clientX, clientY) =>
+          onCubeHover?.(
+            definition.label,
+            definition.description ?? "",
+            clientX,
+            clientY,
+          )
+        }
+        onHoverEnd={onCubeHoverEnd}
+      />
+      <span className="max-w-[6.5rem] truncate text-center text-[10px] font-medium leading-tight text-[#86868B]">
+        {def.label}
+      </span>
+    </div>
+  );
+}
+
+export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function ChainStrip(
+  { insertIndex = null, onCubeHover, onCubeHoverEnd },
+  ref,
+) {
   const animTime = useAnimTime();
   const chain = useSimulatorStore((s) => s.chain);
   const outputState = useSimulatorStore((s) => s.outputState);
   const activeRecipeName = useSimulatorStore((s) => s.activeRecipeName);
-  const layoutVersion = useSimulatorStore((s) => s.layoutVersion);
   const showCoreDebug = useSimulatorStore((s) => s.showCoreDebug);
   const productMode = useSimulatorStore((s) => s.productMode);
   const onboarding = useSimulatorStore((s) => s.onboarding);
   const recipeActiveSince = useSimulatorStore((s) => s.recipeActiveSince);
-  const reorderChain = useSimulatorStore((s) => s.reorderChain);
-  const removeCube = useSimulatorStore((s) => s.removeCube);
-  const setDialPosition = useSimulatorStore((s) => s.setDialPosition);
-  const setSliderPosition = useSimulatorStore((s) => s.setSliderPosition);
   const triggerMotion = useSimulatorStore((s) => s.triggerMotion);
   const triggerButton = useSimulatorStore((s) => s.triggerButton);
   const openCoreDebug = useSimulatorStore((s) => s.openCoreDebug);
   const dismissFlowHint = useSimulatorStore((s) => s.dismissFlowHint);
+  const { layout } = useCanvasLayout();
+  const isVertical = layout === "vertical";
+
+  const { setNodeRef: setDropRef } = useDroppable({ id: "chain-strip" });
+
+  const setSectionRef = (node: HTMLElement | null) => {
+    setDropRef(node);
+    if (typeof ref === "function") {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  };
 
   const effectTimestamps = useEffectTimestamps(
     useShallow((s) => ({
@@ -59,11 +153,7 @@ export function ChainStrip({ layout, onCubeHover, onCubeHoverEnd }: ChainStripPr
     })),
   );
 
-  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
-  const groupRefs = useRef<Map<string, Konva.Group>>(new Map());
-  const prevLayoutVersion = useRef(-1);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 500);
@@ -97,6 +187,16 @@ export function ChainStrip({ layout, onCubeHover, onCubeHoverEnd }: ChainStripPr
   const showOrderHint =
     productMode && chain.length > 0 && !activeRecipeName;
 
+  const warnings = useSimulatorStore((s) => s.warnings);
+  const multipleLightsWarning = warnings.some((w) =>
+    w.includes("Multiple Light cubes"),
+  );
+  const multiDisplayHint = warnings.some((w) =>
+    w.includes("Multiple displays share"),
+  );
+
+  const primaryLightId = firstId(chain, "output/light");
+
   const visualBase: Omit<
     CubeVisualState,
     | "isPrimaryLight"
@@ -120,63 +220,6 @@ export function ChainStrip({ layout, onCubeHover, onCubeHoverEnd }: ChainStripPr
     effectTimestamps,
   };
 
-  const primaryLightId = firstId(chain, "output/light");
-
-  useEffect(() => {
-    if (prevLayoutVersion.current === layoutVersion) return;
-    prevLayoutVersion.current = layoutVersion;
-
-    chain.forEach((cube, index) => {
-      const node = groupRefs.current.get(cube.instanceId);
-      if (!node) return;
-      const target = getChainSlotPosition(layout, index, chain.length);
-      node.position({
-        x: target.x,
-        y: layout.shelfRow2Y,
-      });
-      node.opacity(0.5);
-      setTimeout(() => {
-        tweenTo(node, { x: target.x, y: target.y, opacity: 1 }, 0.35);
-      }, index * 150);
-    });
-  }, [layoutVersion, chain, layout]);
-
-  useEffect(() => {
-    chain.forEach((cube, index) => {
-      if (dragIndex === index) return;
-      const node = groupRefs.current.get(cube.instanceId);
-      if (!node) return;
-      const target = getChainSlotPosition(layout, index, chain.length);
-      if (Math.abs(node.x() - target.x) > 1 || Math.abs(node.y() - target.y) > 1) {
-        tweenTo(node, { x: target.x, y: target.y }, 0.2);
-      }
-    });
-  }, [chain, layout.width, layout.height, dragIndex]);
-
-  const handleDragEnd = (index: number, node: Konva.Group) => {
-    setDragIndex(null);
-    setDropTargetIndex(null);
-
-    const x = node.x();
-    const y = node.y();
-
-    if (!isNearChainStrip(x + CUBE_SIZE / 2, y + CUBE_SIZE / 2, layout)) {
-      const target = getChainSlotPosition(layout, index, chain.length);
-      tweenTo(node, { x: target.x, y: target.y }, 0.2);
-      return;
-    }
-
-    const newIndex = findNearestChainSlot(x + CUBE_SIZE / 2, layout, chain.length);
-    if (newIndex !== index) {
-      reorderChain(index, newIndex);
-    } else {
-      const target = getChainSlotPosition(layout, index, chain.length);
-      tweenTo(node, { x: target.x, y: target.y }, 0.2);
-    }
-  };
-
-  const hintX = layout.width / 2 - 180;
-
   const handleCubeClick = (defId: string) => {
     if (defId === "sensor/motion") triggerMotion();
     if (defId === "control/button") triggerButton();
@@ -184,144 +227,133 @@ export function ChainStrip({ layout, onCubeHover, onCubeHoverEnd }: ChainStripPr
   };
 
   return (
-    <Group>
-      <Line
-        listening={false}
-        points={[40, layout.shelfRow1Y - 36, layout.width - 40, layout.shelfRow1Y - 36]}
-        stroke="#E5E7EB"
-        strokeWidth={1}
-      />
+    <section
+      ref={setSectionRef}
+      className="flex w-full shrink-0 flex-col items-center gap-4 rounded-2xl bg-white/50 px-4 py-8 md:min-h-0 md:flex-1 md:justify-center md:gap-3 md:bg-transparent md:px-10 md:py-8"
+    >
+      {!outputState.powered && chain.length > 0 && (
+        <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800">
+          Chain unpowered — add exactly one Core cube
+        </p>
+      )}
+
+      {multipleLightsWarning && outputState.powered && (
+        <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800">
+          Only the first Light cube drives brightness
+        </p>
+      )}
+
+      {multiDisplayHint && outputState.powered && (
+        <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800">
+          Extra displays split the same upstream information — like adding another monitor
+        </p>
+      )}
 
       {showOrderHint && (
-        <Text
-          listening={false}
-          x={layout.width / 2 - 95}
-          y={layout.chainY - 28}
-          text="Read left to right →"
-          fontSize={12}
-          fill="#457B9D"
-          fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
-          opacity={0.85 + Math.sin(animTime * 0.003) * 0.15}
-        />
+        <p
+          className="pointer-events-none text-center text-xs text-[#457B9D] px-2"
+          style={{ opacity: 0.85 + Math.sin(animTime * 0.003) * 0.15 }}
+        >
+          {isVertical ? "Read top to bottom ↓" : "Read left to right →"}
+        </p>
       )}
 
       {chain.length === 0 && (
-        <Text
-          listening={false}
-          x={hintX}
-          y={layout.chainY + CUBE_SIZE / 2 - 8}
-          text="Drag cubes from the shelf — include Core for power"
-          fontSize={14}
-          fill="#9CA3AF"
-          fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
-        />
+        <p className="pointer-events-none text-center text-sm text-[#9CA3AF] px-4 max-w-xs">
+          Drag cubes from the shelf below — include Core for power
+        </p>
       )}
 
-      {chain.map((cube, index) => {
-        const def = getDefinition(cube.definitionId);
-        if (!def) return null;
+      <SortableContext
+        items={chain.map((c) => c.instanceId)}
+        strategy={
+          isVertical
+            ? verticalListSortingStrategy
+            : horizontalListSortingStrategy
+        }
+      >
+        <div
+          className={
+            isVertical
+              ? "flex flex-col items-center gap-2"
+              : "flex flex-row flex-wrap items-center justify-center gap-x-0"
+          }
+        >
+          {chain.length === 0 && insertIndex === 0 && (
+            <ChainInsertGap
+              showConnector={false}
+              connectorOpacity={connectorOpacity}
+              flowHintActive={onboarding.flowHintActive}
+              powered={outputState.powered}
+              orientation={layout}
+            />
+          )}
+          {chain.map((cube, index) => {
+            const def = getDefinition(cube.definitionId);
+            if (!def) return null;
+            const isPrimaryLight = cube.instanceId === primaryLightId;
+            const isPrimaryDial = cube.instanceId === firstId(chain, "control/dial");
+            const isNeighbor =
+              insertIndex === index || insertIndex === index + 1;
 
-        const pos = getChainSlotPosition(layout, index, chain.length);
-        const isDragging = dragIndex === index;
-        const isPrimaryLight = cube.instanceId === primaryLightId;
-        const isPrimaryDial = cube.instanceId === firstId(chain, "control/dial");
-
-        return (
-          <Group key={cube.instanceId}>
-            {index > 0 && (
-              <Arrow
-                listening={false}
-                points={[
-                  pos.x - CONNECTOR_W,
-                  pos.y + CUBE_SIZE / 2,
-                  pos.x - 4,
-                  pos.y + CUBE_SIZE / 2,
-                ]}
-                stroke={
-                  onboarding.flowHintActive
-                    ? "#457B9D"
-                    : outputState.powered
-                      ? "#D1D5DB"
-                      : "#E5E7EB"
-                }
-                fill={
-                  onboarding.flowHintActive
-                    ? "#457B9D"
-                    : outputState.powered
-                      ? "#D1D5DB"
-                      : "#E5E7EB"
-                }
-                strokeWidth={onboarding.flowHintActive ? 2 : 1.5}
-                pointerLength={onboarding.flowHintActive ? 8 : 6}
-                pointerWidth={onboarding.flowHintActive ? 8 : 6}
-                opacity={connectorOpacity}
-              />
-            )}
-
-            <Group
-              draggable
-              ref={(node) => {
-                if (node) {
-                  groupRefs.current.set(cube.instanceId, node);
-                  const target = getChainSlotPosition(layout, index, chain.length);
-                  if (node.getAttr("dataInit") !== cube.instanceId) {
-                    node.position({ x: target.x, y: target.y });
-                    node.setAttr("dataInit", cube.instanceId);
-                  }
-                } else {
-                  groupRefs.current.delete(cube.instanceId);
-                }
-              }}
-              onDragStart={() => setDragIndex(index)}
-              onDragMove={(e) => {
-                const node = e.target as Konva.Group;
-                const slot = findNearestChainSlot(
-                  node.x() + CUBE_SIZE / 2,
-                  layout,
-                  chain.length,
-                );
-                setDropTargetIndex(slot);
-              }}
-              onDragEnd={(e) => handleDragEnd(index, e.target as Konva.Group)}
-              onDblClick={() => removeCube(cube.instanceId)}
-            >
-              <CubeNode
-                definition={def}
-                x={0}
-                y={0}
-                isDropTarget={dropTargetIndex === index}
-                dragScale={isDragging ? 1.04 : 1}
-                visualState={{
-                  ...visualBase,
-                  isPrimaryLight,
-                  isPrimaryDial,
-                  isInactiveLight: def.id === "output/light" && !isPrimaryLight,
-                  isInactiveMusic: def.id === "output/music" && cube.instanceId !== firstId(chain, "output/music"),
-                  isInactiveChime: def.id === "output/chime" && cube.instanceId !== firstId(chain, "output/chime"),
-                  dialHintPulse: isPrimaryDial && dialHintEligible,
-                  isPrimaryChime: cube.instanceId === firstId(chain, "output/chime"),
-                  isPrimaryMusic: cube.instanceId === firstId(chain, "output/music"),
-                  lcdText: outputState.lcdTexts[cube.instanceId] ?? null,
-                  isPrimaryButton: cube.instanceId === firstId(chain, "control/button"),
-                  isPrimarySlider: cube.instanceId === firstId(chain, "control/slider"),
-                }}
-                onClick={() => handleCubeClick(def.id)}
-                onDialChange={setDialPosition}
-                onSliderChange={setSliderPosition}
-                onHoverStart={(definition, clientX, clientY) =>
-                  onCubeHover?.(
-                    definition.label,
-                    definition.description ?? "",
-                    clientX,
-                    clientY,
-                  )
-                }
-                onHoverEnd={onCubeHoverEnd}
-              />
-            </Group>
-          </Group>
-        );
-      })}
-    </Group>
+            return (
+              <Fragment key={cube.instanceId}>
+                {insertIndex === index && (
+                  <ChainInsertGap
+                    showConnector={index > 0}
+                    connectorOpacity={connectorOpacity}
+                    flowHintActive={onboarding.flowHintActive}
+                    powered={outputState.powered}
+                    orientation={layout}
+                  />
+                )}
+                {index > 0 && insertIndex !== index && (
+                  <ChainConnector
+                    opacity={connectorOpacity}
+                    flowHintActive={onboarding.flowHintActive}
+                    powered={outputState.powered}
+                    orientation={layout}
+                  />
+                )}
+                <SortableChainCube
+                  instanceId={cube.instanceId}
+                  isDropTarget={isNeighbor}
+                  onCubeClick={handleCubeClick}
+                  onCubeHover={onCubeHover}
+                  onCubeHoverEnd={onCubeHoverEnd}
+                  visualState={{
+                    ...visualBase,
+                    isPrimaryLight,
+                    isPrimaryDial,
+                    isInactiveLight: def.id === "output/light" && !isPrimaryLight,
+                    isInactiveMusic:
+                      def.id === "output/music" &&
+                      cube.instanceId !== firstId(chain, "output/music"),
+                    isInactiveChime:
+                      def.id === "output/chime" &&
+                      cube.instanceId !== firstId(chain, "output/chime"),
+                    dialHintPulse: isPrimaryDial && dialHintEligible,
+                    isPrimaryChime: cube.instanceId === firstId(chain, "output/chime"),
+                    isPrimaryMusic: cube.instanceId === firstId(chain, "output/music"),
+                    lcdText: outputState.lcdTexts[cube.instanceId] ?? null,
+                    isPrimaryButton: cube.instanceId === firstId(chain, "control/button"),
+                    isPrimarySlider: cube.instanceId === firstId(chain, "control/slider"),
+                  }}
+                />
+              </Fragment>
+            );
+          })}
+          {insertIndex === chain.length && chain.length > 0 && (
+            <ChainInsertGap
+              showConnector
+              connectorOpacity={connectorOpacity}
+              flowHintActive={onboarding.flowHintActive}
+              powered={outputState.powered}
+              orientation={layout}
+            />
+          )}
+        </div>
+      </SortableContext>
+    </section>
   );
-}
+});

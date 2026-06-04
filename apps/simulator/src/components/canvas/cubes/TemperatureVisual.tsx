@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Arc } from "react-konva";
+import { SvgArc, SvgText } from "../svg/primitives";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { lerp } from "../animations";
@@ -20,19 +20,31 @@ export function TemperatureVisual({ temp, animTime }: TemperatureVisualProps) {
 
   const norm = displayNorm.current;
   const cx = CUBE_SIZE / 2;
-  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
+  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2 - 4;
+  const displayTemp = temp != null ? `${Math.round(temp)}°` : "--";
 
   return (
-    <Arc
-      x={cx}
-      y={cy}
-      innerRadius={10}
-      outerRadius={12}
-      angle={180 * norm}
-      rotation={180}
-      stroke={COLORS.ledRed}
-      strokeWidth={2}
-      opacity={0.35 + norm * 0.45}
-    />
+    <>
+      <SvgArc
+        x={cx}
+        y={cy}
+        innerRadius={14}
+        outerRadius={17}
+        angle={180 * norm}
+        rotation={180}
+        stroke={COLORS.ledRed}
+        strokeWidth={2.5}
+        opacity={0.4 + norm * 0.5}
+      />
+      <SvgText
+        x={cx}
+        y={cy + 10}
+        text={displayTemp}
+        fontSize={13}
+        fill={COLORS.ink}
+        textAnchor="middle"
+        opacity={0.85}
+      />
+    </>
   );
 }

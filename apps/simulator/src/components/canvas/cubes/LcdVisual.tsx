@@ -1,4 +1,4 @@
-import { Group, Rect, Text } from "react-konva";
+import type { CSSProperties } from "react";
 import { eventPhase } from "../animations";
 import { COLORS, CUBE_FACE, FONTS } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
@@ -10,7 +10,6 @@ interface LcdVisualProps {
 }
 
 const LCD_INNER_X = 18;
-const LCD_INNER_Y = CUBE_FACE.stateTop;
 const LCD_INNER_W = CUBE_SIZE - 36;
 const LCD_INNER_H = CUBE_FACE.stateBottom - CUBE_FACE.stateTop - 4;
 const FONT_SIZE = 8;
@@ -41,74 +40,71 @@ export function LcdVisual({ text, animTime, lcdChangedAt }: LcdVisualProps) {
     : 0;
 
   const renderText = () => {
+    const textStyle: CSSProperties = {
+      fontFamily: FONTS.mono,
+      fontSize: FONT_SIZE,
+      color: COLORS.ink,
+      opacity: textOpacity,
+      lineHeight: 1.2,
+    };
+
     if (isShort) {
       return (
-        <Text
-          x={LCD_INNER_X}
-          y={LCD_INNER_Y + 8}
-          width={LCD_INNER_W}
-          text={displayText}
-          fontSize={FONT_SIZE}
-          fill={COLORS.ink}
-          align="center"
-          fontFamily={FONTS.mono}
-          opacity={textOpacity}
-        />
+        <div
+          className="flex items-center justify-center h-full w-full"
+          style={textStyle}
+        >
+          {displayText}
+        </div>
       );
     }
 
     if (isMedium) {
       return (
-        <Text
-          x={LCD_INNER_X}
-          y={LCD_INNER_Y + 4}
-          width={LCD_INNER_W}
-          text={displayText}
-          fontSize={FONT_SIZE}
-          fill={COLORS.ink}
-          align="center"
-          wrap="word"
-          lineHeight={1.15}
-          fontFamily={FONTS.mono}
-          opacity={textOpacity}
-        />
+        <div
+          className="flex items-center justify-center h-full w-full text-center px-0.5"
+          style={{
+            ...textStyle,
+            wordBreak: "break-word",
+            overflow: "hidden",
+          }}
+        >
+          {displayText}
+        </div>
       );
     }
 
     return (
-      <Text
-        x={LCD_INNER_X - scrollOffset}
-        y={LCD_INNER_Y + 8}
-        text={displayText}
-        fontSize={FONT_SIZE}
-        fill={COLORS.ink}
-        align="left"
-        fontFamily={FONTS.mono}
-        opacity={textOpacity}
-      />
+      <div className="flex items-center h-full overflow-hidden">
+        <span
+          className="whitespace-nowrap"
+          style={{
+            ...textStyle,
+            transform: `translateX(-${scrollOffset}px)`,
+          }}
+        >
+          {displayText}
+        </span>
+      </div>
     );
   };
 
   return (
-    <>
-      <Rect
-        x={LCD_INNER_X - 2}
-        y={LCD_INNER_Y}
-        width={LCD_INNER_W + 4}
-        height={LCD_INNER_H}
-        fill="#F2F2F7"
-        stroke={COLORS.stroke}
-        strokeWidth={1}
-        cornerRadius={2}
-      />
-      <Group
-        clipX={LCD_INNER_X}
-        clipY={LCD_INNER_Y}
-        clipWidth={LCD_INNER_W}
-        clipHeight={LCD_INNER_H}
+    <div
+      className="w-full h-full flex items-center justify-center box-border"
+      style={{ paddingLeft: LCD_INNER_X - 2, paddingRight: LCD_INNER_X - 2 }}
+    >
+      <div
+        className="w-full overflow-hidden rounded-sm border"
+        style={{
+          maxWidth: LCD_INNER_W + 4,
+          height: LCD_INNER_H,
+          backgroundColor: "#F2F2F7",
+          borderColor: COLORS.stroke,
+        }}
       >
         {renderText()}
-      </Group>
-    </>
+      </div>
+    </div>
   );
 }

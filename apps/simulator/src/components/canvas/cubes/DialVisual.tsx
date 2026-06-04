@@ -1,6 +1,5 @@
+import { SvgCircle, SvgGroup, SvgLine, getSvgPoint } from "../svg/primitives";
 import { useRef } from "react";
-import { Group, Circle, Line } from "react-konva";
-import type Konva from "konva";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { lerp } from "../animations";
@@ -23,6 +22,7 @@ export function DialVisual({
   const knobR = 14;
   const displayPos = useRef(dialPosition);
   const lastFrame = useRef(animTime);
+  const dragging = useRef(false);
 
   const dt = Math.min(50, animTime - lastFrame.current);
   lastFrame.current = animTime;
@@ -32,10 +32,11 @@ export function DialVisual({
   const rad = (angle * Math.PI) / 180;
   const indicatorX = cx + Math.cos(rad) * (knobR - 4);
   const indicatorY = cy + Math.sin(rad) * (knobR - 4);
-  const groupRef = useRef<Konva.Group>(null);
 
-  const handleDrag = () => {
-    const pos = groupRef.current?.getRelativePointerPosition();
+  const handlePointer = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    const svg = (e.currentTarget as SVGGElement).ownerSVGElement;
+    const pos = getSvgPoint(svg, e.clientX, e.clientY);
     if (!pos) return;
     const dx = pos.x - cx;
     const dy = pos.y - cy;
@@ -52,17 +53,25 @@ export function DialVisual({
   const hintGlow = hintPulse ? 0.25 + Math.sin(animTime * 0.006) * 0.2 : 0;
 
   return (
-    <Group
-      ref={groupRef}
-      onMouseDown={handleDrag}
-      onTouchStart={handleDrag}
-      onMouseMove={(e) => {
-        if (e.evt.buttons === 1) handleDrag();
+    <SvgGroup
+      onPointerDown={(e) => {
+        dragging.current = true;
+        (e.target as Element).setPointerCapture(e.pointerId);
+        handlePointer(e);
       }}
-      onTouchMove={handleDrag}
+      onPointerMove={(e) => {
+        if (dragging.current) handlePointer(e);
+      }}
+      onPointerUp={(e) => {
+        dragging.current = false;
+        (e.target as Element).releasePointerCapture(e.pointerId);
+      }}
+      onPointerCancel={() => {
+        dragging.current = false;
+      }}
     >
       {hintPulse && (
-        <Circle
+        <SvgCircle
           x={cx}
           y={cy}
           radius={knobR + 6}
@@ -71,7 +80,7 @@ export function DialVisual({
           opacity={hintGlow}
         />
       )}
-      <Circle
+      <SvgCircle
         x={cx}
         y={cy}
         radius={knobR}
@@ -79,12 +88,12 @@ export function DialVisual({
         stroke={COLORS.stroke}
         strokeWidth={1}
       />
-      <Line
+      <SvgLine
         points={[cx, cy, indicatorX, indicatorY]}
         stroke={COLORS.ink}
         strokeWidth={1.5}
         lineCap="round"
       />
-    </Group>
+    </SvgGroup>
   );
 }

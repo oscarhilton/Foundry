@@ -1,4 +1,4 @@
-import { Circle, Group } from "react-konva";
+import { SvgCircle, SvgGroup } from "../svg/primitives";
 import { CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { decayPulse, eventPhase, springScale } from "../animations";
@@ -29,10 +29,12 @@ export function ChimeVisual({
   });
 
   return (
-    <Group scaleX={scale} scaleY={scale}>
+    <SvgGroup
+      transform={`translate(${cx} ${cy}) scale(${scale}) translate(${-cx} ${-cy})`}
+    >
       {rings.map((ring, i) =>
         ring.opacity > 0.01 ? (
-          <Circle
+          <SvgCircle
             key={i}
             x={cx}
             y={cy}
@@ -43,13 +45,17 @@ export function ChimeVisual({
           />
         ) : null,
       )}
-      <Circle
+      <SvgCircle
         x={cx}
         y={cy}
         radius={8}
         fill="#8338EC"
-        opacity={0.12 + (chimeCount > 0 ? 0.15 : 0) + decayPulse(animTime, chimeFiredAt, 400) * 0.2}
+        opacity={
+          0.12 +
+          (chimeCount > 0 ? 0.15 : 0) +
+          decayPulse(animTime, chimeFiredAt, 400) * 0.2
+        }
       />
-    </Group>
+    </SvgGroup>
   );
 }

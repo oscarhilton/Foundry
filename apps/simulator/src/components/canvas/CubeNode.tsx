@@ -1,9 +1,10 @@
-import { memo, useRef } from "react";
-import type Konva from "konva";
-import { Group } from "react-konva";
+import { memo, useRef, type CSSProperties } from "react";
+import type { DraggableAttributes } from "@dnd-kit/core";
+import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import type { CubeDefinition } from "@foundry/cube-defs";
 import type { FoundryOutputState } from "@foundry/runtime";
 import { BaseCubeShell } from "./cubes/BaseCubeShell";
+import { CubeIcon } from "./cubes/CubeIcon";
 import { LightVisual } from "./cubes/LightVisual";
 import { DialVisual } from "./cubes/DialVisual";
 import { MotionVisual } from "./cubes/MotionVisual";
@@ -20,7 +21,7 @@ import { LcdVisual } from "./cubes/LcdVisual";
 import { TemperatureVisual } from "./cubes/TemperatureVisual";
 import { TimeVisual } from "./cubes/TimeVisual";
 import { RandomVisual } from "./cubes/RandomVisual";
-import { COLORS } from "./design-tokens";
+import { COLORS, CUBE_ICON_BADGE_SIZE } from "./design-tokens";
 import { CUBE_SIZE } from "./layout";
 import { lerp } from "./animations";
 import { EMPTY_EFFECT_TIMESTAMPS, type EffectTimestamps } from "./effect-timestamps";
@@ -48,18 +49,15 @@ export interface CubeVisualState {
 
 interface CubeNodeProps {
   definition: CubeDefinition;
-  x: number;
-  y: number;
-  draggable?: boolean;
-  isDropTarget?: boolean;
   visualState: CubeVisualState;
-  onDragStart?: () => void;
-  onDragMove?: (x: number, y: number) => void;
-  onDragEnd?: (x: number, y: number, node?: Konva.Group) => void;
+  isDropTarget?: boolean;
+  dragScale?: number;
+  opacity?: number;
+  style?: CSSProperties;
+  dragListeners?: SyntheticListenerMap;
+  dragAttributes?: DraggableAttributes;
   onDblClick?: () => void;
   onClick?: () => void;
-  opacity?: number;
-  dragScale?: number;
   onDialChange?: (value: number) => void;
   onSliderChange?: (value: number) => void;
   onHoverStart?: (definition: CubeDefinition, clientX: number, clientY: number) => void;
@@ -147,18 +145,15 @@ function getStatusLed(
 
 function CubeNodeInner({
   definition,
-  x,
-  y,
-  draggable = false,
   isDropTarget = false,
   visualState,
-  onDragStart,
-  onDragMove,
-  onDragEnd,
   onDblClick,
   onClick,
   opacity = 1,
   dragScale = 1,
+  style,
+  dragListeners,
+  dragAttributes,
   onDialChange,
   onSliderChange,
   onHoverStart,
@@ -268,15 +263,6 @@ function CubeNodeInner({
         />
       );
     }
-    if (id === "output/lcd" && visualState.lcdText != null) {
-      return (
-        <LcdVisual
-          text={visualState.lcdText}
-          animTime={animTime}
-          lcdChangedAt={effects.lcdChangedAt}
-        />
-      );
-    }
     if (id === "sensor/temperature") {
       return (
         <TemperatureVisual temp={outputState.sensorTemp} animTime={animTime} />
@@ -341,37 +327,77 @@ function CubeNodeInner({
     return null;
   };
 
+  const buildStateSlot = () => {
+    if (!inChain) return null;
+    if (inChain && !powered && id !== "core/core") return null;
+
+    if (id === "output/lcd" && visualState.lcdText != null) {
+      return (
+        <LcdVisual
+          text={visualState.lcdText}
+          animTime={animTime}
+          lcdChangedAt={effects.lcdChangedAt}
+        />
+      );
+    }
+
+    const visual = renderVisual();
+    if (!visual) return null;
+
+    return (
+      <svg
+        width={CUBE_SIZE}
+        height={CUBE_SIZE}
+        viewBox={`0 0 ${CUBE_SIZE} ${CUBE_SIZE}`}
+        className="block h-full w-full max-h-full max-w-full"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {visual}
+      </svg>
+    );
+  };
+
+  const stateSlot = buildStateSlot();
+  const iconSlot = stateSlot ? null : (
+    <CubeIcon
+      cubeId={definition.id}
+      accent={definition.colorAccent}
+      unpowered={inChain && !showPowered}
+    />
+  );
+  const badgeSlot =
+    stateSlot && inChain ? (
+      <CubeIcon
+        cubeId={definition.id}
+        accent={definition.colorAccent}
+        unpowered={inChain && !showPowered}
+        size={CUBE_ICON_BADGE_SIZE}
+        strokeWidth={1.75}
+      />
+    ) : null;
+
   return (
-    <Group
-      x={x}
-      y={y}
-      draggable={draggable}
-      opacity={displayOpacity.current}
-      scaleX={dragScale}
-      scaleY={dragScale}
-      onDragStart={onDragStart}
-      onDragMove={(e) => {
-        const node = e.target;
-        onDragMove?.(node.x(), node.y());
+    <div
+      {...dragAttributes}
+      {...dragListeners}
+      style={{
+        width: CUBE_SIZE,
+        height: CUBE_SIZE,
+        opacity: displayOpacity.current,
+        transform: `scale(${dragScale})`,
+        outline: isDropTarget ? `2px solid ${COLORS.ink}` : undefined,
+        outlineOffset: 2,
+        borderRadius: inChain ? 8 : 6,
+        touchAction: "none",
+        cursor: dragListeners ? "grab" : undefined,
+        ...style,
       }}
-      onDragEnd={(e) => {
-        const node = e.target as Konva.Group;
-        onDragEnd?.(node.x(), node.y(), node);
-      }}
-      onDblClick={onDblClick}
+      onDoubleClick={onDblClick}
       onClick={onClick}
-      onTap={onClick}
       onMouseEnter={(e) => {
-        const stage = e.target.getStage();
-        const container = stage?.container();
-        if (!container || !onHoverStart) return;
-        const rect = container.getBoundingClientRect();
-        const pos = e.target.getAbsolutePosition();
-        onHoverStart(
-          definition,
-          rect.left + pos.x + CUBE_SIZE / 2,
-          rect.top + pos.y,
-        );
+        if (!onHoverStart) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        onHoverStart(definition, rect.left + CUBE_SIZE / 2, rect.top);
       }}
       onMouseLeave={() => onHoverEnd?.()}
     >
@@ -379,13 +405,15 @@ function CubeNodeInner({
         definition={definition}
         highlighted={isDropTarget}
         unpowered={inChain && !showPowered}
+        inChain={inChain}
         statusLedColor={statusLed.color}
         statusLedActive={statusLed.active}
         statusLedPulse={statusLed.pulse}
-      >
-        {renderVisual()}
-      </BaseCubeShell>
-    </Group>
+        iconSlot={iconSlot}
+        badgeSlot={badgeSlot}
+        stateSlot={stateSlot}
+      />
+    </div>
   );
 }
 

@@ -7,6 +7,9 @@ interface CalmVisualProps {
 }
 
 export function CalmVisual({ animTime, active, noiseValue }: CalmVisualProps) {
+  const label =
+    active && noiseValue != null ? `${Math.round(noiseValue * 100)}%` : undefined;
+
   return (
     <NoiseFieldVisual
       animTime={animTime}
@@ -15,6 +18,7 @@ export function CalmVisual({ animTime, active, noiseValue }: CalmVisualProps) {
       accent="#2A9D8F"
       contrast={0.55}
       active={active}
+      centerLabel={label}
     />
   );
 }
