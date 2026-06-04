@@ -33,6 +33,10 @@ Light is visible from across a room. A display requires reading — better as **
 
 See [starter-kit.md](starter-kit.md) for retail vs proof kit distinction.
 
+## Production hardware direction
+
+M6 proves the sentence on the **simplest electronics** (passive EEPROM Place/Weather + separate Light LED). The **manufacturing target** is the [universal smart-face platform](../hardware/smart-face-platform.md): one e-paper + front-light PCB whose EEPROM descriptor selects Place, Weather, Display, or Light personality. M6 bench work is not thrown away — it de-risks I2C and brightness mapping before panel integration.
+
 ## Success criteria
 
 - [ ] 4-cube mockups printed; snap feel validated on a desk
@@ -57,3 +61,4 @@ No new transforms, sources, debug tooling, or grammar work unless hardware expos
 - [starter-kit.md](starter-kit.md)
 - [../hardware/m6-e2e-london-weather-light.md](../hardware/m6-e2e-london-weather-light.md)
 - [../hardware/mockup-sprint.md](../hardware/mockup-sprint.md)
+- [../hardware/smart-face-platform.md](../hardware/smart-face-platform.md) — production PCB target (e-ink + front-light)

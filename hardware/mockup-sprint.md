@@ -16,6 +16,10 @@ Reference: [enclosure/shell-spec.md](enclosure/shell-spec.md), [README.md](READM
 
 **Defer to M6.1:** Display shell, Time shell.
 
+## Smart-face aperture (production)
+
+When printing role shells (Place, Weather, Light, Display), use a **shared top aperture** for the future 1.54" front-lit panel: **~41 × 32 mm** clear opening (GDEY0154D67-FL04 outline 40.3 × 31.8 mm + tolerance). M6 breadboard Light shell keeps the 20 mm diffuser dome until smart-face replaces it. See [smart-face-platform.md](smart-face-platform.md).
+
 ## Assembly checklist
 
 - [ ] Magnets seated; polarity matches jig (alternate N-S along chain)

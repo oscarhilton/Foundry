@@ -37,3 +37,19 @@ Self-describing source cubes (Weather first) use a small **black/white e-paper**
 - Simulator contract: `weatherFace` in `packages/runtime` — no `output/lcd/text` topic for cube faces
 
 See [grammar.md](../docs/grammar.md) — Weather cube e-ink when no LCD is present.
+
+## Front-light layer (GooDisplay)
+
+E-paper is reflective — unreadable in dim light without illumination. **GooDisplay** front-light panels bond an ultra-thin optical film to the panel face (not sold separately).
+
+| Spec | GDEY0154D67-FL04 (recommended for 50 mm cube) |
+|------|-----------------------------------------------|
+| Panel | Same 1.54" / 200×200 / SSD1681 as bare GDEY0154D67 |
+| Outline | **40.3 × 31.8 × 1.85 mm** (fits 50 mm top face — see [smart-face-platform.md](smart-face-platform.md)) |
+| Front-light connector | 6-pin FPC |
+| LEDs | 3, parallel, 2.8–3.3 V, ≤45 mA |
+| Modes | Cool white or warm white (catalog option) |
+
+Larger GooDisplay front-lit modules (2.13", 2.7", …) **do not fit** the current 50 mm enclosure. Panel choice is documented in the fit matrix in [smart-face-platform.md](smart-face-platform.md) — **Path A: 1.54" FL04** pending mechanical confirm; **Path B: ~65 mm cube** if 2.7" is required.
+
+Product page: [GDEY0154D67-FL04](https://www.good-display.com/product/257.html).

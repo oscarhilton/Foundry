@@ -2,10 +2,15 @@
 
 ## System overview
 
-Foundry hardware consists of 50mm cubic modules daisy-chained via pogo pins on East/West faces. One **Core** module contains an ESP32-S3 (Seeed XIAO ESP32-S3), USB-C power, and the runtime firmware. Passive **identity** modules contain only an AT24C256 EEPROM. Active modules (Dial, Light) contain a minimal I2C slave MCU.
+Foundry hardware consists of 50mm cubic modules daisy-chained via pogo pins on East/West faces. One **Core** module contains an ESP32-S3 (Seeed XIAO ESP32-S3), USB-C power, and the runtime firmware.
+
+**M6 breadboard (now):** Passive **identity** modules (EEPROM only) + active **Light** (warm white PWM). De-risks I2C chain and `weatherToBrightness`.
+
+**Production target:** [**Universal smart-face platform**](smart-face-platform.md) — one PCB (MCU + EEPROM + 1.54" e-paper + front-light) with personality set by descriptor. Place, Weather, Display, and Light become firmware roles, not separate PCBs.
 
 ```
-[USB-C] → [Core ESP32-S3] ←I2C→ [Passive|EEPROM] ←I2C→ [Dial|MCU] ←I2C→ [Light|MCU]
+[USB-C] → [Core ESP32-S3] ←I2C→ [Passive|EEPROM] ←I2C→ [Dial|MCU] ←I2C→ [Light|MCU]   ← M6 bench
+[USB-C] → [Core ESP32-S3] ←I2C→ [SmartFace|EEPROM+EPD+FL] ←I2C→ [Control|Sensor] …     ← production
 ```
 
 ## Electrical specifications
@@ -61,7 +66,18 @@ Foundry hardware consists of 50mm cubic modules daisy-chained via pogo pins on E
 
 ### Weather cube e-ink face
 
-Source cubes with self-describing faces use a **1.54" 200×200 SPI e-paper** panel (GDEY0154D67 / SSD1681). See [`hardware/eink-face.md`](eink-face.md).
+Source cubes with self-describing faces use a **1.54" 200×200 SPI e-paper** panel (GDEY0154D67 / SSD1681). Production adds GooDisplay front-light (**GDEY0154D67-FL04**). See [`hardware/eink-face.md`](eink-face.md) and [`hardware/smart-face-platform.md`](smart-face-platform.md).
+
+### Universal smart-face platform (production)
+
+| Component | Part | Notes |
+|-----------|------|-------|
+| MCU | ATtiny841 or ESP32-C3 | I2C slave, SPI to panel |
+| EEPROM | AT24C256 | Descriptor @ 0x50+ — role personality |
+| Display | GDEY0154D67-FL04 | 1.54" 200×200 B/W + bonded front-light |
+| Front-light drive | 3× LED, 6-pin FPC | PWM brightness; cool/warm white |
+
+One PCB serves Place, Weather, Display, Light, and future face cubes. See [smart-face-platform.md](smart-face-platform.md).
 
 ## Mechanical — 50mm cube shell
 
@@ -91,7 +107,8 @@ Core firmware ports the TypeScript runtime logic from `packages/runtime` as manu
 3. Core PCB + 1 passive + Dial + Light
 4. 3D print shells, fit test — see [mockup-sprint.md](mockup-sprint.md)
 5. **M6 E2E:** [London → Weather → Light](m6-e2e-london-weather-light.md) (no Dial required)
-6. **M6.1:** Tokyo → Time → Display
+6. **M6.1:** Tokyo → Time → Display — first [smart-face](smart-face-platform.md) prototype
+7. **Post-M6.1:** Consolidate Place/Weather onto smart-face; retire passive-EEPROM-only identity for production
 
 ## Power notes
 

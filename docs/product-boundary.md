@@ -30,11 +30,9 @@ People forgive limitations. They do not forgive ambiguity.
 
 | Demo / M6 | Production |
 |-----------|------------|
-| **Demo identities are physical** — London, Tokyo, Foundry stickers on generic Place shells for shows and photos | **Production identities are programmable** — generic Place / Person / Project cube with EEPROM or e-ink face |
+| **Demo identities are physical** — London, Tokyo, Foundry stickers on generic Place shells for shows and photos | **Production identities are programmable** — generic Place / Person / Project cube on the [universal smart-face PCB](../hardware/smart-face-platform.md) (EEPROM + e-ink face) |
 
-**Do not manufacture** London Cube, Tokyo Cube, Chicago Cube, Sydney Cube, … as separate SKUs. That path does not scale.
-
-Simulator `identity/london` etc. are vocabulary tokens; hardware should converge on reprogrammable Place.
+**Do not manufacture** London Cube, Tokyo Cube, Chicago Cube, Sydney Cube, … as separate SKUs. That path does not scale. One smart-face PCB; the face shows the assigned place; the descriptor holds `identity/london` (or user-configured place) as a vocabulary token, not a separate product line.
 
 ## Geometry
 
