@@ -396,7 +396,7 @@ function CubeNodeInner({
       {...dragAttributes}
       {...dragListeners}
       style={{
-        width: CUBE_SIZE,
+        width: id === "output/lcd" ? CUBE_SIZE * 2 : CUBE_SIZE,
         height: CUBE_SIZE,
         opacity: displayOpacity.current,
         transform: `scale(${dragScale})`,
@@ -427,6 +427,7 @@ function CubeNodeInner({
         iconSlot={iconSlot}
         badgeSlot={badgeSlot}
         stateSlot={stateSlot}
+        width={id === "output/lcd" ? CUBE_SIZE * 2 : CUBE_SIZE}
       />
     </div>
   );

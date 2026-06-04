@@ -13,6 +13,8 @@ export const COLORS = {
   ledPurple: "#8338EC",
   connectorGrey: "#D1D5DB",
   einkBackground: "#f3f3f3",
+  oledBackground: "#232323",
+  oledInk: "#00ff00",
 } as const;
 
 export const FONTS = {

@@ -14,6 +14,7 @@ interface BaseCubeShellProps {
   iconSlot?: ReactNode;
   badgeSlot?: ReactNode;
   stateSlot?: ReactNode;
+  width?: number;
 }
 
 export function BaseCubeShell({
@@ -22,6 +23,7 @@ export function BaseCubeShell({
   inChain = false,
   iconSlot,
   stateSlot,
+  width = CUBE_SIZE,
 }: BaseCubeShellProps) {
   const fill = unpowered ? COLORS.cubeUnpowered : COLORS.cube;
   const stroke = highlighted
@@ -45,7 +47,7 @@ export function BaseCubeShell({
     <div
       className="relative grid h-full w-full overflow-hidden"
       style={{
-        width: CUBE_SIZE,
+        width: width,
         height: CUBE_SIZE,
         backgroundColor: fill,
         borderRadius: radius,
