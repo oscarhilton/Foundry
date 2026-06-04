@@ -455,13 +455,14 @@ export class FoundryEngine {
     }
 
     const lightBehaviour = resolveLightBehaviour(this.parsed);
+    const recipe = this.context?.recipe;
     const legacy = matchLegacyRecipe(this.parsed);
     this.outputState.activeRecipeId =
-      legacy?.id ?? lightBehaviour ?? this.context?.recipe?.id ?? null;
+      recipe?.id ?? lightBehaviour ?? legacy?.id ?? null;
     this.outputState.activeRecipeName =
-      legacy?.name ??
+      recipe?.name ??
       resolvePrimaryRecipeLabel(this.parsed, lightBehaviour) ??
-      this.context?.recipe?.name ??
+      legacy?.name ??
       (this.parsed.powered ? "manual composition" : null);
     this.outputState.placeLabel = this.context?.placeLabel ?? null;
 
@@ -626,8 +627,7 @@ export class FoundryEngine {
     const lightBehaviour = resolveLightBehaviour(this.parsed);
     this.applyLightBehaviour(lightBehaviour, temp, rain);
 
-    const legacyRecipe = matchLegacyRecipe(this.parsed);
-    if (legacyRecipe?.id === "tokyo-weather-music") {
+    if (this.context?.recipe?.id === "tokyo-weather-music") {
       const note = 48 + Math.round(((temp + 10) / 40) * 24);
       const velocity = Math.round(40 + (1 - rain) * 60);
       this.setMusicOutput(note, velocity);
@@ -723,6 +723,8 @@ export class FoundryEngine {
 
   private syncLcdFromChain(): void {
     if (!this.parsed?.powered || !hasLcdOutput(this.parsed)) {
+      this.outputState.lcdTexts = {};
+      this.outputState.lcdText = null;
       return;
     }
 

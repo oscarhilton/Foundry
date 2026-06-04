@@ -347,6 +347,22 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("binds Rain Motion Chime in output state for positional weather chain", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    engine.start();
+    const state = engine.getOutputState();
+    expect(state.activeRecipeId).toBe("rain-motion-chime");
+    expect(state.activeRecipeName).toBe("Rain Motion Chime");
+    engine.destroy();
+  });
+
   it("fires chime on motion when rainy for rain-motion-chime", () => {
     engine.setChain(
       withCore(
@@ -415,6 +431,29 @@ describe("FoundryEngine", () => {
 
     engine.mockAdapters.triggerMotion(true);
     expect(engine.getOutputState().chimeCount).toBe(0);
+
+    engine.destroy();
+  });
+
+  it("clears lcdTexts when rebinding to a chain without LCD", () => {
+    engine.setChain(
+      withCore("identity/foundry", "source/github", "output/lcd"),
+    );
+    engine.start();
+    expect(Object.keys(engine.getOutputState().lcdTexts).length).toBeGreaterThan(
+      0,
+    );
+
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "sensor/motion",
+        "output/chime",
+      ),
+    );
+    expect(engine.getOutputState().lcdTexts).toEqual({});
+    expect(engine.getOutputState().lcdText).toBeNull();
 
     engine.destroy();
   });

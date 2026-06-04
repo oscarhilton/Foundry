@@ -5,14 +5,13 @@ import {
   hasCalmModifier,
   hasDialCube,
   hasLightOutput,
-  hasMotionSensor,
-  hasMusicOutput,
   hasTemperatureSensor,
   hasTimeSource,
   hasTokyoPlace,
   hasWeatherSource,
   isChainPowered,
 } from "./chain-parser.js";
+import { matchRecipe } from "./recipes.js";
 
 export type LightBehaviourId =
   | "london-weather-light"
@@ -81,34 +80,28 @@ export function resolvePrimaryRecipeLabel(
   if (lightBehaviour === "button-light") return "Button Light";
 
   if (!isChainPowered(chain)) return null;
-  if (hasMotionSensor(chain) && chain.cubes.some((c) => c.definition.id === "output/chime")) {
-    return "Room Motion Chime";
-  }
-  if (hasTokyoPlace(chain) && hasWeatherSource(chain) && hasMusicOutput(chain)) {
-    return "Tokyo Weather Music";
-  }
+
+  const recipe = matchRecipe(chain);
+  if (recipe?.id === "rain-motion-chime") return recipe.name;
+  if (recipe?.id === "room-motion-chime") return recipe.name;
+  if (recipe?.id === "tokyo-weather-music") return recipe.name;
 
   return null;
 }
 
-/** Legacy recipe pattern checks for chime / music / button. */
+const LEGACY_RECIPE_IDS = new Set([
+  "button-chime",
+  "rain-motion-chime",
+  "room-motion-chime",
+  "tokyo-weather-music",
+]);
+
+/** Legacy recipe pattern checks for chime / music / button — delegates to matchRecipe. */
 export function matchLegacyRecipe(chain: ParsedChain) {
   if (!isChainPowered(chain)) return undefined;
-  if (
-    chain.cubes.some((c) => c.definition.id === "control/button") &&
-    chain.cubes.some((c) => c.definition.id === "output/chime")
-  ) {
-    return { id: "button-chime", name: "Button Chime" };
-  }
-  if (hasMotionSensor(chain) && chain.cubes.some((c) => c.definition.id === "output/chime")) {
-    return { id: "room-motion-chime", name: "Room Motion Chime" };
-  }
-  if (
-    hasTokyoPlace(chain) &&
-    hasWeatherSource(chain) &&
-    hasMusicOutput(chain)
-  ) {
-    return { id: "tokyo-weather-music", name: "Tokyo Weather Music" };
+  const recipe = matchRecipe(chain);
+  if (recipe && LEGACY_RECIPE_IDS.has(recipe.id)) {
+    return { id: recipe.id, name: recipe.name };
   }
   return undefined;
 }
