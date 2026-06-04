@@ -63,6 +63,68 @@ export function formatWeatherCompact(weatherTemp: number | null | undefined): st
   return `${Math.round(weatherTemp ?? 14)}°C`;
 }
 
+export function isWeatherTempSegment(segment: string): boolean {
+  return segment.endsWith("°C") && !segment.includes("rain");
+}
+
+export function isWeatherRainSegment(segment: string): boolean {
+  return segment.includes("% rain");
+}
+
+/** Atomic clauses for Split + Weather: optional place, temp, rain. */
+export function buildSplitWeatherSegments(
+  weatherTemp: number | null | undefined,
+  weatherRain: number | null | undefined,
+  placeLabel?: string,
+): string[] {
+  const segments: string[] = [];
+  if (placeLabel) segments.push(placeLabel);
+  segments.push(formatWeatherCompact(weatherTemp));
+  segments.push(formatWeatherRainLine(weatherRain));
+  return segments;
+}
+
+export function isSplitWeatherPayload(segments: string[]): boolean {
+  if (segments.length === 2) {
+    return (
+      isWeatherTempSegment(segments[0]!) &&
+      isWeatherRainSegment(segments[1]!)
+    );
+  }
+  if (segments.length === 3) {
+    return (
+      !isWeatherTempSegment(segments[0]!) &&
+      !isWeatherRainSegment(segments[0]!) &&
+      isWeatherTempSegment(segments[1]!) &&
+      isWeatherRainSegment(segments[2]!)
+    );
+  }
+  return false;
+}
+
+/** Render a packed chunk of split weather clauses for one viewport. */
+export function renderSplitWeatherChunk(chunks: string[]): string {
+  if (chunks.length === 0) return "--";
+  if (chunks.length === 1) return chunks[0]!;
+
+  const temp = chunks.find(isWeatherTempSegment);
+  const rain = chunks.find(isWeatherRainSegment);
+  const place = chunks.find(
+    (s) => s !== temp && s !== rain && !isWeatherTempSegment(s) && !isWeatherRainSegment(s),
+  );
+
+  if (place && temp && rain) {
+    return `${place}\n${temp} · ${rain}`;
+  }
+  if (place && temp && !rain) {
+    return `${place}\n${temp}`;
+  }
+  if (temp && rain && !place) {
+    return `${temp} · ${rain}`;
+  }
+  return concatLcdSegments(chunks);
+}
+
 /** Dial in window with weather: pick one field for LCD. */
 export function pickWeatherSegmentForDial(
   dialPosition: number,

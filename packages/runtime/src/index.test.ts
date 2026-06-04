@@ -571,6 +571,59 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("splits London weather across three LCDs when Split is present", () => {
+    engine.setChain([
+      { instanceId: "london", definitionId: "identity/london" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "split", definitionId: "transform/split" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "lcd3", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toBe("London");
+    expect(lcdTexts.lcd2).toBe("12°C");
+    expect(lcdTexts.lcd3).toBe("45% rain");
+
+    engine.destroy();
+  });
+
+  it("combines split weather on a single LCD", () => {
+    engine.setChain([
+      { instanceId: "london", definitionId: "identity/london" },
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "split", definitionId: "transform/split" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+
+    expect(engine.getOutputState().lcdText).toBe("London\n12°C · 45% rain");
+
+    engine.destroy();
+  });
+
+  it("splits weather without place across two LCDs", () => {
+    engine.setChain([
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "split", definitionId: "transform/split" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: CORE },
+    ]);
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 18, rain: 0.4 });
+
+    const { lcdTexts } = engine.getOutputState();
+    expect(lcdTexts.lcd1).toBe("18°C");
+    expect(lcdTexts.lcd2).toBe("40% rain");
+
+    engine.destroy();
+  });
+
   it("splits upstream segments one per LCD when modules precede an LCD cluster", () => {
     engine.setChain([
       { instanceId: "temp", definitionId: "sensor/temperature" },

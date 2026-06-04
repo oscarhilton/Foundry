@@ -38,10 +38,10 @@ describe("roadmap grammar", () => {
     ]);
     engine.start();
     const { lcdTexts } = engine.getOutputState();
-    expect(lcdTexts.lcd1).toMatch(/12°C/);
+    expect(lcdTexts.lcd1).toBe("London\n12°C");
     expect(lcdTexts.lcd2).toBe("45% rain");
     const trace = engine.getCoreDebugSnapshot().viewportTrace;
-    expect(trace[0]?.payloadBefore).toHaveLength(2);
+    expect(trace[0]?.payloadBefore).toEqual(["London", "12°C", "45% rain"]);
     engine.destroy();
   });
 

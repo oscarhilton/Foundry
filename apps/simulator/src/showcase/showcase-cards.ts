@@ -37,8 +37,8 @@ const TEACHES: Record<ShowcasePresetId, { whatItDoes: string; sentenceTeaches: s
       sentenceTeaches: "Transforms reshape facts before the viewport.",
     },
     "split-weather-dual-lcd": {
-      whatItDoes: "Temperature on one LCD, rain on the other.",
-      sentenceTeaches: "Split turns one sentence into two clauses.",
+      whatItDoes: "Place and temperature on one LCD, rain on the other.",
+      sentenceTeaches: "Split decomposes weather — one clause per display when available.",
     },
     "presence-weather-lcd": {
       whatItDoes: "Weather appears only when motion is detected.",

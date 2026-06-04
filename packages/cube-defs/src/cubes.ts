@@ -127,7 +127,7 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     capabilities: ["split"],
     registers: [],
     topics: { publish: [], subscribe: [] },
-    description: "Split weather into separate segments for each LCD",
+    description: "Split weather into place, temperature, and rain — one clause per display when available",
   },
   {
     schema: 1,

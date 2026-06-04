@@ -15,8 +15,8 @@ import {
   formatTime,
   formatWeather,
   pickWeatherSegmentForDial,
-  formatWeatherTempLine,
-  formatWeatherRainLine,
+  buildSplitWeatherSegments,
+  renderSplitWeatherChunk,
   type OutputFormatState,
 } from "./output-formatters.js";
 
@@ -142,9 +142,12 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
       ctx.places.length > 0 ? ctx.places[0]!.label : undefined;
     if (ctx.hasSplit) {
       segments.push(
-        formatWeatherTempLine(fmt.weatherTemp, boundPlace),
+        ...buildSplitWeatherSegments(
+          fmt.weatherTemp,
+          fmt.weatherRain,
+          boundPlace,
+        ),
       );
-      segments.push(formatWeatherRainLine(fmt.weatherRain));
     } else if (ctx.dialSelectsWeather) {
       segments.push(
         pickWeatherSegmentForDial(
@@ -245,6 +248,7 @@ interface ViewportWindow {
   label: string;
   chainIndex: number;
   segments: ConsumablePayload;
+  splitWeatherPayload: boolean;
 }
 
 function computeViewportWindows(
@@ -261,6 +265,12 @@ function computeViewportWindows(
       (c) => c.instanceId === viewport.instanceId,
     );
     const windowCubes = chain.cubes.slice(windowStart, chainIndex);
+    const windowCtx = buildSegmentContext(
+      windowCubes,
+      fmt,
+      chain,
+      chainIndex,
+    );
     windows.push({
       instanceId: viewport.instanceId,
       label: viewport.definition.label,
@@ -272,6 +282,8 @@ function computeViewportWindows(
         fmt,
         options,
       ),
+      splitWeatherPayload:
+        windowCtx.hasSplit && windowCtx.hasWeatherSource,
     });
     windowStart = chainIndex + 1;
   }
@@ -279,10 +291,26 @@ function computeViewportWindows(
   return windows;
 }
 
-/** Remainder fold: one viewport consumes the next segment from shared upstream. */
+function segmentsToTake(segmentsLeft: number, viewportsLeft: number): number {
+  if (segmentsLeft === 0 || viewportsLeft <= 0) return 0;
+  if (segmentsLeft <= viewportsLeft) return 1;
+  return segmentsLeft - viewportsLeft + 1;
+}
+
+function renderConsumedSegments(
+  consumed: ConsumablePayload,
+  splitWeatherPayload: boolean,
+): string {
+  if (consumed.length === 0) return "--";
+  if (splitWeatherPayload) return renderSplitWeatherChunk(consumed);
+  return renderSegments(consumed);
+}
+
+/** Viewport consumption — one segment per LCD, or front-packs when segments exceed LCDs. */
 function consumeForViewport(
   payloadBefore: ConsumablePayload,
   singleViewportEatsAll: boolean,
+  viewportsLeft = 1,
 ): ConsumerResult {
   if (payloadBefore.length === 0) {
     return { consumed: [], remainder: [] };
@@ -290,9 +318,10 @@ function consumeForViewport(
   if (singleViewportEatsAll) {
     return { consumed: [...payloadBefore], remainder: [] };
   }
+  const take = segmentsToTake(payloadBefore.length, viewportsLeft);
   return {
-    consumed: [payloadBefore[0]!],
-    remainder: payloadBefore.slice(1),
+    consumed: payloadBefore.slice(0, take),
+    remainder: payloadBefore.slice(take),
   };
 }
 
@@ -386,21 +415,23 @@ function runViewportConsumption(
 
     const cluster = windows.slice(i, j);
     const upstreamPayload = [...windows[i]!.segments];
+    const splitWeatherPayload = windows[i]!.splitWeatherPayload;
     const nextWindowWithContent = windows[j];
     const singleViewport = cluster.length === 1;
 
     let remainder = [...upstreamPayload];
     const clusterSteps: ViewportConsumptionStep[] = [];
 
-    for (const w of cluster) {
+    for (let vi = 0; vi < cluster.length; vi++) {
+      const w = cluster[vi]!;
       const payloadBefore = [...remainder];
       const { consumed, remainder: nextRemainder } = consumeForViewport(
         payloadBefore,
         singleViewport && upstreamPayload.length > 0,
+        cluster.length - vi,
       );
       remainder = nextRemainder;
-      const rendered =
-        consumed.length > 0 ? renderSegments(consumed) : "--";
+      const rendered = renderConsumedSegments(consumed, splitWeatherPayload);
 
       clusterSteps.push({
         targetId: w.instanceId,
@@ -483,7 +514,11 @@ export function resolveViewportTextForWindow(
     (c) => c.definition.role !== "core" && c.definition.id !== "output/lcd",
   );
   if (signalCubes.length === 0) return "--";
-  const segments = buildSegments(buildSegmentContext(cubes, fmt));
+  const ctx = buildSegmentContext(cubes, fmt);
+  const segments = buildSegments(ctx);
+  if (ctx.hasSplit && ctx.hasWeatherSource) {
+    return renderSplitWeatherChunk(segments);
+  }
   return renderSegments(segments);
 }
 
