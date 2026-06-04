@@ -29,7 +29,8 @@ function chainLabelFromPreset(preset: PresetChain): string {
 const TEACHES: Record<ShowcasePresetId, { whatItDoes: string; sentenceTeaches: string }> =
   {
     "weather-moods": {
-      whatItDoes: "Turns local weather into ambient colour.",
+      whatItDoes:
+        "The light reflects the weather for that place — blue for rain, yellow when dry, soft grey in between. Brightness shifts with temperature too.",
       sentenceTeaches: "Nouns scope facts; outputs express them.",
     },
     "weather-dial-lcd": {
@@ -37,7 +38,8 @@ const TEACHES: Record<ShowcasePresetId, { whatItDoes: string; sentenceTeaches: s
       sentenceTeaches: "Transforms reshape facts before the viewport.",
     },
     "split-weather-dual-lcd": {
-      whatItDoes: "Place and temperature on one LCD, rain on the other.",
+      whatItDoes:
+        "Split breaks weather into clauses — place and temperature on one display, rain on the other.",
       sentenceTeaches: "Split decomposes weather — one clause per display when available.",
     },
     "presence-weather-lcd": {
@@ -45,7 +47,8 @@ const TEACHES: Record<ShowcasePresetId, { whatItDoes: string; sentenceTeaches: s
       sentenceTeaches: "Sensors can gate whether a sentence is spoken.",
     },
     "world-desk": {
-      whatItDoes: "Tokyo clock, London weather, GitHub light — at once.",
+      whatItDoes:
+        "Three sentences on one desk: Tokyo time on a display, London weather on another, and GitHub activity as ambient light.",
       sentenceTeaches: "Multiple sentences on one bus, without fighting.",
     },
   };

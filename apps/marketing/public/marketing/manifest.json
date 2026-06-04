@@ -1,0 +1,393 @@
+{
+  "source_image": "modern_modular_tech_product_landing_page.png",
+  "source_size": [
+    935,
+    1683
+  ],
+  "assets": [
+    {
+      "file": "full_page_mockup.png",
+      "name": "full_page_mockup",
+      "description": "Full generated marketing website mockup.",
+      "width": 935,
+      "height": 1683
+    },
+    {
+      "file": "foundry_logo_header.png",
+      "name": "foundry_logo_header",
+      "description": "Header wordmark/logo crop from the mockup.",
+      "box": [
+        35,
+        22,
+        190,
+        65
+      ],
+      "width": 155,
+      "height": 43
+    },
+    {
+      "file": "hero_product_chain_core_place_weather_light.png",
+      "name": "hero_product_chain_core_place_weather_light",
+      "description": "Hero render of Core, Place, Weather and Light cubes connected in a sentence.",
+      "box": [
+        250,
+        120,
+        910,
+        380
+      ],
+      "width": 660,
+      "height": 260
+    },
+    {
+      "file": "hero_product_chain_wide.png",
+      "name": "hero_product_chain_wide",
+      "description": "Wider hero product scene including cable and shadows.",
+      "box": [
+        205,
+        100,
+        930,
+        395
+      ],
+      "width": 725,
+      "height": 295
+    },
+    {
+      "file": "info_three_cards.png",
+      "name": "info_three_cards",
+      "description": "Three explanatory cards: what is Foundry, what do I need, existing devices.",
+      "box": [
+        45,
+        452,
+        892,
+        556
+      ],
+      "width": 847,
+      "height": 104
+    },
+    {
+      "file": "starter_kit_panel.png",
+      "name": "starter_kit_panel",
+      "description": "Full Starter Kit product panel.",
+      "box": [
+        207,
+        595,
+        885,
+        854
+      ],
+      "width": 678,
+      "height": 259
+    },
+    {
+      "file": "starter_kit_cubes_row.png",
+      "name": "starter_kit_cubes_row",
+      "description": "Starter kit cube row: Core, Place, Weather, Light.",
+      "box": [
+        230,
+        610,
+        840,
+        820
+      ],
+      "width": 610,
+      "height": 210
+    },
+    {
+      "file": "cube_core.png",
+      "name": "cube_core",
+      "description": "Individual Core cube crop from starter kit.",
+      "box": [
+        250,
+        625,
+        365,
+        760
+      ],
+      "width": 115,
+      "height": 135
+    },
+    {
+      "file": "cube_place.png",
+      "name": "cube_place",
+      "description": "Individual Place cube crop from starter kit.",
+      "box": [
+        405,
+        625,
+        520,
+        760
+      ],
+      "width": 115,
+      "height": 135
+    },
+    {
+      "file": "cube_weather.png",
+      "name": "cube_weather",
+      "description": "Individual Weather cube crop from starter kit.",
+      "box": [
+        560,
+        625,
+        675,
+        760
+      ],
+      "width": 115,
+      "height": 135
+    },
+    {
+      "file": "cube_light.png",
+      "name": "cube_light",
+      "description": "Individual Light cube crop from starter kit.",
+      "box": [
+        705,
+        625,
+        830,
+        760
+      ],
+      "width": 125,
+      "height": 135
+    },
+    {
+      "file": "examples_cards_row.png",
+      "name": "examples_cards_row",
+      "description": "All five example preset cards as a row.",
+      "box": [
+        210,
+        895,
+        905,
+        1118
+      ],
+      "width": 695,
+      "height": 223
+    },
+    {
+      "file": "example_weather_moods_card.png",
+      "name": "example_weather_moods_card",
+      "description": "Weather Moods preset card.",
+      "box": [
+        210,
+        897,
+        345,
+        1118
+      ],
+      "width": 135,
+      "height": 221
+    },
+    {
+      "file": "example_weather_dial_lcd_card.png",
+      "name": "example_weather_dial_lcd_card",
+      "description": "Weather Dial LCD preset card.",
+      "box": [
+        350,
+        897,
+        485,
+        1118
+      ],
+      "width": 135,
+      "height": 221
+    },
+    {
+      "file": "example_split_weather_lcd_card.png",
+      "name": "example_split_weather_lcd_card",
+      "description": "Split Weather LCD preset card.",
+      "box": [
+        490,
+        897,
+        625,
+        1118
+      ],
+      "width": 135,
+      "height": 221
+    },
+    {
+      "file": "example_presence_weather_card.png",
+      "name": "example_presence_weather_card",
+      "description": "Presence Weather preset card.",
+      "box": [
+        630,
+        897,
+        765,
+        1118
+      ],
+      "width": 135,
+      "height": 221
+    },
+    {
+      "file": "example_world_desk_card.png",
+      "name": "example_world_desk_card",
+      "description": "World Desk preset card.",
+      "box": [
+        770,
+        897,
+        905,
+        1118
+      ],
+      "width": 135,
+      "height": 221
+    },
+    {
+      "file": "mini_chain_weather_moods.png",
+      "name": "mini_chain_weather_moods",
+      "description": "Mini chain thumbnail for Weather Moods.",
+      "box": [
+        220,
+        930,
+        335,
+        974
+      ],
+      "width": 115,
+      "height": 44
+    },
+    {
+      "file": "mini_chain_weather_dial_lcd.png",
+      "name": "mini_chain_weather_dial_lcd",
+      "description": "Mini chain thumbnail for Weather Dial LCD.",
+      "box": [
+        360,
+        930,
+        475,
+        974
+      ],
+      "width": 115,
+      "height": 44
+    },
+    {
+      "file": "mini_chain_split_weather_lcd.png",
+      "name": "mini_chain_split_weather_lcd",
+      "description": "Mini chain thumbnail for Split Weather LCD.",
+      "box": [
+        500,
+        930,
+        615,
+        974
+      ],
+      "width": 115,
+      "height": 44
+    },
+    {
+      "file": "mini_chain_presence_weather.png",
+      "name": "mini_chain_presence_weather",
+      "description": "Mini chain thumbnail for Presence Weather.",
+      "box": [
+        640,
+        930,
+        755,
+        974
+      ],
+      "width": 115,
+      "height": 44
+    },
+    {
+      "file": "mini_chain_world_desk.png",
+      "name": "mini_chain_world_desk",
+      "description": "Mini chain thumbnail for World Desk.",
+      "box": [
+        780,
+        930,
+        895,
+        974
+      ],
+      "width": 115,
+      "height": 44
+    },
+    {
+      "file": "nouns_verbs_outputs_panel.png",
+      "name": "nouns_verbs_outputs_panel",
+      "description": "Nouns, verbs, outputs explanatory panel.",
+      "box": [
+        240,
+        1160,
+        900,
+        1350
+      ],
+      "width": 660,
+      "height": 190
+    },
+    {
+      "file": "nouns_verbs_outputs_diagram_only.png",
+      "name": "nouns_verbs_outputs_diagram_only",
+      "description": "Diagram-only crop showing nouns + verbs \u2192 outputs.",
+      "box": [
+        285,
+        1180,
+        860,
+        1330
+      ],
+      "width": 575,
+      "height": 150
+    },
+    {
+      "file": "trust_positioning_banner.png",
+      "name": "trust_positioning_banner",
+      "description": "Trust/positioning banner: not a smart-home platform.",
+      "box": [
+        42,
+        1390,
+        895,
+        1512
+      ],
+      "width": 853,
+      "height": 122
+    },
+    {
+      "file": "trust_banner_light_cube.png",
+      "name": "trust_banner_light_cube",
+      "description": "Right-side glowing cube crop from trust banner.",
+      "box": [
+        748,
+        1390,
+        900,
+        1506
+      ],
+      "width": 152,
+      "height": 116
+    },
+    {
+      "file": "footer_section.png",
+      "name": "footer_section",
+      "description": "Footer section from the mockup.",
+      "box": [
+        35,
+        1530,
+        905,
+        1665
+      ],
+      "width": 870,
+      "height": 135
+    },
+    {
+      "file": "hero_headline_block.png",
+      "name": "hero_headline_block",
+      "description": "Hero headline and CTA block.",
+      "box": [
+        45,
+        120,
+        410,
+        370
+      ],
+      "width": 365,
+      "height": 250
+    },
+    {
+      "file": "starter_kit_sidebar.png",
+      "name": "starter_kit_sidebar",
+      "description": "Starter Kit sidebar copy and CTA.",
+      "box": [
+        45,
+        607,
+        175,
+        790
+      ],
+      "width": 130,
+      "height": 183
+    },
+    {
+      "file": "language_sidebar.png",
+      "name": "language_sidebar",
+      "description": "Physical language sidebar copy.",
+      "box": [
+        45,
+        1150,
+        220,
+        1328
+      ],
+      "width": 175,
+      "height": 178
+    }
+  ]
+}
