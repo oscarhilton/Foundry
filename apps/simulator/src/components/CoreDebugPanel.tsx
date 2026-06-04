@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { formatLightMoodLabel, formatPowerBattery } from "@foundry/runtime";
+import { formatLightMoodLabel, formatPowerBattery, formatWeatherFaceMood } from "@foundry/runtime";
 import { useSimulatorStore } from "../store";
 
 function formatValue(value: unknown): string {
@@ -261,6 +261,72 @@ export function CoreDebugPanel() {
               )}
             </div>
           </section>
+
+          {snapshot?.chimeGate && (
+            <section>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-foundry-muted mb-2">
+                Chime condition
+              </h3>
+              <div className="border border-foundry-border rounded-lg p-3 space-y-1.5 bg-gray-50/50 text-[10px] font-mono">
+                <p className="text-foundry-muted">
+                  {snapshot.chimeGate.recipeName} ·{" "}
+                  {snapshot.chimeGate.chimeInstanceId}
+                  {snapshot.chimeGate.chimeAddress
+                    ? ` (${snapshot.chimeGate.chimeAddress})`
+                    : ""}
+                </p>
+                <p className="text-foundry-ink">
+                  Rain: {snapshot.chimeGate.rainPercent}%
+                </p>
+                <p className="text-foundry-ink">
+                  Threshold: {snapshot.chimeGate.thresholdPercent}%
+                  {snapshot.chimeGate.thresholdSource === "dial"
+                    ? " (dial)"
+                    : ""}
+                </p>
+                <p className="text-foundry-ink">
+                  Gate: {snapshot.chimeGate.gate}
+                </p>
+                <p className="text-foundry-muted text-[9px] pt-1">
+                  {snapshot.chimeGate.hint}
+                </p>
+              </div>
+            </section>
+          )}
+
+          {snapshot?.weatherFace && (
+            <section>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-foundry-muted mb-2">
+                Cube faces
+              </h3>
+              <div className="border border-foundry-border rounded-lg p-3 space-y-1.5 bg-gray-50/50 text-[10px] font-mono">
+                <p className="text-foundry-muted">
+                  {snapshot.weatherFace.label} · {snapshot.weatherFace.instanceId}
+                  {snapshot.weatherFace.address
+                    ? ` (${snapshot.weatherFace.address})`
+                    : ""}
+                </p>
+                {snapshot.weatherFace.face.placeLabel ? (
+                  <p className="text-foundry-ink">
+                    {snapshot.weatherFace.face.placeLabel}
+                  </p>
+                ) : null}
+                <p className="text-foundry-ink font-semibold">
+                  {snapshot.weatherFace.face.headline}
+                </p>
+                {snapshot.weatherFace.face.detail ? (
+                  <p className="text-foundry-ink whitespace-pre-line">
+                    {snapshot.weatherFace.face.detail}
+                  </p>
+                ) : null}
+                <p className="text-foundry-muted text-[9px] pt-1">
+                  Mood: {formatWeatherFaceMood(snapshot.weatherFace.face.symbol)}
+                  {" · "}
+                  Latched: {snapshot.weatherFace.face.latched ? "yes" : "no"}
+                </p>
+              </div>
+            </section>
+          )}
 
           {snapshot?.viewportTrace && snapshot.viewportTrace.length > 0 && (
             <section>

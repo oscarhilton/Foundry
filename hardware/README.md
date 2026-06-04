@@ -59,6 +59,10 @@ Foundry hardware consists of 50mm cubic modules daisy-chained via pogo pins on E
 | Output | Warm white LED + PWM MOSFET | ~150mA peak |
 | Diffuser | 3D printed dome insert | Bauhaus glow |
 
+### Weather cube e-ink face
+
+Source cubes with self-describing faces use a **1.54" 200×200 SPI e-paper** panel (GDEY0154D67 / SSD1681). See [`hardware/eink-face.md`](eink-face.md).
+
 ## Mechanical — 50mm cube shell
 
 See [`hardware/enclosure/shell-spec.md`](enclosure/shell-spec.md) for print dimensions.
