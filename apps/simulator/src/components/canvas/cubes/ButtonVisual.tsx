@@ -1,5 +1,5 @@
+import { SvgCircle } from "../svg/primitives";
 import { useRef } from "react";
-import { Circle } from "react-konva";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { eventPhase, lerp } from "../animations";
@@ -26,7 +26,7 @@ export function ButtonVisual({ pressed, animTime, buttonFiredAt }: ButtonVisualP
 
   return (
     <>
-      <Circle
+      <SvgCircle
         x={cx}
         y={cy + pressDepth.current}
         radius={12}
@@ -34,7 +34,7 @@ export function ButtonVisual({ pressed, animTime, buttonFiredAt }: ButtonVisualP
         stroke={COLORS.stroke}
         strokeWidth={1}
       />
-      <Circle
+      <SvgCircle
         x={cx}
         y={cy + pressDepth.current}
         radius={7}
@@ -42,7 +42,7 @@ export function ButtonVisual({ pressed, animTime, buttonFiredAt }: ButtonVisualP
         opacity={pressed ? 0.35 : 0.2}
       />
       {showLed && (
-        <Circle
+        <SvgCircle
           x={cx}
           y={cy + 14}
           radius={2}

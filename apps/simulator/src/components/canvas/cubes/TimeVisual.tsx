@@ -1,4 +1,4 @@
-import { Circle, Line } from "react-konva";
+import { SvgCircle, SvgLine } from "../svg/primitives";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
@@ -18,7 +18,7 @@ export function TimeVisual({ hour }: TimeVisualProps) {
 
   return (
     <>
-      <Circle
+      <SvgCircle
         x={cx}
         y={cy}
         radius={12}
@@ -26,7 +26,7 @@ export function TimeVisual({ hour }: TimeVisualProps) {
         strokeWidth={1}
         opacity={0.5}
       />
-      <Line
+      <SvgLine
         points={[cx, cy, handX, handY]}
         stroke={COLORS.ink}
         strokeWidth={1.5}

@@ -1,4 +1,4 @@
-import { Circle } from "react-konva";
+import { SvgCircle } from "../svg/primitives";
 import { CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
@@ -12,7 +12,7 @@ export function PassiveVisual({ active, accent = "#457B9D" }: PassiveVisualProps
   const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
 
   return (
-    <Circle
+    <SvgCircle
       x={cx}
       y={cy}
       radius={6}

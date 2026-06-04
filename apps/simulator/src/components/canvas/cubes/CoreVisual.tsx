@@ -1,4 +1,4 @@
-import { Circle } from "react-konva";
+import { SvgCircle } from "../svg/primitives";
 import { breatheOpacity } from "../animations";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
@@ -36,7 +36,7 @@ export function CoreVisual({
       {dots.map(([x, y], i) => {
         const lit = bootProgress > i / 4;
         return (
-          <Circle
+          <SvgCircle
             key={i}
             x={x}
             y={y}
@@ -46,14 +46,14 @@ export function CoreVisual({
           />
         );
       })}
-      <Circle
+      <SvgCircle
         x={cx - 8}
         y={cy + 12}
         radius={2}
         fill={powered ? COLORS.ledGreen : COLORS.connectorGrey}
         opacity={powered ? pulse : 0.35}
       />
-      <Circle
+      <SvgCircle
         x={cx + 8}
         y={cy + 12}
         radius={2}
