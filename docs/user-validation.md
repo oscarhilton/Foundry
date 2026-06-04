@@ -4,6 +4,8 @@
 
 Validate whether the sentence metaphor is understandable and delightful before hardware investment. Target: **≥80% of participants change light brightness with the dial without help in under 2 minutes**.
 
+**M6 product validation:** run the [silent showcase test](silent-showcase-test.md) on `?showcase=1` — success when the first question is about what to buy, not how the grammar works.
+
 ## Participant profile
 
 Recruit 5–8 people across:

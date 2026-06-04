@@ -85,8 +85,9 @@ Core firmware ports the TypeScript runtime logic from `packages/runtime` as manu
 1. Breadboard: ESP32 + EEPROM module + pot + LED
 2. Pogo test jig (2 fixtures)
 3. Core PCB + 1 passive + Dial + Light
-4. 3D print shells, fit test
-5. End-to-end: London Weather Dial Light on hardware
+4. 3D print shells, fit test — see [mockup-sprint.md](mockup-sprint.md)
+5. **M6 E2E:** [London → Weather → Light](m6-e2e-london-weather-light.md) (no Dial required)
+6. **M6.1:** Tokyo → Time → Display
 
 ## Power notes
 

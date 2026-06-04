@@ -1,4 +1,5 @@
 import { SHOWCASE_CARDS, type ShowcaseCardContent } from "./showcase-cards";
+import { HowFoundryWorksCard } from "./HowFoundryWorksCard";
 import { ShowcaseMiniChain } from "./ShowcaseMiniChain";
 import { closeShowcase } from "./showcase-nav";
 import { useSimulatorStore } from "../store";
@@ -77,9 +78,10 @@ export function ShowcasePage() {
       <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm text-foundry-muted mb-6 max-w-xl">
-            Five chains. Thirty seconds. See what each sentence teaches.
+            The hardware story, then five example chains. See what each sentence teaches.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <HowFoundryWorksCard />
             {SHOWCASE_CARDS.map((card) => (
               <ShowcaseCard key={card.presetId} card={card} />
             ))}

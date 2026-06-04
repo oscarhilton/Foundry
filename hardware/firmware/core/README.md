@@ -6,9 +6,11 @@ PlatformIO firmware for the Seeed XIAO ESP32-S3 Core cube.
 
 - I2C chain discovery (EEPROM passive cubes @ 0x50–0x57)
 - Active cube detection (Dial @ 0x20, Light @ 0x21)
-- Mock weather adapter (matches simulator mock cadence)
-- **Weather Dial Light** recipe: `brightness = weatherToBrightness(temp, rain) × dialScale`
+- Mock weather adapter when Weather cube present (matches simulator cadence)
+- **M6:** `London → Weather → Light` — `brightness = weatherToBrightness(temp, rain)` (dial optional)
 - 50 Hz poll loop for dial → light latency target &lt;200ms
+
+See [../../m6-e2e-london-weather-light.md](../../m6-e2e-london-weather-light.md).
 
 ## Build & flash
 

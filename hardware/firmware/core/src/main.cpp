@@ -1,6 +1,7 @@
 /**
  * Foundry Core — I2C chain discovery, EEPROM identity read, signal runtime.
- * Mirrors packages/runtime behaviour for London Weather Dial Light MVP.
+ * M6 target: London → Weather → Light (weatherToBrightness, optional dial scale).
+ * Align with packages/runtime — update both when recipes change.
  */
 #include <Arduino.h>
 #include <Wire.h>
@@ -164,6 +165,9 @@ void setup() {
   Wire.setClock(400000);
 
   discoverChain();
+  if (hasWeather && hasLight && hasPlace) {
+    Serial.println("[m6] London Weather Light ready");
+  }
 }
 
 void loop() {
@@ -176,7 +180,7 @@ void loop() {
     lastDiscover = millis();
   }
 
-  if (millis() - lastWeather > 3000) {
+  if (hasWeather && millis() - lastWeather > 3000) {
     mockWeatherTick();
     lastWeather = millis();
   }
