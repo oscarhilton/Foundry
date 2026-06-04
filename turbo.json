@@ -4,7 +4,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "tsconfig.json", "package.json", "next.config.ts", "public/**"],
-      "outputs": ["dist/**", ".next/**", "tsconfig.tsbuildinfo"]
+      "outputs": ["dist/**", ".next/**", "out/**", "tsconfig.tsbuildinfo"]
     },
     "test": {
       "dependsOn": ["^build"]

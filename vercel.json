@@ -1,6 +1,10 @@
 {
-  "buildCommand": "turbo run build --filter=@foundry/simulator --force && rm -rf dist && cp -R apps/simulator/dist dist",
+  "buildCommand": "NEXT_PUBLIC_SIMULATOR_URL=/simulator VITE_BASE=/simulator/ turbo run build --filter=@foundry/marketing --filter=@foundry/simulator --force && rm -rf dist && cp -R apps/marketing/out dist && mkdir -p dist/simulator && cp -R apps/simulator/dist/. dist/simulator/",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/simulator", "destination": "/simulator/index.html" },
+    { "source": "/simulator/", "destination": "/simulator/index.html" }
+  ]
 }

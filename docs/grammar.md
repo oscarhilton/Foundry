@@ -19,6 +19,18 @@ Identity cubes (London, Tokyo, Foundry) are **nouns**. Sources and transforms ar
 
 Weather **binds to the first noun** in its positional window. Time binds to places in its window. Split **decomposes** a combined weather segment across LCDs.
 
+## Controls (frontier — not shipped)
+
+**Controls** shape **when**, **whether**, or **how** a behaviour is expressed. They are not more output cubes and not endless data feeds (Stock, Calendar, etc.).
+
+Motion is **today's first partial control** — it gates content:
+
+`Motion → London → Weather → LCD`
+
+Threshold, Delay, Repeat, and generalised Gate are post-M6 roadmap only. Do not promise them in showcase copy. See [grammar-frontier-controls.md](grammar-frontier-controls.md).
+
+> Users are asking for conditionals. Do not answer with code. Answer with physical control words.
+
 ---
 
 Foundry chains are read **left to right** (top to bottom on mobile) like a sentence:

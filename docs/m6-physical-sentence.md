@@ -8,6 +8,7 @@
 | **M6** | Prove the **object** |
 | **M6.1** | Second sentence on hardware: `Tokyo → Time → Display` |
 | **M7** | Trust & longevity (cloud, survivability, openness position) |
+| **Post-M6** | Grammar frontier: control words (Threshold, Delay, Repeat) — [grammar-frontier-controls.md](grammar-frontier-controls.md), docs only until M6 proves the object |
 
 ## M6 goal
 
@@ -50,6 +51,7 @@ No new transforms, sources, debug tooling, or grammar work unless hardware expos
 
 ## References
 
+- [grammar-frontier-controls.md](grammar-frontier-controls.md) — post-M6 control words (not in simulator until after M6)
 - [product-boundary.md](product-boundary.md)
 - [m7-trust-longevity.md](m7-trust-longevity.md)
 - [starter-kit.md](starter-kit.md)

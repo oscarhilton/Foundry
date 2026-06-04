@@ -18,7 +18,7 @@ Chains read as **Noun → Verb → Output** (e.g. `London → Weather → Light`
 - `apps/marketing` — Next.js landing page (`npm run dev:marketing` → http://localhost:3001)
 - `packages/runtime` — Chain parser, signal router, behaviour recipes
 - `packages/cube-defs` — Cube library and JSON schema
-- `docs/` — Protocol, [product boundary](docs/product-boundary.md), [starter kit](docs/starter-kit.md), [M6](docs/m6-physical-sentence.md)
+- `docs/` — Protocol, [product boundary](docs/product-boundary.md), [starter kit](docs/starter-kit.md), [M6](docs/m6-physical-sentence.md), [control words frontier](docs/grammar-frontier-controls.md) (post-M6, internal)
 - `hardware/` — Schematics, firmware, [M6 E2E](hardware/m6-e2e-london-weather-light.md), [mockup sprint](hardware/mockup-sprint.md)
 
 ## Quick start

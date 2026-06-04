@@ -101,17 +101,21 @@ See [product-boundary.md](product-boundary.md) trust boundary: users **arrange o
 
 A small vocabulary with rich grammar beats a huge vocabulary with shallow behaviour.
 
-**Prefer new transforms** over endless new data sources:
+**Prefer new transforms and control words** over endless new data sources:
 
 | Grammar power | Role |
 |---------------|------|
 | Split | Decompose a fact across displays |
-| Gate | Motion, presence, conditions |
+| Gate | Motion, presence, conditions (Motion is today's first partial control) |
 | Select | Dial picks a field |
-| Threshold | Compare, trigger (future) |
-| Remember | Persist state (future) |
+| Threshold | Only if enough (frontier — see [grammar-frontier-controls.md](grammar-frontier-controls.md)) |
+| Delay | After a while (frontier) |
+| Repeat | Express every so often — rhythm, not a programming loop (frontier) |
+| Remember | Persist state (frontier) |
 
-Resist drift into "add Stock cube, Calendar cube, Train cube." Foundry's strength is not integration count — it is that people learn a tiny physical language and start **thinking with it**.
+Resist drift into "add Stock cube, Calendar cube, Train cube." Users asking for "more actions" usually want **behaviour-shaping control words**, not more output cubes. Full frontier: [grammar-frontier-controls.md](grammar-frontier-controls.md).
+
+> **Users are asking for conditionals. Do not answer with code. Answer with physical control words.**
 
 ---
 
@@ -151,7 +155,7 @@ Implemented in the runtime capability graph and viewport consumption — see [gr
 | `London → GitHub` | Ambiguous — grammar hints may apply |
 | `London → Weather → Split → Display × N` | Decompose weather across displays |
 
-Foundry today is **Context → Transformation → Output**, not full subject–verb–object ("I walk the dog"). Semantic expectations emerge from cube roles: place, source, transform, output.
+Foundry today is mostly **Context → Transformation → Output**, not full subject–verb–object ("I walk the dog"). Semantic expectations emerge from cube roles: place, source, transform, output. Post-M6 frontier adds **controls** (when / whether / how expressed) — see [grammar-frontier-controls.md](grammar-frontier-controls.md).
 
 ### Pragmatic
 
@@ -181,6 +185,7 @@ Log predictability in [silent-showcase-test.md](silent-showcase-test.md) when pa
 ## References
 
 - [grammar.md](grammar.md) — structural rules, Split, Dial, Motion
+- [grammar-frontier-controls.md](grammar-frontier-controls.md) — post-M6 control words (internal roadmap)
 - [product-boundary.md](product-boundary.md) — constraints, trust, extensibility
 - [starter-kit.md](starter-kit.md) — first sentences to copy
 - [silent-showcase-test.md](silent-showcase-test.md) — whether copy teaches predictable sentences

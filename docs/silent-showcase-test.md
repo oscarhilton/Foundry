@@ -93,6 +93,19 @@ User refers to cubes using **language vocabulary** unprompted, e.g.:
 
 When users invent the language themselves, grammar has entered their mental model. Log verbatim quotes; count sessions where this appears.
 
+## Control-word signal (post-M6 frontier)
+
+Users asking **when / if / how** are reaching for **control words**, not more integrations:
+
+| Quote sounds like… | Frontier cube |
+|--------------------|---------------|
+| "Only when it rains" / "above a certain level" | Threshold |
+| "After a while" / "turn off later" | Delay |
+| "Every few minutes" / "keep doing it" | Repeat (interval — not "loop") |
+| "When someone is here" | Gate / Motion (partial today) |
+
+Log as layer **control**. Strong language signal — **not** a build trigger until post-M6. See [grammar-frontier-controls.md](grammar-frontier-controls.md).
+
 ## Wrong product signal
 
 Eliminate: "I need one cube per city." / "I need a Wi-Fi cube."
@@ -104,7 +117,7 @@ Date:
 Participant (role):
 Before/after copy update:
 First question (verbatim):
-Layer (grammar / product / config / purchase / extensibility / longevity / unhealthy):
+Layer (grammar / product / config / purchase / extensibility / longevity / control / unhealthy):
 Starter kit described (verbatim, if asked):
 Extensibility question (verbatim, if any):
 Physical/durability question (verbatim, if any):
