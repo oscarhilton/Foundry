@@ -75,20 +75,20 @@ Time does **not** bind backwards across viewports. For city-specific times, put 
 
 Brightness still follows temperature and rain. Light and LCD are independent.
 
-## Dial position changes meaning
+## Wheel position changes meaning
 
-Order is part of the sentence:
+The **Wheel** control cube (`control/dial` in protocol — position 0–1) changes meaning by **order** in the chain:
 
 | Order | Meaning |
 |-------|---------|
-| `Dial → Weather` | **Tune** the weather source — face shows a **rain gate** (e.g. `RAIN` + `> 60%`), not live “it is raining”. Motion/chime uses rain **above** that threshold. |
-| `Weather → Dial` | **Select** which weather field reaches the LCD (temperature / rain / full). Weather face stays on **live condition** (`RAIN`, `SUN`, `OVERCAST`). |
-| `Dial → Weather → Light` | Dial sets the **rain threshold**; Light is on when rain exceeds it (**Tuned Weather Light**). |
-| `Weather → Dial → Light` | Weather drives mood; dial **scales** brightness (**Weather Dial Light**). |
+| `Wheel → Weather` | **Tune** the weather source — face shows a **rain gate** (e.g. `RAIN` + `> 60%`), not live “it is raining”. Motion/chime uses rain **above** that threshold. |
+| `Weather → Wheel` | **Select** which weather field reaches the LCD (temperature / rain / full). Weather face stays on **live condition** (`RAIN`, `SUN`, `OVERCAST`). |
+| `Wheel → Weather → Light` | Wheel sets the **rain threshold**; Light is on when rain exceeds it (**Tuned Weather Light**). |
+| `Weather → Wheel → Light` | Weather drives mood; Wheel **scales** brightness (**Weather Wheel Light** preset). |
 
-`London → Weather → Dial → LCD` — dial thirds pick **temperature**, **rain**, or **full weather** on the display.
+`London → Weather → Wheel → LCD` — wheel thirds pick **temperature**, **rain**, or **full weather** on the display.
 
-When **Light** is in the chain with Dial and weather, order decides whether the dial tunes the gate or scales brightness — see table above.
+When **Light** is in the chain with Wheel and weather, order decides whether the wheel tunes the gate or scales brightness — see table above. The visual rename does not change runtime semantics; only the product word changes from Dial to Wheel.
 
 ## Split decomposes segments
 

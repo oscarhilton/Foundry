@@ -8,7 +8,7 @@ const CUBE_GROUPS = [
   },
   {
     label: "Input cubes",
-    items: ["Motion", "Dial"],
+    items: ["Motion", "Wheel"],
   },
   {
     label: "Identity cubes",

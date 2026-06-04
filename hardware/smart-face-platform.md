@@ -73,7 +73,7 @@ E-ink content follows simulator contracts (`weatherFace`, `output/lcd/text`). Fr
 | **Display** (`output/lcd`) | Viewport text from Core | Brightness for readability in dim light — GooDisplay’s primary use case |
 | **Light** (`output/light`) | Optional status (`48% · Overcast`) | **Primary output:** PWM from `output/light/brightness` |
 
-See [grammar.md](../docs/grammar.md) for Weather face latch and Dial → Weather threshold semantics.
+See [grammar.md](../docs/grammar.md) for Weather face latch and Wheel → Weather threshold semantics.
 
 ## Simulator vs hardware — light contract
 
@@ -109,7 +109,7 @@ Face rasterisation may run on cube-local MCU (SPI to panel) or via Core-orchestr
 | Platform | Cube examples | PCB |
 |----------|---------------|-----|
 | **Smart face** | Place, Weather, Display, Light, Time, GitHub, … | One PCB + EEPROM personality |
-| **Control** | Dial, Button, Slider | Pot / contact input |
+| **Control** | Wheel (`control/dial`), Button, Slider | Pot (M6) / cap-touch ring (target) |
 | **Sensor** | Motion, Temperature | Minimal MCU or passive |
 | **Acoustic** | Chime | Speaker driver — stays separate |
 | **Core** | Core | ESP32-S3 host |

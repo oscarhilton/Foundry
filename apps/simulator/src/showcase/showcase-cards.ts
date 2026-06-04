@@ -34,7 +34,7 @@ const TEACHES: Record<ShowcasePresetId, { whatItDoes: string; sentenceTeaches: s
       sentenceTeaches: "Nouns scope facts; outputs express them.",
     },
     "weather-dial-lcd": {
-      whatItDoes: "Dial picks which weather line hits the LCD.",
+      whatItDoes: "Wheel picks which weather line hits the LCD.",
       sentenceTeaches: "Transforms reshape facts before the viewport.",
     },
     "split-weather-dual-lcd": {
@@ -79,6 +79,6 @@ export const START_HERE = {
   kitTitle: "Starter Kit",
   kitItems: ["Core", "Place", "Weather", "Light"] as const,
   firstSentence: "Place → Weather → Light",
-  addOns: ["Display", "Time", "Dial", "Motion"] as const,
+  addOns: ["Display", "Time", "Wheel", "Motion"] as const,
   tryPresetId: "weather-moods" as const satisfies ShowcasePresetId,
 };

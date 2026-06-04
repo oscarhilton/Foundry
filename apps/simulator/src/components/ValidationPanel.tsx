@@ -80,7 +80,7 @@ export function ValidationPanel() {
               {outputState.activeRecipeName ?? "None"}
             </p>
             <p>
-              <span className="text-foundry-muted">Dial discovered:</span> {dialDiscovered}
+              <span className="text-foundry-muted">Wheel discovered:</span> {dialDiscovered}
             </p>
           </div>
 

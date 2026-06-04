@@ -9,7 +9,7 @@ Foundry hardware consists of 50mm cubic modules daisy-chained via pogo pins on E
 **Production target:** [**Universal smart-face platform**](smart-face-platform.md) — one PCB (MCU + EEPROM + 1.54" e-paper + front-light) with personality set by descriptor. Place, Weather, Display, and Light become firmware roles, not separate PCBs.
 
 ```
-[USB-C] → [Core ESP32-S3] ←I2C→ [Passive|EEPROM] ←I2C→ [Dial|MCU] ←I2C→ [Light|MCU]   ← M6 bench
+[USB-C] → [Core ESP32-S3] ←I2C→ [Passive|EEPROM] ←I2C→ [Wheel|MCU] ←I2C→ [Light|MCU]   ← M6 bench
 [USB-C] → [Core ESP32-S3] ←I2C→ [SmartFace|EEPROM+EPD+FL] ←I2C→ [Control|Sensor] …     ← production
 ```
 
@@ -48,12 +48,15 @@ Foundry hardware consists of 50mm cubic modules daisy-chained via pogo pins on E
 
 **BOM target:** $2–4 @ 1k units
 
-### Dial cube (active)
+### Wheel cube (active)
+
+Product name **Wheel**; firmware register map unchanged. See [wheel-control.md](wheel-control.md).
 
 | Component | Part | Notes |
 |-----------|------|-------|
 | MCU | ATtiny841 or XIAO ESP32-C3 | I2C slave |
-| Input | 10k potentiometer | Panel-mount on top face |
+| Input (M6) | 10k potentiometer | Panel-mount on top face |
+| Input (target) | Cap-touch ring + centre button | Thin ring, reserved centre press |
 | Reg map | 0x10 = position uint16 | Scale 0.001 → 0–1 |
 
 ### Light cube (active)
@@ -104,9 +107,9 @@ Core firmware ports the TypeScript runtime logic from `packages/runtime` as manu
 
 1. Breadboard: ESP32 + EEPROM module + pot + LED
 2. Pogo test jig (2 fixtures)
-3. Core PCB + 1 passive + Dial + Light
+3. Core PCB + 1 passive + Wheel + Light
 4. 3D print shells, fit test — see [mockup-sprint.md](mockup-sprint.md)
-5. **M6 E2E:** [London → Weather → Light](m6-e2e-london-weather-light.md) (no Dial required)
+5. **M6 E2E:** [London → Weather → Light](m6-e2e-london-weather-light.md) (Wheel optional)
 6. **M6.1:** Tokyo → Time → Display — first [smart-face](smart-face-platform.md) prototype
 7. **Post-M6.1:** Consolidate Place/Weather onto smart-face; retire passive-EEPROM-only identity for production
 

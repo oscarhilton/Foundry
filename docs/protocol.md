@@ -40,13 +40,15 @@ Stored in EEPROM (passive) or register `0x00` (active). JSON in simulator; CBOR 
 }
 ```
 
-### Active cube example (Dial)
+### Active cube example (Wheel)
+
+Product label **Wheel**; cube id and protocol topic remain `control/dial`.
 
 ```json
 {
   "schema": 1,
   "id": "control/dial",
-  "label": "Dial",
+  "label": "Wheel",
   "category": "control",
   "role": "control",
   "registers": [
@@ -71,13 +73,23 @@ Namespace: `{domain}/{signal}[/{variant}]`
 | `weather/brightness` | number | Derived 0–1 brightness |
 | `github/activity` | number | Activity score 0–1 |
 | `sensor/motion` | boolean | Motion detected |
-| `control/dial` | number | Dial position 0–1 |
+| `control/dial` | number | Wheel position 0–1 (product name: Wheel) |
 | `control/button/press` | boolean | Latched circuit: `false` = OPEN, `true` = CLOSED (toggle on press) |
 | `output/light/brightness` | number | Final light brightness 0–1 |
 | `output/chime/trigger` | boolean | Chime fire event |
 | `output/music/note` | number | MIDI note number |
 | `output/lcd/text` | string | Backlit LCD text |
 | `core/power` | string | Power source and level, e.g. `PWR USB 100%` or `BAT 87%` |
+
+#### Wheel topics (future — not implemented M6)
+
+Reserved for cap-touch ring hardware. M6 bench maps a potentiometer to `control/dial` only. Simulator centre-button tap is a UI prototype until Core subscribes.
+
+| Topic | Type | Description |
+|-------|------|-------------|
+| `control/wheel/position` | number | Hardware alias for ring position 0–1 |
+| `control/wheel/press` | boolean / event | Momentary centre-button press |
+| `control/wheel/state` | string | `idle` \| `touched` \| `pressed` |
 
 #### LCD text priority
 
@@ -88,7 +100,7 @@ When an `output/lcd` cube is in a powered chain, the Core resolves `output/lcd/t
 3. **Weather** — `London` + `12°C · 40% rain` when the first place in the window binds Weather; `12°C · 40% rain` when no place is present
 4. **GitHub** — `14/hr`
 5. **Time (transform)** — `London 14:32` when a place shares the window; wall-clock `14:32` only when Time is alone in the window; no segment when Time follows consumed places
-6. **Dial / Slider** — e.g. `65%`
+6. **Wheel / Slider** — e.g. `65%`
 7. **Place** — place label when Time and Weather are not already showing that place, e.g. `London`
 8. **Calm modifier** — `CALM 45%` (Perlin noise level; label only when value unavailable)
 9. **Random modifier** — `RND 72%` (Perlin noise level; label only when value unavailable)
@@ -113,7 +125,7 @@ When a chain has **two or more** LCDs, the Core resolves text using the **left-h
 
 **Interleaved** chains keep strict windows: `Tokyo, Time, LCD, London, Weather, LCD` → LCD1 = `Tokyo 07:03`, LCD2 = `London` + `12°C · 45% rain` (Weather binds to London in that window).
 
-**Clustered** LCDs share upstream load: `London, Weather, Dial, Light, LCD, LCD, LCD, LCD, Random` → LCD1 = `London` + `12°C · 45% rain`, LCD2 = `50%`, LCD3 = `72%`, LCD4 = `RND 68%`.
+**Clustered** LCDs share upstream load: `London, Weather, Wheel, Light, LCD, LCD, LCD, LCD, Random` → LCD1 = `London` + `12°C · 45% rain`, LCD2 = `50%`, LCD3 = `72%`, LCD4 = `RND 68%`.
 
 Each LCD receives its own `output/lcd/text` publish:
 

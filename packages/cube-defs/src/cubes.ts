@@ -106,7 +106,7 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
   {
     schema: 1,
     id: "control/dial",
-    label: "Dial",
+    label: "Wheel",
     category: "control",
     role: "transform",
     colorAccent: "#F4A261",
@@ -116,7 +116,7 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     ],
     topics: { publish: ["control/dial"], subscribe: [] },
     description:
-      "Before Weather: tune rain gate. After Weather: select LCD field or scale light",
+      "Touch ring + centre button. Before Weather: tune rain gate. After Weather: select LCD field or scale light",
   },
   {
     schema: 1,
@@ -258,8 +258,8 @@ export const PRESET_CHAINS: PresetChain[] = [
   },
   {
     id: "weather-dial-light",
-    name: "Weather Dial Light",
-    description: "Dial scales how strongly weather affects light",
+    name: "Weather Wheel Light",
+    description: "Wheel scales how strongly weather affects light",
     cubes: [
       "identity/london",
       "identity/weather",
@@ -401,8 +401,8 @@ export const PRESET_CHAINS: PresetChain[] = [
   },
   {
     id: "weather-dial-lcd",
-    name: "Weather Dial LCD",
-    description: "Dial selects temperature, rain, or full weather on LCD",
+    name: "Weather Wheel LCD",
+    description: "Wheel selects temperature, rain, or full weather on LCD",
     cubes: [
       "identity/london",
       "identity/weather",

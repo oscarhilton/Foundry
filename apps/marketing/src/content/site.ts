@@ -34,7 +34,7 @@ export const site = {
     body: "Everything you need to build your first sentence on a desk.",
     cta: "Explore the showcase",
     firstSentence: "Place → Weather → Light",
-    addOns: ["Display", "Time", "Dial", "Motion"],
+    addOns: ["Display", "Time", "Wheel", "Motion"],
     cubes: [
       {
         name: "Core",
@@ -68,9 +68,9 @@ export const site = {
     },
     {
       id: "weather-dial-lcd" as ExamplePresetId,
-      title: "Weather Dial LCD",
-      chain: "London → Weather → Dial → Display",
-      description: "Dial picks temperature, rain, or full forecast on the display.",
+      title: "Weather Wheel LCD",
+      chain: "London → Weather → Wheel → Display",
+      description: "Wheel picks temperature, rain, or full forecast on the display.",
     },
     {
       id: "split-weather-dual-lcd" as ExamplePresetId,
