@@ -773,6 +773,15 @@ export class FoundryEngine {
         this.setLightOutput(brightness, weatherToLightMood(temp, rain));
         break;
       }
+      case "tuned-weather-light": {
+        const threshold = dialToRainThreshold(this.dialPosition);
+        if (isRaining(rain, threshold)) {
+          this.setLightOutput(this.applyRandom(1), "rain");
+        } else {
+          this.setLightOutput(0.02, weatherToLightMood(temp, rain));
+        }
+        break;
+      }
       case "weather-dial-light": {
         const base = weatherToBrightness(temp, rain);
         const scaled = base * (0.15 + this.dialPosition * 0.85);

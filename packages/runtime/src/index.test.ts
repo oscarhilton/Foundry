@@ -134,6 +134,32 @@ describe("Recipes", () => {
     expect(recipe?.id).toBe("weather-dial-light");
   });
 
+  it("matches Tuned Weather Light when Dial tunes Weather", () => {
+    const chain = parseChain(
+      withCore(
+        "identity/london",
+        "control/dial",
+        "identity/weather",
+        "output/light",
+      ),
+    );
+    const recipe = matchRecipe(chain);
+    expect(recipe?.id).toBe("tuned-weather-light");
+    expect(resolveLightBehaviour(chain)).toBe("tuned-weather-light");
+  });
+
+  it("does not match Weather Dial Light when Dial is before Weather", () => {
+    const chain = parseChain(
+      withCore(
+        "identity/london",
+        "control/dial",
+        "identity/weather",
+        "output/light",
+      ),
+    );
+    expect(matchRecipe(chain)?.id).not.toBe("weather-dial-light");
+  });
+
   it("matches Room Motion Chime", () => {
     const chain = parseChain(withCore("sensor/motion", "output/chime"));
     const recipe = matchRecipe(chain);
@@ -276,7 +302,7 @@ describe("FoundryEngine", () => {
 
     const { lcdText, modifierCalmNoise } = engine.getOutputState();
     expect(modifierCalmNoise).not.toBeNull();
-    expect(lcdText).toMatch(/^London\n12°C · 45% rain CALM \d+%$/);
+    expect(lcdText).toMatch(/^London\n12°C · 45% rain Calm \d+%$/);
 
     engine.destroy();
   });
@@ -334,6 +360,40 @@ describe("FoundryEngine", () => {
     const bright = engine.getOutputState().lightBrightness;
 
     expect(bright).toBeGreaterThan(dim);
+    engine.destroy();
+  });
+
+  it("uses tuned weather light when Dial tunes Weather before Light", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "control/dial",
+        "identity/weather",
+        "output/light",
+      ),
+    );
+    engine.start();
+    engine.setDialPosition(1);
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.49 });
+
+    let state = engine.getOutputState();
+    expect(state.activeRecipeId).toBe("tuned-weather-light");
+    expect(state.activeRecipeName).toBe("Tuned Weather Light");
+    expect(state.lightBrightness).toBeCloseTo(0.02, 2);
+    expect(state.lightMood).toBe("overcast");
+
+    const snap = engine.getCoreDebugSnapshot();
+    expect(snap.lightOutput?.mode).toBe("Tuned Weather");
+    expect(snap.lightOutput?.gate).toBe("closed");
+    expect(snap.lightOutput?.thresholdPercent).toBe(85);
+    expect(snap.lightOutput?.rainPercent).toBe(49);
+
+    engine.mockAdapters.setWeather({ temp: 12, rain: 0.9 });
+    state = engine.getOutputState();
+    expect(state.lightBrightness).toBeCloseTo(1, 1);
+    expect(state.lightMood).toBe("rain");
+    expect(engine.getCoreDebugSnapshot().lightOutput?.gate).toBe("open");
+
     engine.destroy();
   });
 
@@ -907,7 +967,9 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toBe("London\n12°C · 45% rain 50% 40%");
+    expect(state.lcdText).toBe(
+      "London\n12°C · 45% rain\nLight\n40% · Overcast",
+    );
 
     engine.destroy();
   });
@@ -1180,7 +1242,7 @@ describe("FoundryEngine", () => {
 
     const { lcdTexts } = engine.getOutputState();
     expect(lcdTexts.lcd1).toBe("London\n12°C · 45% rain");
-    expect(lcdTexts.lcd2).toMatch(/^CALM \d+%$/);
+    expect(lcdTexts.lcd2).toMatch(/^Calm \d+%$/);
 
     engine.destroy();
   });
@@ -1225,7 +1287,9 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
-    expect(state.lcdText).toBe("London\n12°C · 45% rain 50% 40%");
+    expect(state.lcdText).toBe(
+      "London\n12°C · 45% rain\nLight\n40% · Overcast",
+    );
     expect(state.lightBrightness).toBeGreaterThan(0.1);
 
     engine.destroy();

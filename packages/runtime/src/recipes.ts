@@ -1,6 +1,7 @@
 import type { ParsedChain } from "./chain-parser.js";
 import {
   cubesAppearInOrder,
+  dialTunesWeather,
   getActiveVisualOutput,
   getNearestControl,
   getPrimaryAudioOutput,
@@ -73,6 +74,25 @@ export const RECIPES: Recipe[] = [
       ),
   },
   {
+    id: "tuned-weather-light",
+    name: "Tuned Weather Light",
+    description: "Dial sets rain threshold; light follows gate open/closed",
+    match: (chain) =>
+      powered(
+        chain,
+        () =>
+          hasWeatherSource(chain) &&
+          hasLightOutput(chain) &&
+          hasDialCube(chain) &&
+          dialTunesWeather(chain) &&
+          cubesAppearInOrder(chain, [
+            "control/dial",
+            "identity/weather",
+            "output/light",
+          ]),
+      ),
+  },
+  {
     id: "weather-dial-light",
     name: "Weather Dial Light",
     description: "Dial scales weather-driven light brightness",
@@ -82,7 +102,13 @@ export const RECIPES: Recipe[] = [
         () =>
           hasWeatherSource(chain) &&
           hasLightOutput(chain) &&
-          hasDialCube(chain),
+          hasDialCube(chain) &&
+          !dialTunesWeather(chain) &&
+          cubesAppearInOrder(chain, [
+            "identity/weather",
+            "control/dial",
+            "output/light",
+          ]),
       ),
   },
   {

@@ -1,5 +1,6 @@
 import type { LightBehaviourId } from "./output-bindings.js";
-import type { LightMood } from "./weather-light.js";
+import { dialToRainThreshold } from "./weather-face.js";
+import { isRaining, type LightMood } from "./weather-light.js";
 
 export interface LightDebugInput {
   githubActivity: number | null;
@@ -23,11 +24,16 @@ export interface LightDebugOutput {
   driverTopic: string | null;
   driverValue: number | null;
   driverSummary: string;
+  /** Rain gate — tuned-weather-light only */
+  gate?: "open" | "closed";
+  rainPercent?: number;
+  thresholdPercent?: number;
 }
 
 const MODE_LABELS: Record<LightBehaviourId, string> = {
   "github-activity-light": "GitHub Activity",
   "london-weather-light": "Weather Mood",
+  "tuned-weather-light": "Tuned Weather",
   "weather-dial-light": "Weather Dial",
   "temperature-light": "Temperature",
   "time-calm-light": "Time Calm",
@@ -51,6 +57,9 @@ export function buildLightDebugOutput(
   let driverTopic: string | null = null;
   let driverValue: number | null = null;
   let driverSummary = "";
+  let gate: "open" | "closed" | undefined;
+  let rainPercent: number | undefined;
+  let thresholdPercent: number | undefined;
 
   switch (behaviour) {
     case "github-activity-light":
@@ -63,6 +72,15 @@ export function buildLightDebugOutput(
       driverValue = state.weatherTemp ?? 14;
       driverSummary = "weather (temp, rain) → mood + brightness";
       break;
+    case "tuned-weather-light": {
+      const rain = state.weatherRain ?? 0.3;
+      const threshold = dialToRainThreshold(state.dialPosition);
+      rainPercent = Math.round(rain * 100);
+      thresholdPercent = Math.round(threshold * 100);
+      gate = isRaining(rain, threshold) ? "open" : "closed";
+      driverSummary = "Rain gate vs dial threshold → brightness";
+      break;
+    }
     case "weather-dial-light":
       driverTopic = "control/dial";
       driverValue = state.dialPosition;
@@ -96,6 +114,9 @@ export function buildLightDebugOutput(
     driverTopic,
     driverValue,
     driverSummary,
+    gate,
+    rainPercent,
+    thresholdPercent,
   };
 }
 

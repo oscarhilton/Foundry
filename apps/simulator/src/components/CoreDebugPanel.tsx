@@ -415,6 +415,17 @@ export function CoreDebugPanel() {
                 <p className="text-foundry-muted text-[9px]">
                   {snapshot.lightOutput.driverSummary}
                 </p>
+                {snapshot.lightOutput.gate != null && (
+                  <>
+                    <p className="text-foundry-ink">
+                      Rain gate: {snapshot.lightOutput.gate}
+                    </p>
+                    <p className="text-foundry-ink">
+                      Threshold: {snapshot.lightOutput.thresholdPercent}% · Current
+                      rain: {snapshot.lightOutput.rainPercent}%
+                    </p>
+                  </>
+                )}
                 {snapshot.lightOutput.driverTopic && (
                   <p className="text-foundry-ink">
                     Input: {formatValue(snapshot.lightOutput.driverValue)}

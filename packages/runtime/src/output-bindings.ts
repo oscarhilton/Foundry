@@ -1,5 +1,8 @@
 import type { ParsedChain } from "./chain-parser.js";
 import {
+  cubesAppearInOrder,
+  dialSelectsWeatherField,
+  dialTunesWeather,
   getNearestControl,
   hasButtonControl,
   hasCalmModifier,
@@ -15,6 +18,7 @@ import { matchRecipe } from "./recipes.js";
 
 export type LightBehaviourId =
   | "london-weather-light"
+  | "tuned-weather-light"
   | "weather-dial-light"
   | "time-calm-light"
   | "github-activity-light"
@@ -27,8 +31,20 @@ export function resolveLightBehaviour(
 ): LightBehaviourId | null {
   if (!isChainPowered(chain) || !hasLightOutput(chain)) return null;
 
-  if (hasWeatherSource(chain) && hasDialCube(chain) && hasLightOutput(chain)) {
-    return "weather-dial-light";
+  if (hasWeatherSource(chain) && hasDialCube(chain)) {
+    if (dialTunesWeather(chain)) {
+      return "tuned-weather-light";
+    }
+    if (
+      dialSelectsWeatherField(chain) ||
+      cubesAppearInOrder(chain, [
+        "identity/weather",
+        "control/dial",
+        "output/light",
+      ])
+    ) {
+      return "weather-dial-light";
+    }
   }
 
   if (
@@ -73,6 +89,7 @@ export function resolvePrimaryRecipeLabel(
   lightBehaviour: LightBehaviourId | null,
 ): string | null {
   if (lightBehaviour === "london-weather-light") return "London Weather Light";
+  if (lightBehaviour === "tuned-weather-light") return "Tuned Weather Light";
   if (lightBehaviour === "weather-dial-light") return "Weather Dial Light";
   if (lightBehaviour === "time-calm-light") return "Time Calm Light";
   if (lightBehaviour === "github-activity-light") return "GitHub Activity Light";

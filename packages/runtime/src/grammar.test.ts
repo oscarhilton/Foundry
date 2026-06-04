@@ -302,6 +302,7 @@ describe("Weather place binding", () => {
 describe("Grammar — MVP recipes", () => {
   it.each([
     ["london-weather-light", withCore("identity/london", "identity/weather", "output/light")],
+    ["tuned-weather-light", withCore("identity/london", "control/dial", "identity/weather", "output/light")],
     ["weather-dial-light", withCore("identity/london", "identity/weather", "control/dial", "output/light")],
     ["room-motion-chime", withCore("sensor/motion", "output/chime")],
     ["button-chime", withCore("control/button", "output/chime")],

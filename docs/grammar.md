@@ -75,9 +75,20 @@ Time does **not** bind backwards across viewports. For city-specific times, put 
 
 Brightness still follows temperature and rain. Light and LCD are independent.
 
-## Dial selects a weather field
+## Dial position changes meaning
 
-`London → Weather → Dial → LCD` — the Dial is a **transform**: position picks **temperature**, **rain**, or **full weather** on the display. `Weather → Dial → Light` still **scales** brightness (no LCD in that recipe).
+Order is part of the sentence:
+
+| Order | Meaning |
+|-------|---------|
+| `Dial → Weather` | **Tune** the weather source — face shows a **rain gate** (e.g. `RAIN` + `> 60%`), not live “it is raining”. Motion/chime uses rain **above** that threshold. |
+| `Weather → Dial` | **Select** which weather field reaches the LCD (temperature / rain / full). Weather face stays on **live condition** (`RAIN`, `SUN`, `OVERCAST`). |
+| `Dial → Weather → Light` | Dial sets the **rain threshold**; Light is on when rain exceeds it (**Tuned Weather Light**). |
+| `Weather → Dial → Light` | Weather drives mood; dial **scales** brightness (**Weather Dial Light**). |
+
+`London → Weather → Dial → LCD` — dial thirds pick **temperature**, **rain**, or **full weather** on the display.
+
+When **Light** is in the chain with Dial and weather, order decides whether the dial tunes the gate or scales brightness — see table above.
 
 ## Split decomposes segments
 
