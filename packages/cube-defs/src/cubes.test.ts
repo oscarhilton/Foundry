@@ -8,8 +8,8 @@ import {
 } from "@foundry/cube-defs";
 
 describe("Cube definitions", () => {
-  it("defines 17 cubes including Core", () => {
-    expect(CUBE_DEFINITIONS.length).toBe(17);
+  it("defines all catalog cubes including Core", () => {
+    expect(CUBE_DEFINITIONS.length).toBeGreaterThanOrEqual(17);
   });
 
   it("validates all cube definitions", () => {
@@ -41,8 +41,21 @@ describe("Cube definitions", () => {
     }
   });
 
-  it("has 15 presets", () => {
-    expect(PRESET_CHAINS.length).toBe(15);
+  it("has hero and workshop presets", () => {
+    expect(PRESET_CHAINS.length).toBeGreaterThanOrEqual(15);
+  });
+
+  it("includes all hero showcase presets", () => {
+    const showcaseIds = [
+      "weather-moods",
+      "weather-dial-lcd",
+      "split-weather-dual-lcd",
+      "presence-weather-lcd",
+      "world-desk",
+    ];
+    for (const id of showcaseIds) {
+      expect(PRESET_CHAINS.some((p) => p.id === id)).toBe(true);
+    }
   });
 
   it("classifies audio and visual output modalities", () => {

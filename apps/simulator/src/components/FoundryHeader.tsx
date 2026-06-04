@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useSimulatorStore, PRESET_CHAINS, HERO_PRESET_IDS } from "../store";
+import { openShowcase } from "../showcase/showcase-nav";
 
 const pillBase =
   "text-xs px-3 py-1.5 rounded-full border transition-colors shrink-0";
@@ -156,6 +157,10 @@ export function FoundryHeader() {
               }
             >
               {!audioUnlocked ? "Sound off" : soundEnabled ? "Sound on" : "Muted"}
+            </ActionPill>
+
+            <ActionPill onClick={openShowcase} title="Hero preset showcase">
+              Showcase
             </ActionPill>
 
             {productMode ? (

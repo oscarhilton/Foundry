@@ -33,6 +33,7 @@ const ICONS: Record<string, LucideIcon> = {
   "identity/london": MapPin,
   "identity/tokyo": MapPin,
   "identity/weather": Cloud,
+  "transform/split": Shuffle,
   "source/time": Clock,
   "source/github": GitBranch,
   "modifier/calm": Wind,
