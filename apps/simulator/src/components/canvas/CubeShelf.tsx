@@ -43,6 +43,7 @@ const SHELF_OUTPUT_STATE: FoundryOutputState = {
   modifierCalmNoise: null,
   powerSource: "usb",
   batteryPercent: 100,
+  buttonCircuitClosed: false,
 };
 
 const SHELF_VISUAL_STATE: CubeVisualState = {
@@ -78,7 +79,7 @@ function ShelfCube({
   return (
     <div
       ref={setNodeRef}
-      className="shrink-0 overflow-hidden justify-self-center"
+      className="shrink-0 justify-self-center"
       style={{
         width: dragging ? 0 : CUBE_SIZE,
         margin: dragging ? 0 : undefined,

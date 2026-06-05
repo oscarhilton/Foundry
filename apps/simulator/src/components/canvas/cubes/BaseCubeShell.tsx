@@ -3,6 +3,16 @@ import type { CubeDefinition } from "@foundry/cube-defs";
 import { COLORS, CUBE_SHELL } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
+const CORE_CABLE_BG = `${import.meta.env.BASE_URL}images/core-core-bg.png`;
+const CORE_CABLE_EXTEND = 1000;
+
+const IDENTITY_LABELS = [
+  "identity/weather",
+  "identity/london",
+  "identity/tokyo",
+  "identity/foundry",
+] as const;
+
 interface BaseCubeShellProps {
   definition: CubeDefinition;
   highlighted?: boolean;
@@ -18,6 +28,7 @@ interface BaseCubeShellProps {
 }
 
 export function BaseCubeShell({
+  definition,
   highlighted = false,
   unpowered = false,
   inChain = false,
@@ -25,7 +36,8 @@ export function BaseCubeShell({
   stateSlot,
   width = CUBE_SIZE,
 }: BaseCubeShellProps) {
-  const fill = unpowered ? COLORS.cubeUnpowered : COLORS.cube;
+  const isCore = definition.id === "core/core";
+  const fill = unpowered ? COLORS.cubeUnpowered : COLORS.einkBackground;
   const stroke = highlighted
     ? COLORS.ink
     : inChain && !unpowered
@@ -34,6 +46,9 @@ export function BaseCubeShell({
   const strokeWidth = highlighted ? 2 : 1;
   const hasStateBand = stateSlot != null;
   const radius = inChain ? CUBE_SHELL.cornerRadius : 6;
+  const showIdentityLabel = IDENTITY_LABELS.includes(
+    definition.id as (typeof IDENTITY_LABELS)[number],
+  );
 
   const boxShadow = highlighted
     ? `0 0 0 1px ${COLORS.ink}, ${CUBE_SHELL.chainShadow}`
@@ -45,23 +60,38 @@ export function BaseCubeShell({
 
   return (
     <div
-      className="relative grid h-full w-full overflow-hidden"
+      className="relative grid h-full w-full shadow-xl"
       style={{
-        width: width,
+        width,
         height: CUBE_SIZE,
         backgroundColor: fill,
         borderRadius: radius,
         border: `${strokeWidth}px solid ${stroke}`,
         boxShadow,
+        overflow: isCore && inChain ? "visible" : "hidden",
       }}
     >
-      {hasStateBand ? (
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          {stateSlot}
+      <div
+        className="relative flex min-h-0 h-full w-full flex-1 flex-col items-center justify-center rounded-md border border-gray-200"
+        style={{ overflow: isCore ? "visible" : "hidden" }}
+      >
+        {isCore && inChain ? (
+          <div className="absolute top-0 w-screen h-full z-[-1] flex items-center" style={{ left: CUBE_SIZE - 35 }}>
+            <img
+              src={CORE_CABLE_BG}
+              alt=""
+              aria-hidden
+              className="pointer-events-none relatve left-0 top-0 z-0 h-full object-cover object-left h-16"
+              />
+          </div>
+        ) : null}
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center">
+          {hasStateBand ? stateSlot : iconSlot}
+          {showIdentityLabel ? (
+            <div className="text-[10px] font-bold">{definition.label}</div>
+          ) : null}
         </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 items-center justify-center">{iconSlot}</div>
-      )}
+      </div>
     </div>
   );
 }

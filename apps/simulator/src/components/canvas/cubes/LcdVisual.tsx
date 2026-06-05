@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
+import { useId } from "react";
 import { eventPhase } from "../animations";
-import { COLORS, FONTS } from "../design-tokens";
+import { FONTS, COLORS } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
 interface LcdVisualProps {
@@ -9,102 +10,135 @@ interface LcdVisualProps {
   lcdChangedAt: number;
 }
 
-const LCD_INNER_X = 10;
-const LCD_INNER_W = CUBE_SIZE * 2 - 20;
-const LCD_INNER_H = CUBE_SIZE - 20;
-const FONT_SIZE = 12;
-const CHARS_PER_LINE = 10;
-const MAX_LINES = 2;
-const SCROLL_SPEED = 0;
-const SCROLL_GAP = 24;
+const LCD_CHARS = 16;
+const LCD_PAD = 10;
+const LCD_W = CUBE_SIZE * 2 - LCD_PAD * 2;
+const LCD_H = CUBE_SIZE - LCD_PAD * 2;
 
-function estimateTextWidth(text: string): number {
-  return text.length * FONT_SIZE * 0.55;
+const BEZEL_OFFSET = "translate(-3.41 -3.05)";
+const LCD_FONT = `"HD44780", ${FONTS.mono}`;
+const LCD_INK = "#000000";
+
+function lcdLine(text: string, size = LCD_CHARS): string {
+  return text.slice(0, size);
+}
+
+function lcdLines(text: string): [string, string] {
+  const parts = text.split("\n");
+  return [lcdLine(parts[0] ?? ""), lcdLine(parts[1] ?? "")];
+}
+
+interface LCDProps {
+  gradientId: string;
+  backlit: boolean;
+  line1: string;
+  line2: string;
+  width: number;
+  height: number;
+  style?: CSSProperties;
+}
+
+function LCD({
+  gradientId,
+  backlit,
+  line1,
+  line2,
+  width,
+  height,
+  style,
+}: LCDProps) {
+  const bgcolor = backlit ? COLORS.cubeUnpowered : COLORS.cube;
+
+  return (
+    <svg
+      className="LCD"
+      viewBox="0 0 78 32"
+      width={width}
+      height={height}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#454545" />
+          <stop offset="1" stopColor="#646464" stopOpacity={0.3} />
+        </linearGradient>
+      </defs>
+      <path
+        fill={COLORS.cubeUnpowered}
+        className="shadow-lg"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={0.1}
+        d="M5.12 4.33h74.96v29.31H5.12z"
+        transform={BEZEL_OFFSET}
+      />
+      <path
+        fill={COLORS.cubeUnpowered}
+        className="shadow-lg"
+        stroke="#646464"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeOpacity={0.1}
+        strokeWidth={0.1}
+        d="M7.51 6.95h70.34v24.42H7.51z"
+        transform={BEZEL_OFFSET}
+      />
+      <path
+        fill={COLORS.ink}
+        stroke="#000"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeOpacity={0.3}
+        strokeWidth={0.1}
+        d="M8.76 8.3h67.73v21.6H8.76z"
+        transform={BEZEL_OFFSET}
+      />
+      <text
+        fill={bgcolor}
+        x={10}
+        y={17}
+        fontFamily={LCD_FONT}
+        fontSize={5.5}
+        transform={BEZEL_OFFSET}
+        style={{ whiteSpace: "pre", ...style }}
+      >
+        {line1}
+      </text>
+      <text
+        fill={bgcolor}
+        x={10}
+        y={26}
+        fontFamily={LCD_FONT}
+        fontSize={5.5}
+        transform={BEZEL_OFFSET}
+        style={{ whiteSpace: "pre", ...style }}
+      >
+        {line2}
+      </text>
+    </svg>
+  );
 }
 
 export function LcdVisual({ text, animTime, lcdChangedAt }: LcdVisualProps) {
+  const gradientId = useId();
   const pulsePhase = eventPhase(animTime, lcdChangedAt, 180);
   const pulseBoost = lcdChangedAt > 0 && pulsePhase < 1 ? 1 - pulsePhase * 0.5 : 0;
-  const displayText = text ?? "BLANK";
+  const displayText = text ?? "--";
+  const [line1, line2] = lcdLines(displayText);
   const textOpacity = 0.75 + pulseBoost * 0.2;
 
-  const isShort = displayText.length <= CHARS_PER_LINE;
-  const isMedium =
-    displayText.length > CHARS_PER_LINE &&
-    displayText.length <= CHARS_PER_LINE * MAX_LINES;
-  const isLong = displayText.length > CHARS_PER_LINE * MAX_LINES;
-
-  const textWidth = estimateTextWidth(displayText);
-  const scrollOffset = isLong
-    ? (animTime * SCROLL_SPEED) % (textWidth + SCROLL_GAP)
-    : 0;
-
-  const renderText = () => {
-    const textStyle: CSSProperties = {
-      fontFamily: FONTS.mono,
-      fontSize: FONT_SIZE,
-      color: COLORS.oledInk,
-      opacity: textOpacity,
-      lineHeight: 1.2,
-      whiteSpace: "pre-line",
-    };
-
-    if (isShort) {
-      return (
-        <div
-          className="flex items-center justify-center h-full w-full"
-          style={textStyle}
-        >
-          {displayText}
-        </div>
-      );
-    }
-
-    if (isMedium) {
-      return (
-        <div
-          className="flex items-center justify-center h-full w-full text-center px-0.5"
-          style={{
-            ...textStyle,
-            wordBreak: "break-word",
-            overflow: "hidden",
-          }}
-        >
-          {displayText}
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center h-full overflow-hidden">
-        <span
-          className="whitespace-nowrap"
-          style={{
-            ...textStyle,
-            transform: `translateX(-${scrollOffset}px)`,
-          }}
-        >
-          {displayText}
-        </span>
-      </div>
-    );
-  };
-
   return (
-    <div
-      className="w-full h-full flex items-center justify-center box-border"
-      style={{ paddingLeft: LCD_INNER_X, paddingRight: LCD_INNER_X }}
-    >
-      <div
-        className="w-full overflow-hidden rounded-sm border rounded-lg"
-        style={{
-          maxWidth: LCD_INNER_W,
-          height: LCD_INNER_H,
-          backgroundColor: COLORS.oledBackground,
-          borderColor: COLORS.stroke,
-        }}
-      >
-        {renderText()}
+    <div className="box-border flex h-full w-full items-center justify-center shadow-lg rounded-sm">
+      <div className="inset-0 rounded-sm overflow-hidden border border-gray-200 flex h-full w-full items-center justify-center" style={{ backgroundColor: COLORS.cubeUnpowered, width: LCD_W, height: LCD_H }}>
+        <LCD
+          gradientId={gradientId}
+          backlit
+          line1={line1}
+          line2={line2}
+          width={LCD_W}
+          height={LCD_H}
+          style={{ opacity: textOpacity }}
+        />
       </div>
     </div>
   );

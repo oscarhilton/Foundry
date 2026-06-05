@@ -67,14 +67,14 @@ export function LightVisual({ brightness, animTime, mood = null }: LightVisualPr
   const fill = panelFill(displayBrightness.current, mood);
 
   return (
-    <SvgRect
-      x={0}
-      y={0}
-      width={CUBE_SIZE}
-      height={CUBE_SIZE}
-      fill={fill}
-      stroke={COLORS.stroke}
-      strokeWidth={1}
-    />
+      <SvgRect
+        x={0}
+        y={0}
+        width={CUBE_SIZE}
+        height={CUBE_SIZE}
+        fill={fill}
+        stroke={COLORS.stroke}
+        strokeWidth={1}
+      />
   );
 }

@@ -1,23 +1,23 @@
-import { SvgCircle } from "../svg/primitives";
 import { CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
+import { CubeIcon } from "./CubeIcon";
 
 interface PassiveVisualProps {
   active: boolean;
   accent?: string;
+  cubeId?: string;
+  size?: number;
+  strokeWidth?: number;
 }
 
-export function PassiveVisual({ active, accent = "#457B9D" }: PassiveVisualProps) {
-  const cx = CUBE_SIZE / 2;
-  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
-
+export function PassiveVisual({ active, accent = "#457B9D", cubeId = "core/core", size = CUBE_SIZE, strokeWidth = 1.75 }: PassiveVisualProps) {
   return (
-    <SvgCircle
-      x={cx}
-      y={cy}
-      radius={6}
-      fill={accent}
-      opacity={active ? 0.35 : 0.12}
+    <CubeIcon 
+      cubeId={cubeId}
+      accent={accent}
+      unpowered={!active}
+      size={size}
+      strokeWidth={strokeWidth}
     />
   );
 }

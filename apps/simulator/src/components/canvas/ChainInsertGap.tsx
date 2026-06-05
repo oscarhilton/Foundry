@@ -44,14 +44,6 @@ export function ChainInsertGap({
         transition: TRANSITION,
       }}
     >
-      {showConnector && (
-        <ChainConnector
-          opacity={connectorOpacity * 0.5}
-          flowHintActive={flowHintActive}
-          powered={powered}
-          orientation={orientation}
-        />
-      )}
       <div
         className="shrink-0 rounded-md border border-dashed"
         style={{

@@ -36,9 +36,9 @@ export const CUBE_SHELL = {
   chainBorder: "#D4D4D8",
 } as const;
 
-export const CUBE_ICON_BADGE_SIZE = 18;
+export const CUBE_ICON_BADGE_SIZE = 24;
 
-export const CUBE_ICON_SIZE = 28;
+export const CUBE_ICON_SIZE = 24;
 export const CUBE_ICON_STROKE = 1.75;
 
 export const CUBE_FACE = {

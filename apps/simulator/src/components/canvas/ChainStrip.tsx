@@ -74,7 +74,7 @@ function SortableChainCube({
   return (
     <div
       ref={setNodeRef}
-      className="flex shrink-0 flex-col items-center gap-1.5"
+      className="flex shrink-0 flex-col items-center"
       style={{
         transform: sortableTransform ?? undefined,
         transition: isDragging ? undefined : transition,
@@ -104,9 +104,6 @@ function SortableChainCube({
         }
         onHoverEnd={onCubeHoverEnd}
       />
-      <span className="max-w-[6.5rem] truncate text-center text-[10px] font-medium leading-tight text-[#86868B]">
-        {def.label}
-      </span>
     </div>
   );
 }
@@ -302,7 +299,7 @@ export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function Chai
         <div
           className={
             isVertical
-              ? "flex flex-col items-center gap-2"
+              ? "flex flex-col items-center"
               : "flex flex-row flex-wrap items-center justify-center gap-x-0"
           }
         >
@@ -329,14 +326,6 @@ export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function Chai
                   <ChainInsertGap
                     showConnector={index > 0}
                     connectorOpacity={connectorOpacity}
-                    flowHintActive={onboarding.flowHintActive}
-                    powered={outputState.powered}
-                    orientation={layout}
-                  />
-                )}
-                {index > 0 && insertIndex !== index && (
-                  <ChainConnector
-                    opacity={connectorOpacity}
                     flowHintActive={onboarding.flowHintActive}
                     powered={outputState.powered}
                     orientation={layout}

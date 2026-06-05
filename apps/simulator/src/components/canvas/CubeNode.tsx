@@ -12,7 +12,6 @@ import { ChimeVisual } from "./cubes/ChimeVisual";
 import { WeatherVisual } from "./cubes/WeatherVisual";
 import { CalmVisual } from "./cubes/CalmVisual";
 import { GitHubVisual } from "./cubes/GitHubVisual";
-import { PassiveVisual } from "./cubes/PassiveVisual";
 import { CoreVisual } from "./cubes/CoreVisual";
 import { ButtonVisual } from "./cubes/ButtonVisual";
 import { SliderVisual } from "./cubes/SliderVisual";
@@ -327,14 +326,15 @@ function CubeNodeInner({
         />
       );
     }
-    if (definition.role === "place") {
-      return (
-        <PassiveVisual
-          active={recipeActive && powered}
-          accent={definition.colorAccent}
-        />
-      );
-    }
+    // if (definition.role === "place") {
+    //   return (
+    //     <PassiveVisual
+    //       active={recipeActive && powered}
+    //       accent={definition.colorAccent}
+    //       cubeId={definition.id}
+    //     />
+    //   );
+    // }
     return null;
   };
 
@@ -364,7 +364,7 @@ function CubeNodeInner({
         width={CUBE_SIZE}
         height={CUBE_SIZE}
         viewBox={`0 0 ${CUBE_SIZE} ${CUBE_SIZE}`}
-        className="block h-full w-full max-h-full max-w-full"
+        className="relative z-10 block h-full w-full max-h-full max-w-full"
         preserveAspectRatio="xMidYMid meet"
       >
         {visual}
@@ -376,7 +376,7 @@ function CubeNodeInner({
   const iconSlot = stateSlot ? null : (
     <CubeIcon
       cubeId={definition.id}
-      accent={definition.colorAccent}
+      accent={COLORS.ink}
       unpowered={inChain && !showPowered}
     />
   );

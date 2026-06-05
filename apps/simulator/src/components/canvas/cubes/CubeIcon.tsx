@@ -17,7 +17,7 @@ import {
   Thermometer,
   Wind,
 } from "lucide-react";
-import { COLORS, CUBE_ICON_SIZE, CUBE_ICON_STROKE } from "../design-tokens";
+import { COLORS, CUBE_ICON_BADGE_SIZE, CUBE_ICON_STROKE } from "../design-tokens";
 
 interface CubeIconProps {
   cubeId: string;
@@ -63,7 +63,7 @@ export function CubeIcon({
   accent,
   unpowered = false,
   opacity = 1,
-  size = CUBE_ICON_SIZE,
+  size = CUBE_ICON_BADGE_SIZE,
   strokeWidth = CUBE_ICON_STROKE,
   className = "",
 }: CubeIconProps) {
@@ -72,7 +72,7 @@ export function CubeIcon({
 
   return (
     <div
-      className={`flex items-center justify-center pointer-events-none ${className}`}
+      className={`flex items-center justify-center pointer-events-none ${className} p-2`} style={{ backgroundColor: COLORS.einkBackground }} 
     >
       <Icon
         size={size}
