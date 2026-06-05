@@ -3,9 +3,19 @@ import {
   dialSelectsWeatherField,
   dialTunesWeather,
 } from "../chain-parser.js";
-import type { FoundryOutputState } from "../index.js";
+import type { CoreDebugSnapshot, FoundryOutputState } from "../index.js";
+import {
+  matchesPlaceWeatherLightWindow,
+  resolveLightBehaviour,
+} from "../output-bindings.js";
 import { dialToRainThreshold } from "../weather-face.js";
-import type { WeatherFaceNormalized } from "./weather-assertions.js";
+import {
+  collectWeatherDebugErrors,
+  expectedPlaceProfileRainPct,
+  type WeatherFaceNormalized,
+} from "./weather-assertions.js";
+
+const PLACE_LABELS = ["London", "Tokyo"] as const;
 
 function chainHas(parsed: ParsedChain, definitionId: string): boolean {
   return parsed.cubes.some((c) => c.definition.id === definitionId);
@@ -71,10 +81,67 @@ function isTunedWeatherLcd(text: string): boolean {
   return text.includes("RAIN >");
 }
 
+function isLightOnlyTelemetry(text: string): boolean {
+  const trimmed = text.trim();
+  if (/^\d+%$/.test(trimmed)) return true;
+  return trimmed.includes("Light\n") || trimmed.startsWith("Light\n");
+}
+
+function collectRecipeNameErrors(
+  parsed: ParsedChain,
+  state: FoundryOutputState,
+): string[] {
+  const errors: string[] = [];
+  const name = state.activeRecipeName;
+  if (!name) return errors;
+
+  for (const placeLabel of PLACE_LABELS) {
+    if (
+      name.includes(placeLabel) &&
+      !parsed.places.some((p) => p.definition.label === placeLabel)
+    ) {
+      errors.push(
+        `Recipe name mentions ${placeLabel} but chain is not bound to ${placeLabel}`,
+      );
+    }
+  }
+  return errors;
+}
+
+function collectI2cDuplicateErrors(
+  debug: CoreDebugSnapshot | null | undefined,
+): string[] {
+  const errors: string[] = [];
+  if (!debug?.discovered.length) return errors;
+
+  const addrs = debug.discovered.map((d) => d.address).filter(Boolean) as string[];
+  const dupes = addrs.filter((a, i) => addrs.indexOf(a) !== i);
+  if (dupes.length) {
+    errors.push(
+      `Duplicate I2C addresses in discovery: ${[...new Set(dupes)].join(", ")}`,
+    );
+  }
+  return errors;
+}
+
+function collectPlaceWeatherLightErrors(parsed: ParsedChain): string[] {
+  const errors: string[] = [];
+  const behaviour = resolveLightBehaviour(parsed);
+
+  if (behaviour === "london-weather-light" && !matchesPlaceWeatherLightWindow(parsed)) {
+    errors.push(
+      "Place weather-light matched across hard boundary (LCD/Motion/Weather)",
+    );
+  }
+
+  return errors;
+}
+
 export function collectAuditErrors(
   parsed: ParsedChain,
   state: FoundryOutputState,
   weather: WeatherFaceNormalized | null,
+  debug?: CoreDebugSnapshot | null,
 ): string[] {
   const errors: string[] = [];
 
@@ -115,12 +182,25 @@ export function collectAuditErrors(
   }
 
   if (weather && hasWeather) {
-    if (weather.mode === "condition" && weather.rainPct != null && state.weatherRain != null) {
-      const expected = Math.round(state.weatherRain * 100);
-      if (weather.rainPct !== expected) {
+    if (weather.mode === "condition") {
+      if (
+        weather.displayedRainPct != null &&
+        weather.sourceRainPct != null &&
+        !weather.usesPlaceProfile &&
+        weather.displayedRainPct !== weather.sourceRainPct
+      ) {
         errors.push(
-          `Weather face rain ${weather.rainPct}% disagrees with output rain ${expected}%`,
+          `Displayed rain ${weather.displayedRainPct}% disagrees with source rain ${weather.sourceRainPct}%`,
         );
+      }
+
+      if (weather.usesPlaceProfile && weather.displayedRainPct != null) {
+        const expectedDisplay = expectedPlaceProfileRainPct(parsed);
+        if (expectedDisplay != null && weather.displayedRainPct !== expectedDisplay) {
+          errors.push(
+            `Displayed rain ${weather.displayedRainPct}% disagrees with place profile ${expectedDisplay}%`,
+          );
+        }
       }
     }
 
@@ -142,7 +222,13 @@ export function collectAuditErrors(
         }
       }
     }
+
+    errors.push(...collectWeatherDebugErrors(weather, debug));
   }
+
+  errors.push(...collectRecipeNameErrors(parsed, state));
+  errors.push(...collectI2cDuplicateErrors(debug));
+  errors.push(...collectPlaceWeatherLightErrors(parsed));
 
   if (hasLcd && parsed.powered) {
     for (const lcd of allLcdTexts(state)) {
@@ -161,6 +247,15 @@ export function collectAuditErrors(
         if (isTunedWeatherLcd(lcd)) {
           errors.push("LCD shows threshold state under Weather → Wheel field-select");
         }
+      }
+
+      if (
+        lcdWindowSupportsWeatherSemantics(parsed) &&
+        !fieldSelectLcdWindow &&
+        !tunedLcdWindow &&
+        isLightOnlyTelemetry(lcd)
+      ) {
+        errors.push("LCD shows light telemetry in weather upstream window");
       }
     }
   }
@@ -201,8 +296,6 @@ export function collectRebindStaleErrors(
     parsedB.powered &&
     state.activeRecipeId === recipeIdBefore
   ) {
-    // If chain composition changed materially, recipe should usually update.
-    // Only flag when rebinding to a chain that cannot match the old recipe.
     const hasMotion = chainHas(parsedB, "sensor/motion");
     const hasWeather = chainHas(parsedB, "identity/weather");
     if (recipeIdBefore.includes("weather") && !hasWeather) {

@@ -82,6 +82,11 @@ export const GOLDEN_CHAINS: GoldenChainCase[] = [
     chainIds: ["identity/tokyo", "source/time", "identity/weather"],
   },
   {
+    name: "Tokyo → Weather → Light",
+    chainIds: ["identity/tokyo", "identity/weather", "output/light"],
+    expectRecipe: "london-weather-light",
+  },
+  {
     name: "Weather → LCD",
     chainIds: ["identity/weather", "output/lcd"],
     lcdIncludes: ["17°C", "21%"],

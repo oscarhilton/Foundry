@@ -9,7 +9,7 @@ import {
   type RunChainAuditOptions,
   type VerboseAuditResult,
 } from "./types.js";
-import { normalizeWeatherFace, weatherDebugRainMismatch } from "./weather-assertions.js";
+import { normalizeWeatherFace } from "./weather-assertions.js";
 
 import type { ChainCubeInput } from "../chain-parser.js";
 import type { WeatherData } from "../adapters/mock.js";
@@ -25,6 +25,10 @@ function seedEngine(
   engine.mockAdapters.setWeather(weather);
   engine.setDialPosition(dialPosition);
   engine.mockAdapters.triggerMotion(false);
+}
+
+function chainHasWeather(chainInput: ChainCubeInput[]): boolean {
+  return chainInput.some((c) => c.definitionId === "identity/weather");
 }
 
 export function runChainAudit(
@@ -53,15 +57,11 @@ export function runChainAudit(
 
     const state = engine.getOutputState();
     const parsed = parseChain(engine.getChain());
-    const debug = options.verbose ? engine.getCoreDebugSnapshot() : null;
-    const weather = normalizeWeatherFace(state, dialPosition, debug);
+    const needsDebug = options.verbose || chainHasWeather(chainInput);
+    const debug = needsDebug ? engine.getCoreDebugSnapshot() : null;
+    const weather = normalizeWeatherFace(state, dialPosition, parsed);
 
-    errors = collectAuditErrors(parsed, state, weather);
-
-    if (options.verbose && debug && weather) {
-      const mismatch = weatherDebugRainMismatch(weather, debug);
-      if (mismatch) errors.push(mismatch);
-    }
+    errors = collectAuditErrors(parsed, state, weather, debug);
 
     const base: AuditResult = { chainIds, chainInput, errors };
 
@@ -94,8 +94,10 @@ export function runChainAuditOnEngine(
 
   const state = engine.getOutputState();
   const parsed = parseChain(engine.getChain());
-  const weather = normalizeWeatherFace(state, dialPosition, null);
-  const errors = collectAuditErrors(parsed, state, weather);
+  const needsDebug = chainHasWeather(chainInput);
+  const debug = needsDebug ? engine.getCoreDebugSnapshot() : null;
+  const weather = normalizeWeatherFace(state, dialPosition, parsed);
+  const errors = collectAuditErrors(parsed, state, weather, debug);
 
   return { chainIds, chainInput, errors };
 }

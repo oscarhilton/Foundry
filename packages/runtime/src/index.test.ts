@@ -7,6 +7,7 @@ import {
   matchRecipe,
   isChainPowered,
   resolveLightBehaviour,
+  matchesPlaceWeatherLightWindow,
   type SignalMessage,
 } from "./index.js";
 import { formatPowerBattery } from "./output-formatters.js";
@@ -205,6 +206,59 @@ describe("Recipes", () => {
   it("matches Button Chime", () => {
     const chain = parseChain(withCore("control/button", "output/chime"));
     expect(matchRecipe(chain)?.id).toBe("button-chime");
+  });
+});
+
+describe("Place weather-light locality", () => {
+  it("matches direct London → Weather → Light", () => {
+    const chain = parseChain(
+      withCore("identity/london", "identity/weather", "output/light"),
+    );
+    expect(resolveLightBehaviour(chain)).toBe("london-weather-light");
+    expect(matchesPlaceWeatherLightWindow(chain)).toBe(true);
+  });
+
+  it("matches Tokyo → Weather → Calm → Light", () => {
+    const chain = parseChain(
+      withCore(
+        "identity/tokyo",
+        "identity/weather",
+        "modifier/calm",
+        "output/light",
+      ),
+    );
+    expect(resolveLightBehaviour(chain)).toBe("london-weather-light");
+    expect(matchesPlaceWeatherLightWindow(chain)).toBe(true);
+  });
+
+  it("does not match when Light precedes Weather", () => {
+    const chain = parseChain(
+      withCore("identity/london", "output/light", "identity/weather"),
+    );
+    expect(resolveLightBehaviour(chain)).toBeNull();
+    expect(matchesPlaceWeatherLightWindow(chain)).toBe(false);
+  });
+
+  it("does not match across Motion or LCD", () => {
+    const motionChain = parseChain(
+      withCore(
+        "identity/tokyo",
+        "identity/weather",
+        "sensor/motion",
+        "output/light",
+      ),
+    );
+    expect(resolveLightBehaviour(motionChain)).toBeNull();
+
+    const lcdChain = parseChain(
+      withCore(
+        "identity/tokyo",
+        "identity/weather",
+        "output/lcd",
+        "output/light",
+      ),
+    );
+    expect(resolveLightBehaviour(lcdChain)).toBeNull();
   });
 });
 
@@ -582,7 +636,8 @@ describe("FoundryEngine", () => {
     expect(snap.weatherFace?.face.text).toBe("London\n12°C · 45% rain");
     expect(snap.weatherFace?.runtime.modeLabel).toBe("Live condition");
     expect(snap.weatherFace?.runtime.moodLabel).toBe("Overcast");
-    expect(snap.weatherFace?.runtime.currentRainPercent).toBe(80);
+    expect(snap.weatherFace?.runtime.sourceRainPercent).toBe(80);
+    expect(snap.weatherFace?.runtime.displayedRainPercent).toBe(45);
     expect(snap.weatherFace?.runtime.gate).toBeNull();
     expect(snap.weatherFace?.runtime.thresholdPercent).toBeNull();
 
@@ -601,7 +656,8 @@ describe("FoundryEngine", () => {
     expect(snap.weatherFace?.face.mode).toBe("threshold");
     expect(snap.weatherFace?.runtime.modeLabel).toBe("Rain threshold");
     expect(snap.weatherFace?.runtime.thresholdPercent).toBe(30);
-    expect(snap.weatherFace?.runtime.currentRainPercent).toBe(17);
+    expect(snap.weatherFace?.runtime.sourceRainPercent).toBe(17);
+    expect(snap.weatherFace?.runtime.displayedRainPercent).toBeNull();
     expect(snap.weatherFace?.runtime.gate).toBe("closed");
     expect(snap.weatherFace?.runtime.moodLabel).toBeNull();
 

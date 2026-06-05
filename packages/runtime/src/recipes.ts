@@ -164,7 +164,7 @@ export const RECIPES: Recipe[] = [
   },
   {
     id: "london-weather-light",
-    name: "London Weather Light",
+    name: "Place Weather Light",
     description: "Place + weather drives ambient light",
     match: (chain) =>
       powered(

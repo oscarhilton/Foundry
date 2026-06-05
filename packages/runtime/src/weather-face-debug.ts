@@ -13,10 +13,17 @@ export interface WeatherFaceDebugInput {
 
 export interface WeatherFaceDebugContext {
   modeLabel: "Rain threshold" | "Live condition";
-  currentRainPercent: number;
+  sourceRainPercent: number;
+  displayedRainPercent: number | null;
   thresholdPercent: number | null;
   gate: "open" | "closed" | null;
   moodLabel: string | null;
+}
+
+export function parseRainPercentFromDetail(detail: string | null): number | null {
+  if (!detail) return null;
+  const match = detail.match(/(\d+)% rain/);
+  return match ? parseInt(match[1]!, 10) : null;
 }
 
 export function buildWeatherFaceDebugContext(
@@ -26,14 +33,15 @@ export function buildWeatherFaceDebugContext(
 ): WeatherFaceDebugContext {
   const useCalm = hasCalmModifier(parsed);
   const rain = useCalm ? input.smoothedRain : (input.weatherRain ?? 0.3);
-  const currentRainPercent = Math.round(rain * 100);
+  const sourceRainPercent = Math.round(rain * 100);
 
   if (face.mode === "threshold") {
     const threshold = face.rainThreshold ?? 0.5;
     const thresholdPercent = Math.round(threshold * 100);
     return {
       modeLabel: "Rain threshold",
-      currentRainPercent,
+      sourceRainPercent,
+      displayedRainPercent: null,
       thresholdPercent,
       gate: isRaining(rain, threshold) ? "open" : "closed",
       moodLabel: null,
@@ -42,7 +50,8 @@ export function buildWeatherFaceDebugContext(
 
   return {
     modeLabel: "Live condition",
-    currentRainPercent,
+    sourceRainPercent,
+    displayedRainPercent: parseRainPercentFromDetail(face.detail),
     thresholdPercent: null,
     gate: null,
     moodLabel: formatWeatherFaceMood(face.symbol),

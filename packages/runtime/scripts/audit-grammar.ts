@@ -15,6 +15,7 @@ import {
   runChainAudit,
   type VerboseAuditResult,
 } from "../src/grammar-audit/index.js";
+import type { SignalMessage } from "../src/signal-router.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, "../audit-output");
@@ -36,6 +37,23 @@ function chainsToAudit(): readonly (readonly string[])[] {
     }
   }
   return all;
+}
+
+function normalizeLcdValue(value: string): string {
+  return value.replace(/\n/g, " / ");
+}
+
+function settleLcdTopics(
+  topics: SignalMessage[],
+  finalByTarget: Map<string, string>,
+): SignalMessage[] {
+  const lcdTopics = topics.filter((t) => t.topic === "output/lcd/text");
+  return lcdTopics.filter((t) => {
+    const target = t.targetId ?? "?";
+    const value = String(t.value);
+    const final = finalByTarget.get(target);
+    return final == null || normalizeLcdValue(value) !== normalizeLcdValue(final);
+  });
 }
 
 function formatMarkdown(entry: VerboseAuditResult): string {
@@ -61,45 +79,60 @@ function formatMarkdown(entry: VerboseAuditResult): string {
     if (wf.face.placeLabel) lines.push(wf.face.placeLabel);
     lines.push(wf.face.headline);
     if (wf.face.detail) lines.push(wf.face.detail);
-    lines.push(
-      `Runtime: ${wf.runtime.modeLabel}, rain ${wf.runtime.currentRainPercent}%` +
-        (wf.runtime.gate ? `, gate ${wf.runtime.gate}` : ""),
-    );
+    lines.push(`Mode: ${wf.runtime.modeLabel}`);
+    lines.push(`Source rain: ${wf.runtime.sourceRainPercent}%`);
+    if (wf.runtime.displayedRainPercent != null) {
+      lines.push(`Displayed rain: ${wf.runtime.displayedRainPercent}%`);
+    }
+    if (wf.runtime.gate) {
+      lines.push(`Gate: ${wf.runtime.gate}`);
+    }
     lines.push("");
   }
 
   const lcdValues = Object.entries(state.lcdTexts);
   if (lcdValues.length > 0) {
-    lines.push("LCD:");
-    for (const [, text] of lcdValues) {
-      for (const line of text.split("\n")) {
-        lines.push(line);
-      }
+    lines.push("Final LCD:");
+    for (const [id, text] of lcdValues) {
+      lines.push(`${id}: ${normalizeLcdValue(text)}`);
     }
     lines.push("");
   }
 
-  if (entry.debug.viewportTrace.length > 0) {
-    lines.push("Viewport trace:");
-    for (const step of entry.debug.viewportTrace) {
-      lines.push(`- ${step.label}: ${step.rendered.replace(/\n/g, " / ")}`);
+  const finalByTarget = new Map(
+    Object.entries(state.lcdTexts).map(([id, text]) => [id, text]),
+  );
+  const settleTopics = settleLcdTopics(entry.topics, finalByTarget);
+  if (settleTopics.length > 0) {
+    lines.push("Events during settle:");
+    for (const t of settleTopics.slice(-8)) {
+      lines.push(
+        `- ${t.targetId ?? "?"}: ${normalizeLcdValue(String(t.value))}`,
+      );
     }
     lines.push("");
+  }
+
+  const trace = entry.debug.viewportTrace;
+  if (trace.length > 0) {
+    const last = trace[trace.length - 1]!;
+    lines.push("Final viewport:");
+    lines.push(`- ${last.label}: ${last.rendered.replace(/\n/g, " / ")}`);
+    lines.push("");
+
+    if (trace.length > 1) {
+      lines.push("Viewport steps during settle:");
+      for (const step of trace.slice(0, -1)) {
+        lines.push(`- ${step.label}: ${step.rendered.replace(/\n/g, " / ")}`);
+      }
+      lines.push("");
+    }
   }
 
   if (entry.debug.discovered.length > 0) {
     lines.push("Discovery:");
     for (const d of entry.debug.discovered) {
-      lines.push(`- ${d.label} (${d.address})`);
-    }
-    lines.push("");
-  }
-
-  const lcdTopics = entry.topics.filter((t) => t.topic === "output/lcd/text");
-  if (lcdTopics.length > 0) {
-    lines.push("Topic stream (LCD):");
-    for (const t of lcdTopics.slice(-5)) {
-      lines.push(`- ${t.targetId ?? "?"}: ${String(t.value).replace(/\n/g, " / ")}`);
+      lines.push(`- ${d.label} (${d.address}, mock)`);
     }
     lines.push("");
   }

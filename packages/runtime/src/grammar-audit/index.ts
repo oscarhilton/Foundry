@@ -13,7 +13,9 @@ export {
 export { formatChainLabel } from "./format-chain-label.js";
 export {
   normalizeWeatherFace,
-  weatherDebugRainMismatch,
+  collectWeatherDebugErrors,
+  expectedPlaceProfileRainPct,
+  usesPlaceProfileDisplay,
   type WeatherFaceNormalized,
 } from "./weather-assertions.js";
 export {

@@ -984,9 +984,12 @@ export type { LightMood } from "./weather-light.js";
 export {
   resolveLightBehaviour,
   resolvePrimaryRecipeLabel,
+  hasPlaceContext,
+  matchesPlaceWeatherLightWindow,
 } from "./output-bindings.js";
 export {
   buildWeatherFaceDebugContext,
+  parseRainPercentFromDetail,
 } from "./weather-face-debug.js";
 export type { WeatherFaceDebugContext } from "./weather-face-debug.js";
 export {

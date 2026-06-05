@@ -11,8 +11,11 @@ export interface DiscoveredDevice {
 
 const I2C_DEBUG_BASE = 0x52;
 
-/** Stable simulator I²C address per instance — not derived from chain position at publish time. */
-export function debugAddressFor(instanceId: string): string {
+/** Simulator mock I²C address — unique per chain position when index is known. */
+export function debugAddressFor(instanceId: string, chainIndex?: number): string {
+  if (chainIndex != null) {
+    return `0x${(I2C_DEBUG_BASE + chainIndex).toString(16).toUpperCase()}`;
+  }
   let hash = 0;
   for (let i = 0; i < instanceId.length; i++) {
     hash = (hash * 31 + instanceId.charCodeAt(i)) >>> 0;
@@ -32,7 +35,7 @@ export function buildDeviceRegistry(chain: ParsedChain): Map<string, DiscoveredD
       label: slot.definition.label,
       role: slot.definition.role,
       chainIndex: index,
-      address: debugAddressFor(slot.instanceId),
+      address: debugAddressFor(slot.instanceId, index),
     });
   }
 

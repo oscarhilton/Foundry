@@ -56,8 +56,9 @@ function runGoldenCase(testCase: GoldenChainCase) {
 
   const state = engine.getOutputState();
   const parsed = parseChain(engine.getChain());
-  const weather = normalizeWeatherFace(state, dial, null);
-  const errors = collectAuditErrors(parsed, state, weather);
+  const debug = engine.getCoreDebugSnapshot();
+  const weather = normalizeWeatherFace(state, dial, parsed);
+  const errors = collectAuditErrors(parsed, state, weather, debug);
 
   engine.destroy();
 
@@ -199,9 +200,10 @@ describe("Grammar audit — same-engine rebind", () => {
       engine.setDialPosition(1);
       const state = engine.getOutputState();
       const parsed = parseChain(engine.getChain());
-      const weather = normalizeWeatherFace(state, 1, null);
+      const debug = engine.getCoreDebugSnapshot();
+      const weather = normalizeWeatherFace(state, 1, parsed);
 
-      const auditErrors = collectAuditErrors(parsed, state, weather);
+      const auditErrors = collectAuditErrors(parsed, state, weather, debug);
       const staleErrors = collectRebindStaleErrors(
         parsed,
         state,

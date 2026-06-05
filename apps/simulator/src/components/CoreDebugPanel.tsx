@@ -330,7 +330,7 @@ export function CoreDebugPanel() {
                       Threshold: {snapshot.weatherFace.runtime.thresholdPercent}%
                     </p>
                     <p className="text-foundry-ink">
-                      Current rain: {snapshot.weatherFace.runtime.currentRainPercent}%
+                      Source rain: {snapshot.weatherFace.runtime.sourceRainPercent}%
                     </p>
                     <p className="text-foundry-ink">
                       Gate: {snapshot.weatherFace.runtime.gate}
@@ -344,8 +344,14 @@ export function CoreDebugPanel() {
                       </p>
                     ) : null}
                     <p className="text-foundry-ink">
-                      Current rain: {snapshot.weatherFace.runtime.currentRainPercent}%
+                      Source rain: {snapshot.weatherFace.runtime.sourceRainPercent}%
                     </p>
+                    {snapshot.weatherFace.runtime.displayedRainPercent != null ? (
+                      <p className="text-foundry-ink">
+                        Displayed rain:{" "}
+                        {snapshot.weatherFace.runtime.displayedRainPercent}%
+                      </p>
+                    ) : null}
                   </>
                 )}
               </div>

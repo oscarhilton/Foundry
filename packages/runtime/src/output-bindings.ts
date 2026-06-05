@@ -10,7 +10,6 @@ import {
   hasLightOutput,
   hasTemperatureSensor,
   hasTimeSource,
-  hasTokyoPlace,
   hasWeatherSource,
   isChainPowered,
 } from "./chain-parser.js";
@@ -24,6 +23,37 @@ export type LightBehaviourId =
   | "github-activity-light"
   | "temperature-light"
   | "button-light";
+
+const WEATHER_LIGHT_HARD_BOUNDARIES = new Set([
+  "output/lcd",
+  "output/chime",
+  "sensor/motion",
+  "source/time",
+  "control/dial",
+  "identity/weather",
+]);
+
+/** Any place cube in chain — place-agnostic, no city-specific special cases. */
+export function hasPlaceContext(chain: ParsedChain): boolean {
+  return chain.places.length > 0;
+}
+
+function isAllowedWeatherLightModifier(cubeId: string): boolean {
+  return cubeId === "modifier/calm";
+}
+
+/** Place-weather-light: Weather must precede Light with only allowed modifiers between. */
+export function matchesPlaceWeatherLightWindow(chain: ParsedChain): boolean {
+  const wIdx = chain.cubes.findIndex((c) => c.definition.id === "identity/weather");
+  const lIdx = chain.cubes.findIndex((c) => c.definition.id === "output/light");
+  if (wIdx < 0 || lIdx < 0 || wIdx >= lIdx) return false;
+  const between = chain.cubes.slice(wIdx + 1, lIdx);
+  return between.every(
+    (c) =>
+      isAllowedWeatherLightModifier(c.definition.id) &&
+      !WEATHER_LIGHT_HARD_BOUNDARIES.has(c.definition.id),
+  );
+}
 
 /** Which light driver applies — independent of LCD segment pipeline. */
 export function resolveLightBehaviour(
@@ -69,7 +99,8 @@ export function resolveLightBehaviour(
   if (
     hasWeatherSource(chain) &&
     !hasDialCube(chain) &&
-    (chain.place !== undefined || hasTokyoPlace(chain))
+    hasPlaceContext(chain) &&
+    matchesPlaceWeatherLightWindow(chain)
   ) {
     return "london-weather-light";
   }
@@ -88,7 +119,7 @@ export function resolvePrimaryRecipeLabel(
   chain: ParsedChain,
   lightBehaviour: LightBehaviourId | null,
 ): string | null {
-  if (lightBehaviour === "london-weather-light") return "London Weather Light";
+  if (lightBehaviour === "london-weather-light") return "Place Weather Light";
   if (lightBehaviour === "tuned-weather-light") return "Tuned Weather Light";
   if (lightBehaviour === "weather-dial-light") return "Weather Dial Light";
   if (lightBehaviour === "time-calm-light") return "Time Calm Light";
