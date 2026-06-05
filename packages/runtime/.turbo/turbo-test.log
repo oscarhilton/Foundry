@@ -5,72 +5,21 @@
 
  RUN  v2.1.9 /Users/oscarhilts/Documents/scratch/Foundry/packages/runtime
 
- ✓ src/output-formatters.test.ts (4 tests) 3ms
- ✓ src/grammar-hints.test.ts (4 tests) 4ms
- ✓ src/capability-graph.test.ts (5 tests) 6ms
- ✓ src/place-profile.test.ts (6 tests) 20ms
- ✓ src/roadmap-grammar.test.ts (6 tests) 37ms
- ✓ src/grammar.test.ts (22 tests) 70ms
- ❯ src/index.test.ts (83 tests | 2 failed) 118ms
-   × FoundryEngine > shows composite LCD for weather, calm, dial, and light 7ms
-     → expected '45% rain Calm 47%' to match /^London\n12°C · 45% rain\nCalm \d+%\n…/
-   × FoundryEngine > shares weather dial and light across LCD cluster with random backfill 1ms
-     → expected 'London\n12°C · 45% rain\nLight\n33% ·…' to be 'London\n12°C · 45% rain' // Object.is equality
- ✓ src/signal-router.test.ts (1 test) 2ms
+ ✓ src/weather-face.test.ts (6 tests) 3ms
+ ✓ src/grammar-hints.test.ts (4 tests) 5ms
+ ✓ src/capability-graph.test.ts (5 tests) 10ms
+ ✓ src/place-profile.test.ts (6 tests) 22ms
+ ✓ src/roadmap-grammar.test.ts (6 tests) 50ms
+ ✓ src/grammar.test.ts (23 tests) 58ms
+ ✓ src/index.test.ts (100 tests) 132ms
+ ✓ src/output-formatters.test.ts (7 tests) 3ms
+ ✓ src/perlin.test.ts (3 tests) 3ms
+ ✓ src/signal-router.test.ts (1 test) 3ms
+ ✓ src/chain-parser-dial.test.ts (3 tests) 5ms
  ✓ src/weather-light.test.ts (4 tests) 1ms
- ✓ src/perlin.test.ts (3 tests) 4ms
 
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  12 passed (12)
+      Tests  168 passed (168)
+   Start at  17:38:34
+   Duration  1.24s (transform 517ms, setup 0ms, collect 1.73s, tests 294ms, environment 2ms, prepare 1.48s)
 
- FAIL  src/index.test.ts > FoundryEngine > shows composite LCD for weather, calm, dial, and light
-AssertionError: expected '45% rain Calm 47%' to match /^London\n12°C · 45% rain\nCalm \d+%\n…/
-
-- Expected: 
-/^London\n12°C · 45% rain\nCalm \d+%\nLight\n\d+% · /
-
-+ Received: 
-"45% rain Calm 47%"
-
- ❯ src/index.test.ts:702:21
-    700| 
-    701|     const { lcdText } = engine.getOutputState();
-    702|     expect(lcdText).toMatch(/^London\n12°C · 45% rain\nCalm \d+%\nLigh…
-       |                     ^
-    703|     expect(lcdText).not.toMatch(/CALM/);
-    704|     expect(lcdText).not.toMatch(/50% 40%/);
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
-
- FAIL  src/index.test.ts > FoundryEngine > shares weather dial and light across LCD cluster with random backfill
-AssertionError: expected 'London\n12°C · 45% rain\nLight\n33% ·…' to be 'London\n12°C · 45% rain' // Object.is equality
-
-- Expected
-+ Received
-
-  London
-  12°C · 45% rain
-+ Light
-+ 33% · Rain
-
- ❯ src/index.test.ts:953:27
-    951| 
-    952|     const { lcdTexts } = engine.getOutputState();
-    953|     expect(lcdTexts.lcd1).toBe("London\n12°C · 45% rain");
-       |                           ^
-    954|     expect(lcdTexts.lcd2).toBe("50%");
-    955|     expect(lcdTexts.lcd3).toMatch(/^\d+%$/);
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
-
- Test Files  1 failed | 9 passed (10)
-      Tests  2 failed | 136 passed (138)
-   Start at  21:19:54
-   Duration  1.17s (transform 495ms, setup 0ms, collect 1.39s, tests 265ms, environment 3ms, prepare 1.67s)
-
-npm error Lifecycle script `test` failed with error:
-npm error code 1
-npm error path /Users/oscarhilts/Documents/scratch/Foundry/packages/runtime
-npm error workspace @foundry/runtime@0.1.0
-npm error location /Users/oscarhilts/Documents/scratch/Foundry/packages/runtime
-npm error command failed
-npm error command sh -c vitest run

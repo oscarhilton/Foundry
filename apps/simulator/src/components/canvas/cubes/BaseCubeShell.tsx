@@ -25,6 +25,7 @@ interface BaseCubeShellProps {
   badgeSlot?: ReactNode;
   stateSlot?: ReactNode;
   width?: number;
+  height?: number;
   /** Footer under state band for identity cubes (e.g. Weather face detail). */
   identityFooter?: string | null;
 }
@@ -37,6 +38,7 @@ export function BaseCubeShell({
   iconSlot,
   stateSlot,
   width = CUBE_SIZE,
+  height = CUBE_SIZE,
   identityFooter,
 }: BaseCubeShellProps) {
   const isCore = definition.id === "core/core";
@@ -66,7 +68,7 @@ export function BaseCubeShell({
       className="relative grid h-full w-full shadow-xl"
       style={{
         width,
-        height: CUBE_SIZE,
+        height,
         backgroundColor: fill,
         borderRadius: radius,
         border: `${strokeWidth}px solid ${stroke}`,

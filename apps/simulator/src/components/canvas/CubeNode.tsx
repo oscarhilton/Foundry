@@ -61,6 +61,8 @@ interface CubeNodeProps {
   onSliderChange?: (value: number) => void;
   onHoverStart?: (definition: CubeDefinition, clientX: number, clientY: number) => void;
   onHoverEnd?: () => void;
+  width?: number;
+  height?: number;
 }
 
 function getStatusLed(
@@ -157,6 +159,8 @@ function CubeNodeInner({
   onSliderChange,
   onHoverStart,
   onHoverEnd,
+  width = CUBE_SIZE,
+  height = CUBE_SIZE,
 }: CubeNodeProps) {
   const { outputState, animTime, recipeActive, powered, inChain } = visualState;
   const effects = visualState.effectTimestamps ?? EMPTY_EFFECT_TIMESTAMPS;
@@ -412,8 +416,8 @@ function CubeNodeInner({
       {...dragAttributes}
       {...dragListeners}
       style={{
-        width: id === "output/lcd" ? CUBE_SIZE * 2 : CUBE_SIZE,
-        height: CUBE_SIZE,
+        width,
+        height,
         opacity: displayOpacity.current,
         transform: `scale(${dragScale})`,
         outline: isDropTarget ? `2px solid ${COLORS.ink}` : undefined,
@@ -444,7 +448,8 @@ function CubeNodeInner({
         badgeSlot={badgeSlot}
         stateSlot={stateSlot}
         identityFooter={identityFooter}
-        width={id === "output/lcd" ? CUBE_SIZE * 2 : CUBE_SIZE}
+        width={width}
+        height={height}
       />
     </div>
   );
