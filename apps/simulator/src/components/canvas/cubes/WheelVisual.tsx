@@ -1,4 +1,4 @@
-import { SvgCircle, SvgGroup, SvgText, getSvgPoint } from "../svg/primitives";
+import { SvgCircle, SvgGroup, getSvgPoint } from "../svg/primitives";
 import { useRef } from "react";
 import { COLORS, CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
@@ -12,9 +12,9 @@ interface WheelVisualProps {
 }
 
 const TAU = Math.PI * 2;
-const OUTER_R = 17;
-const INNER_R = 11;
-const CENTER_R = 5.5;
+const OUTER_R = CUBE_SIZE / 2 - 10;
+const INNER_R = CUBE_SIZE / 2 - 16;
+const CENTER_R = CUBE_SIZE / 7;
 
 function shortestAngularDelta(from: number, to: number): number {
   let delta = to - from;
@@ -39,7 +39,7 @@ export function WheelVisual({
   hintPulse = false,
 }: WheelVisualProps) {
   const cx = CUBE_SIZE / 2;
-  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2 - 2;
+  const cy = CUBE_SIZE / 2;
   const displayPos = useRef(dialPosition);
   const lastFrame = useRef(animTime);
   const draggingRing = useRef(false);
@@ -59,10 +59,7 @@ export function WheelVisual({
   const flashPhase = eventPhase(animTime, pressFlashAt.current, 130);
   const centerFlash = pressFlashAt.current > 0 ? 1 - flashPhase : 0;
 
-  const markerAngle = displayPos.current * TAU - Math.PI / 2;
-  const markerX = cx + Math.cos(markerAngle) * OUTER_R;
-  const markerY = cy + Math.sin(markerAngle) * OUTER_R;
-
+  const rotationDeg = displayPos.current * 360;
   const hintGlow = hintPulse ? 0.2 + Math.sin(animTime * 0.006) * 0.15 : 0;
 
   const pointerOffset = (e: React.PointerEvent) => {
@@ -116,12 +113,13 @@ export function WheelVisual({
   return (
     <>
       <SvgGroup
+        transform={`rotate(${rotationDeg}, ${cx}, ${cy})`}
         onPointerDown={handleRingPointerDown}
         onPointerMove={handleRingPointerMove}
         onPointerUp={endRingDrag}
         onPointerCancel={endRingDrag}
       >
-        {hintPulse && (
+        {/* {hintPulse && (
           <SvgCircle
             x={cx}
             y={cy}
@@ -130,16 +128,19 @@ export function WheelVisual({
             strokeWidth={0.75}
             opacity={hintGlow}
           />
-        )}
-        <SvgCircle
-          x={cx}
-          y={cy}
-          radius={(OUTER_R + INNER_R) / 2}
-          fill="none"
-          stroke="transparent"
-          strokeWidth={OUTER_R - INNER_R + 8}
-        />
-        <SvgCircle
+        )} */}
+        {/* {hintPulse && ( */}
+          <SvgCircle
+            x={cx}
+            y={cy}
+            radius={(OUTER_R + INNER_R) / 2}
+            fill={COLORS.einkBackground}
+            stroke="transparent"
+            strokeWidth={OUTER_R - INNER_R + 8}
+            // opacity={hintGlow}
+          />
+        {/* )} */}
+        {/* <SvgCircle
           x={cx}
           y={cy}
           radius={OUTER_R}
@@ -147,14 +148,34 @@ export function WheelVisual({
           stroke={COLORS.ink}
           strokeWidth={1}
           opacity={0.85}
-        />
+        /> */}
         <SvgCircle
-          x={markerX}
-          y={markerY}
-          radius={2}
-          fill={COLORS.ink}
-          opacity={0.9}
+          x={cx}
+          y={cy}
+          radius={OUTER_R}
+          fill={COLORS.einkBackground}
+          stroke={COLORS.ink}
+          strokeWidth={1}
         />
+        {hintPulse ? (
+          <SvgCircle
+          x={cx}
+          y={cy - OUTER_R + 12}
+          radius={10}
+          stroke={COLORS.ink}
+          fill={"transparent"}
+          opacity={hintGlow}
+          />
+        ) : (
+          <SvgCircle
+            x={cx}
+            y={cy - OUTER_R + 12}
+            radius={10}
+            stroke={COLORS.connectorGrey}
+            fill={"transparent"}
+            opacity={0.9}
+          />
+        )}
       </SvgGroup>
 
       <SvgGroup
@@ -168,21 +189,11 @@ export function WheelVisual({
           y={cy + pressDepth.current}
           radius={CENTER_R}
           fill={COLORS.stroke}
-          stroke={COLORS.stroke}
+          stroke={COLORS.ink}
           strokeWidth={1}
           opacity={0.55 + centerFlash * 0.25}
         />
       </SvgGroup>
-
-      <SvgText
-        x={cx}
-        y={CUBE_FACE.stateBottom - 2}
-        text={`${Math.round(displayPos.current * 100)}%`}
-        textAnchor="middle"
-        fontSize={8}
-        fill={COLORS.muted}
-        opacity={0.85}
-      />
     </>
   );
 }
