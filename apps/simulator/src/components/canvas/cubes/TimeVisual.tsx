@@ -1,38 +1,32 @@
-import { SvgCircle, SvgLine } from "../svg/primitives";
-import { COLORS, CUBE_FACE } from "../design-tokens";
-import { CUBE_SIZE } from "../layout";
+import { Clock } from "lucide-react";
+import { COLORS, CUBE_ICON_BADGE_SIZE } from "../design-tokens";
 
 interface TimeVisualProps {
   hour: number | null;
   animTime: number;
 }
 
-export function TimeVisual({ hour }: TimeVisualProps) {
-  const h = hour ?? 0.5;
-  const angle = h * 360 - 90;
-  const rad = (angle * Math.PI) / 180;
-  const cx = CUBE_SIZE / 2;
-  const cy = (CUBE_FACE.stateTop + CUBE_FACE.stateBottom) / 2;
-  const handX = cx + Math.cos(rad) * 10;
-  const handY = cy + Math.sin(rad) * 10;
+/** Wall-clock fraction 0–1 → `HH:MM` (matches runtime LCD formatter). */
+export function formatTimeDisplay(hour: number | null | undefined): string {
+  const hourFrac = hour ?? 0.5;
+  const totalMinutes = Math.floor(hourFrac * 24 * 60);
+  const hours = Math.floor(totalMinutes / 60) % 24;
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
 
+export function TimeVisual(_props: TimeVisualProps) {
   return (
-    <>
-      <SvgCircle
-        x={cx}
-        y={cy}
-        radius={12}
-        stroke={COLORS.muted}
-        strokeWidth={1}
-        opacity={0.5}
-      />
-      <SvgLine
-        points={[cx, cy, handX, handY]}
+    <div
+      className="pointer-events-none flex select-none flex-col items-center justify-center gap-2 p-2 px-1.5 text-center font-mono leading-tight"
+      style={{ color: COLORS.ink, backgroundColor: COLORS.einkBackground }}
+    >
+      <Clock
+        aria-hidden
+        size={CUBE_ICON_BADGE_SIZE}
         stroke={COLORS.ink}
         strokeWidth={1.5}
-        lineCap="round"
-        opacity={0.6}
       />
-    </>
+    </div>
   );
 }

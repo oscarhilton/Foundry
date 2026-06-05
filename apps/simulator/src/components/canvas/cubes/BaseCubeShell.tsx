@@ -4,13 +4,13 @@ import { COLORS, CUBE_SHELL } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 
 const CORE_CABLE_BG = `${import.meta.env.BASE_URL}images/core-core-bg.png`;
-const CORE_CABLE_EXTEND = 1000;
 
 const IDENTITY_LABELS = [
   "identity/weather",
   "identity/london",
   "identity/tokyo",
   "identity/foundry",
+  "source/time",
 ] as const;
 
 interface BaseCubeShellProps {
@@ -25,6 +25,8 @@ interface BaseCubeShellProps {
   badgeSlot?: ReactNode;
   stateSlot?: ReactNode;
   width?: number;
+  /** Footer under state band for identity cubes (e.g. Weather face detail). */
+  identityFooter?: string | null;
 }
 
 export function BaseCubeShell({
@@ -35,6 +37,7 @@ export function BaseCubeShell({
   iconSlot,
   stateSlot,
   width = CUBE_SIZE,
+  identityFooter,
 }: BaseCubeShellProps) {
   const isCore = definition.id === "core/core";
   const fill = unpowered ? COLORS.cubeUnpowered : COLORS.einkBackground;
@@ -87,8 +90,8 @@ export function BaseCubeShell({
         ) : null}
         <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center">
           {hasStateBand ? stateSlot : iconSlot}
-          {showIdentityLabel ? (
-            <div className="text-[10px] font-bold">{definition.label}</div>
+          {showIdentityLabel && identityFooter ? (
+            <div className="text-[10px] font-bold">{identityFooter}</div>
           ) : null}
         </div>
       </div>

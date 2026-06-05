@@ -9,7 +9,7 @@ import { LightVisual } from "./cubes/LightVisual";
 import { WheelVisual } from "./cubes/WheelVisual";
 import { MotionVisual } from "./cubes/MotionVisual";
 import { ChimeVisual } from "./cubes/ChimeVisual";
-import { WeatherVisual } from "./cubes/WeatherVisual";
+import { WeatherVisual, weatherFooterLabel } from "./cubes/WeatherVisual";
 import { CalmVisual } from "./cubes/CalmVisual";
 import { GitHubVisual } from "./cubes/GitHubVisual";
 import { CoreVisual } from "./cubes/CoreVisual";
@@ -18,7 +18,7 @@ import { SliderVisual } from "./cubes/SliderVisual";
 import { MusicVisual } from "./cubes/MusicVisual";
 import { LcdVisual } from "./cubes/LcdVisual";
 import { TemperatureVisual } from "./cubes/TemperatureVisual";
-import { TimeVisual } from "./cubes/TimeVisual";
+import { TimeVisual, formatTimeDisplay } from "./cubes/TimeVisual";
 import { RandomVisual } from "./cubes/RandomVisual";
 import { COLORS, CUBE_ICON_BADGE_SIZE } from "./design-tokens";
 import { CUBE_SIZE } from "./layout";
@@ -355,7 +355,7 @@ function CubeNodeInner({
     const visual = renderVisual();
     if (!visual) return null;
 
-    if (id === "identity/weather") {
+    if (["identity/weather", "source/time"].includes(id)) {
       return visual;
     }
 
@@ -373,6 +373,22 @@ function CubeNodeInner({
   };
 
   const stateSlot = buildStateSlot();
+  const identityFooter =
+    id === "identity/weather"
+      ? weatherFooterLabel(
+          animTime,
+          outputState.weatherTemp,
+          outputState.weatherRain,
+          outputState.weatherFace,
+          definition.label,
+        )
+      : id === "source/time"
+        ? outputState.timeHour != null
+          ? formatTimeDisplay(outputState.timeHour)
+          : definition.label
+        : ["identity/london", "identity/tokyo", "identity/foundry"].includes(id)
+          ? definition.label
+          : null;
   const iconSlot = stateSlot ? null : (
     <CubeIcon
       cubeId={definition.id}
@@ -427,6 +443,7 @@ function CubeNodeInner({
         iconSlot={iconSlot}
         badgeSlot={badgeSlot}
         stateSlot={stateSlot}
+        identityFooter={identityFooter}
         width={id === "output/lcd" ? CUBE_SIZE * 2 : CUBE_SIZE}
       />
     </div>

@@ -4,11 +4,34 @@ import type { WeatherFaceState, WeatherFaceSymbol } from "@foundry/runtime";
 import { WEATHER_FACE_EINK_INK } from "@foundry/runtime";
 import { COLORS, CUBE_ICON_BADGE_SIZE } from "../design-tokens";
 
+const WEATHER_FOOTER_CYCLE_MS = 2500;
+
 interface WeatherVisualProps {
   face: WeatherFaceState | null;
   /** Live rain when no latched face (shelf preview). */
   rain: number | null;
   animTime: number;
+}
+
+/** Footer alternates temp and rain so neither crowds one line. */
+export function weatherFooterLabel(
+  animTime: number,
+  temp: number | null,
+  rain: number | null,
+  face: WeatherFaceState | null,
+  fallbackLabel: string,
+): string {
+  if (face?.mode === "threshold") {
+    return face.detail ?? fallbackLabel;
+  }
+  if (temp == null && rain == null && face == null) {
+    return fallbackLabel;
+  }
+  const showRain = Math.floor(animTime / WEATHER_FOOTER_CYCLE_MS) % 2 === 1;
+  if (showRain) {
+    return `${Math.round((rain ?? 0.3) * 100)}% rain`;
+  }
+  return `${Math.round(temp ?? 14)}°C`;
 }
 
 const SYMBOL_ICONS: Record<WeatherFaceSymbol, LucideIcon> = {
