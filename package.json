@@ -13,6 +13,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test && node scripts/ux-smoke-test.mjs",
     "test:ux": "node scripts/ux-smoke-test.mjs",
+    "audit:grammar": "npm run audit:grammar -w @foundry/runtime --",
     "lint": "npm run build"
   },
   "devDependencies": {

@@ -760,6 +760,7 @@ export class FoundryEngine {
   ): void {
     if (!hasLightOutput(this.parsed!)) {
       this.outputState.lightMood = null;
+      this.setLightOutput(0.02, null);
       return;
     }
     if (!behaviour) {

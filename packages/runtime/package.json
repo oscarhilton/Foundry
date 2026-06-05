@@ -14,12 +14,14 @@
     "build": "tsc -b",
     "dev": "tsc --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "audit:grammar": "tsx scripts/audit-grammar.ts"
   },
   "dependencies": {
     "@foundry/cube-defs": "*"
   },
   "devDependencies": {
+    "tsx": "^4.22.4",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }
