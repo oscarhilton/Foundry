@@ -76,7 +76,7 @@ export function BaseCubeShell({
         style={{ overflow: isCore ? "visible" : "hidden" }}
       >
         {isCore && inChain ? (
-          <div className="absolute top-0 w-screen h-full z-[-1] flex items-center" style={{ left: CUBE_SIZE - 35 }}>
+          <div className="absolute top-0 w-screen h-full z-[-1] flex items-center" style={{ left: CUBE_SIZE }}>
             <img
               src={CORE_CABLE_BG}
               alt=""
