@@ -6,7 +6,11 @@ import {
   hasWeatherSource,
 } from "./chain-parser.js";
 import type { PlaceProfile } from "./place-profile.js";
-import { resolvePlaceProfilesFromSlots } from "./place-profile.js";
+import {
+  resolvePlaceProfileForWeatherWindow,
+  resolvePlaceProfilesFromSlots,
+} from "./place-profile.js";
+import { resolveWeatherForUpstreamWindow } from "./resolved-weather.js";
 import {
   concatLcdSegments,
   formatButtonCircuit,
@@ -51,6 +55,8 @@ export interface SegmentBuildContext {
   hasSplit: boolean;
   hasSlider: boolean;
   places: PlaceProfile[];
+  /** Place bound to the weather cube in this upstream window. */
+  weatherPlace: PlaceProfile | null;
   hasCalm: boolean;
   hasRandom: boolean;
   hasButton: boolean;
@@ -102,6 +108,7 @@ export function buildSegmentContext(
   lcdChainIndex = 0,
 ): SegmentBuildContext {
   const places = resolvePlaceProfilesFromSlots(cubes);
+  const weatherPlace = resolvePlaceProfileForWeatherWindow(cubes);
   const hasWeatherSource = cubes.some(
     (c) => c.definition.id === "identity/weather",
   );
@@ -114,13 +121,22 @@ export function buildSegmentContext(
   const dialTunesWeather = dialTunesWeatherInSlots(cubes);
 
   let windowFmt = fmt;
-  if (hasWeatherSource && places.length > 0 && !dialTunesWeather) {
-    const place = places[0]!;
-    windowFmt = {
-      ...fmt,
-      weatherTemp: place.mockBaseTemp,
-      weatherRain: place.mockRainBias,
-    };
+  if (hasWeatherSource) {
+    const resolved = resolveWeatherForUpstreamWindow(
+      cubes,
+      {
+        temp: fmt.weatherTemp ?? 14,
+        rain: fmt.weatherRain ?? 0.3,
+      },
+      dialTunesWeather,
+    );
+    if (resolved) {
+      windowFmt = {
+        ...fmt,
+        weatherTemp: resolved.temp,
+        weatherRain: resolved.rain,
+      };
+    }
   }
 
   const hasDial = cubes.some((c) => c.definition.id === "control/dial");
@@ -161,6 +177,7 @@ export function buildSegmentContext(
     hasSplit: cubes.some((c) => c.definition.id === "transform/split"),
     hasSlider: cubes.some((c) => c.definition.id === "control/slider"),
     places,
+    weatherPlace,
     hasCalm: cubes.some((c) => c.definition.id === "modifier/calm"),
     hasRandom: cubes.some((c) => c.definition.id === "modifier/random"),
     hasButton: cubes.some((c) => c.definition.id === "control/button"),
@@ -178,8 +195,7 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
 
   if (ctx.hasTemperatureSensor) segments.push(formatTemp(fmt.sensorTemp));
   if (ctx.hasWeatherSource) {
-    const boundPlace =
-      ctx.places.length > 0 ? ctx.places[0]!.label : undefined;
+    const boundPlace = ctx.weatherPlace?.label ?? ctx.places[0]?.label;
     if (dialScalesLight) {
       segments.push(
         formatWeatherDialLightViewport(

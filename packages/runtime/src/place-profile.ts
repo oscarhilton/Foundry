@@ -71,6 +71,39 @@ export function resolvePlaceProfilesFromSlots(
     .map(buildPlaceProfile);
 }
 
+/** Place profile bound to the weather cube feeding this upstream window. */
+export function resolvePlaceProfileForWeatherWindow(
+  slots: ParsedChainSlot[],
+): PlaceProfile | null {
+  let lastWeatherIdx = -1;
+  for (let i = 0; i < slots.length; i++) {
+    if (slots[i]!.definition.id === "identity/weather") {
+      lastWeatherIdx = i;
+    }
+  }
+  if (lastWeatherIdx < 0) return null;
+
+  const firstPlaceIdx = slots.findIndex((s) => s.definition.role === "place");
+  if (firstPlaceIdx < 0 || firstPlaceIdx >= lastWeatherIdx) return null;
+
+  const immediateBefore = slots[lastWeatherIdx - 1];
+  const immediatePlace =
+    immediateBefore?.definition.role === "place" ? immediateBefore : null;
+
+  const between = slots.slice(firstPlaceIdx + 1, lastWeatherIdx);
+  const hasSegmentBreak = between.some(
+    (s) =>
+      s.definition.id === "output/lcd" ||
+      s.definition.id === "identity/weather",
+  );
+
+  if (hasSegmentBreak && immediatePlace) {
+    return buildPlaceProfile(immediatePlace);
+  }
+
+  return buildPlaceProfile(slots[firstPlaceIdx]!);
+}
+
 export function hourFractionInTimezone(timezone: string, now = new Date()): number {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: timezone,

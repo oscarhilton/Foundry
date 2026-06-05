@@ -9,6 +9,8 @@ import { isRaining } from "./weather-light.js";
 export interface WeatherFaceDebugInput {
   weatherRain: number | null;
   smoothedRain: number;
+  /** Resolved sentence weather — used for gate and displayed rain when present. */
+  resolvedRain?: number | null;
 }
 
 export interface WeatherFaceDebugContext {
@@ -32,8 +34,9 @@ export function buildWeatherFaceDebugContext(
   input: WeatherFaceDebugInput,
 ): WeatherFaceDebugContext {
   const useCalm = hasCalmModifier(parsed);
-  const rain = useCalm ? input.smoothedRain : (input.weatherRain ?? 0.3);
-  const sourceRainPercent = Math.round(rain * 100);
+  const pipelineRain = useCalm ? input.smoothedRain : (input.weatherRain ?? 0.3);
+  const sourceRainPercent = Math.round(pipelineRain * 100);
+  const resolvedRain = input.resolvedRain ?? pipelineRain;
 
   if (face.mode === "threshold") {
     const threshold = face.rainThreshold ?? 0.5;
@@ -43,15 +46,20 @@ export function buildWeatherFaceDebugContext(
       sourceRainPercent,
       displayedRainPercent: null,
       thresholdPercent,
-      gate: isRaining(rain, threshold) ? "open" : "closed",
+      gate: isRaining(resolvedRain, threshold) ? "open" : "closed",
       moodLabel: null,
     };
   }
 
+  const displayedRainPercent =
+    input.resolvedRain != null
+      ? Math.round(input.resolvedRain * 100)
+      : parseRainPercentFromDetail(face.detail);
+
   return {
     modeLabel: "Live condition",
     sourceRainPercent,
-    displayedRainPercent: parseRainPercentFromDetail(face.detail),
+    displayedRainPercent,
     thresholdPercent: null,
     gate: null,
     moodLabel: formatWeatherFaceMood(face.symbol),

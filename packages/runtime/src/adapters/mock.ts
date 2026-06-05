@@ -12,6 +12,8 @@ export interface MockAdapterOptions {
   weatherIntervalMs?: number;
   githubIntervalMs?: number;
   initialWeather?: WeatherData;
+  /** Skip random weather ticks; publish initialWeather only. */
+  auditMode?: boolean;
 }
 
 export class MockAdapters {
@@ -26,12 +28,14 @@ export class MockAdapters {
   private weatherEnabled = true;
   private githubEnabled = false;
   private timeTimezone: string | undefined;
+  private auditMode: boolean;
 
   constructor(router: SignalRouter, options: MockAdapterOptions = {}) {
     this.router = router;
     this.weather = options.initialWeather ?? { temp: 14, rain: 0.35 };
     this.weatherIntervalMs = options.weatherIntervalMs ?? 3000;
     this.githubIntervalMs = options.githubIntervalMs ?? 4000;
+    this.auditMode = options.auditMode ?? false;
   }
 
   private weatherIntervalMs: number;
@@ -40,7 +44,7 @@ export class MockAdapters {
   setPlaceProfile(profile: PlaceProfile | null): void {
     this.placeProfile = profile;
     this.timeTimezone = profile?.timezone;
-    if (this.weatherEnabled) {
+    if (this.weatherEnabled && !this.auditMode) {
       this.weather = this.generateWeatherSample();
       if (this.running) this.publishWeather();
     }
@@ -83,15 +87,19 @@ export class MockAdapters {
     this.running = true;
 
     if (this.weatherEnabled) {
-      this.weather = this.generateWeatherSample();
-      this.publishWeather();
-      this.weatherTimer = setInterval(() => {
+      if (!this.auditMode) {
         this.weather = this.generateWeatherSample();
-        this.publishWeather();
-      }, this.weatherIntervalMs);
+      }
+      this.publishWeather();
+      if (!this.auditMode) {
+        this.weatherTimer = setInterval(() => {
+          this.weather = this.generateWeatherSample();
+          this.publishWeather();
+        }, this.weatherIntervalMs);
+      }
     }
 
-    if (this.githubEnabled) {
+    if (this.githubEnabled && !this.auditMode) {
       this.publishGithub();
       this.githubTimer = setInterval(() => {
         this.publishGithub();

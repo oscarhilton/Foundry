@@ -95,6 +95,9 @@ function formatMarkdown(entry: VerboseAuditResult): string {
     lines.push("Final LCD:");
     for (const [id, text] of lcdValues) {
       lines.push(`${id}: ${normalizeLcdValue(text)}`);
+      if (/^PWR USB \d+%$/.test(text.trim()) || /^BAT \d+%$/.test(text.trim())) {
+        lines.push("Source: core power mirror");
+      }
     }
     lines.push("");
   }
@@ -117,7 +120,16 @@ function formatMarkdown(entry: VerboseAuditResult): string {
   if (trace.length > 0) {
     const last = trace[trace.length - 1]!;
     lines.push("Final viewport:");
-    lines.push(`- ${last.label}: ${last.rendered.replace(/\n/g, " / ")}`);
+    const rendered = last.rendered.replace(/\n/g, " / ");
+    const noPayload =
+      last.rendered === "--" &&
+      lcdValues.some(
+        ([, text]) =>
+          /^PWR USB \d+%$/.test(text.trim()) || /^BAT \d+%$/.test(text.trim()),
+      );
+    lines.push(
+      `- ${last.label}: ${rendered}${noPayload ? " (no sentence payload)" : ""}`,
+    );
     lines.push("");
 
     if (trace.length > 1) {

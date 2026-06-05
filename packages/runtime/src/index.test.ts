@@ -296,6 +296,9 @@ describe("FoundryEngine", () => {
     expect(state.activeRecipeId).toBe("london-weather-light");
     expect(state.lightBrightness).toBeGreaterThan(0.1);
     expect(state.placeLabel).toBe("London");
+    expect(state.lightMood).toBe("overcast");
+    expect(state.weatherFace?.symbol).toBe("cloud");
+    expect(state.lightMood).toBe(state.resolvedWeather?.mood);
 
     engine.destroy();
   });
@@ -440,9 +443,9 @@ describe("FoundryEngine", () => {
     expect(snap.lightOutput?.mode).toBe("Tuned Weather");
     expect(snap.lightOutput?.gate).toBe("closed");
     expect(snap.lightOutput?.thresholdPercent).toBe(85);
-    expect(snap.lightOutput?.rainPercent).toBe(49);
+    expect(snap.lightOutput?.rainPercent).toBe(45);
 
-    engine.mockAdapters.setWeather({ temp: 12, rain: 0.9 });
+    engine.setDialPosition(0);
     state = engine.getOutputState();
     expect(state.lightBrightness).toBeCloseTo(1, 1);
     expect(state.lightMood).toBe("rain");
@@ -479,12 +482,7 @@ describe("FoundryEngine", () => {
 
   it("fires chime on motion when rainy for rain-motion-chime", () => {
     engine.setChain(
-      withCore(
-        "identity/london",
-        "identity/weather",
-        "sensor/motion",
-        "output/chime",
-      ),
+      withCore("identity/weather", "sensor/motion", "output/chime"),
     );
     engine.start();
     engine.mockAdapters.setWeather({ temp: 12, rain: 0.8 });
@@ -558,7 +556,7 @@ describe("FoundryEngine", () => {
     engine.mockAdapters.setWeather({ temp: 12, rain: 0.37 });
 
     const gate = engine.getCoreDebugSnapshot().chimeGate;
-    expect(gate?.rainPercent).toBe(37);
+    expect(gate?.rainPercent).toBe(45);
     expect(gate?.thresholdPercent).toBe(50);
     expect(gate?.gate).toBe("closed");
     expect(gate?.thresholdSource).toBe("default");
@@ -569,12 +567,7 @@ describe("FoundryEngine", () => {
 
   it("reports chime gate open when rain meets threshold", () => {
     engine.setChain(
-      withCore(
-        "identity/london",
-        "identity/weather",
-        "sensor/motion",
-        "output/chime",
-      ),
+      withCore("identity/weather", "sensor/motion", "output/chime"),
     );
     engine.start();
     engine.mockAdapters.setWeather({ temp: 12, rain: 0.72 });
@@ -658,7 +651,7 @@ describe("FoundryEngine", () => {
     expect(snap.weatherFace?.runtime.thresholdPercent).toBe(30);
     expect(snap.weatherFace?.runtime.sourceRainPercent).toBe(17);
     expect(snap.weatherFace?.runtime.displayedRainPercent).toBeNull();
-    expect(snap.weatherFace?.runtime.gate).toBe("closed");
+    expect(snap.weatherFace?.runtime.gate).toBe("open");
     expect(snap.weatherFace?.runtime.moodLabel).toBeNull();
 
     engine.destroy();
@@ -707,7 +700,7 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
-  it("uses live rain on tuned weather LCD when place is upstream", () => {
+  it("uses resolved place rain on tuned weather LCD when place is upstream", () => {
     engine.setChain(
       withCore(
         "identity/london",
@@ -721,8 +714,8 @@ describe("FoundryEngine", () => {
     engine.setDialPosition(1);
 
     const lcd = Object.values(engine.getOutputState().lcdTexts)[0];
-    expect(lcd).toBe("London\nRAIN > 85%\n21% · closed");
-    expect(lcd).not.toMatch(/45% rain/);
+    expect(lcd).toBe("London\nRAIN > 85%\n45% · closed");
+    expect(lcd).not.toMatch(/21%/);
 
     engine.destroy();
   });
@@ -1077,7 +1070,7 @@ describe("FoundryEngine", () => {
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
     expect(state.lcdText).toBe(
-      "London\n12°C · 45% rain\nLight\n40% · Overcast",
+      "London\n12°C · 45% rain\nLight\n32% · Overcast",
     );
 
     engine.destroy();
@@ -1397,7 +1390,7 @@ describe("FoundryEngine", () => {
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
     expect(state.lcdText).toBe(
-      "London\n12°C · 45% rain\nLight\n40% · Overcast",
+      "London\n12°C · 45% rain\nLight\n32% · Overcast",
     );
     expect(state.lightBrightness).toBeGreaterThan(0.1);
 

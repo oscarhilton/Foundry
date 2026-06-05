@@ -37,17 +37,25 @@ export function normalizeWeatherFace(
   const sourceRainPct =
     state.weatherRain != null ? Math.round(state.weatherRain * 100) : null;
   const tempC =
-    state.weatherTemp != null ? Math.round(state.weatherTemp) : null;
+    state.resolvedWeather != null
+      ? Math.round(state.resolvedWeather.temp)
+      : state.weatherTemp != null
+        ? Math.round(state.weatherTemp)
+        : null;
   const displayedRainPct =
     face.mode === "condition"
-      ? parseRainPercentFromDetail(face.detail)
+      ? state.resolvedWeather != null
+        ? Math.round(state.resolvedWeather.rain * 100)
+        : parseRainPercentFromDetail(face.detail)
       : null;
-  const usesPlaceProfile = parsed ? usesPlaceProfileDisplay(parsed) : false;
+  const usesPlaceProfile =
+    state.resolvedWeather?.source === "place-profile" ||
+    (parsed ? usesPlaceProfileDisplay(parsed) : false);
 
   if (face.mode === "threshold") {
     const threshold = face.rainThreshold ?? dialToRainThreshold(dialPosition);
     const thresholdPct = Math.round(threshold * 100);
-    const rain = state.weatherRain ?? 0;
+    const rain = state.resolvedWeather?.rain ?? state.weatherRain ?? 0;
     const gateOpen = rain >= threshold;
 
     return {

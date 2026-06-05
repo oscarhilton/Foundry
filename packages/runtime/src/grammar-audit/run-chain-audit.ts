@@ -18,11 +18,9 @@ function seedEngine(
   engine: FoundryEngine,
   chainInput: ChainCubeInput[],
   dialPosition: number,
-  weather: WeatherData,
 ): void {
   engine.setChain(chainInput);
   engine.start();
-  engine.mockAdapters.setWeather(weather);
   engine.setDialPosition(dialPosition);
   engine.mockAdapters.triggerMotion(false);
 }
@@ -36,6 +34,7 @@ export function runChainAudit(
   options: RunChainAuditOptions = {},
 ): AuditResult | VerboseAuditResult {
   const dialPosition = options.dialPosition ?? 1;
+  const weather = options.weather ?? DEFAULT_AUDIT_WEATHER;
   const chainInput = buildChain(chainIds, {
     withCore: options.withCore ?? true,
   });
@@ -43,6 +42,8 @@ export function runChainAudit(
   const topics: SignalMessage[] = [];
   const engine = new FoundryEngine({
     dialDefault: dialPosition,
+    auditMode: true,
+    initialWeather: weather,
     onSignal: options.verbose
       ? (msg) => {
           topics.push(msg);
@@ -53,15 +54,15 @@ export function runChainAudit(
   let errors: string[] = [];
 
   try {
-    seedEngine(engine, chainInput, dialPosition, options.weather ?? DEFAULT_AUDIT_WEATHER);
+    seedEngine(engine, chainInput, dialPosition);
 
     const state = engine.getOutputState();
     const parsed = parseChain(engine.getChain());
     const needsDebug = options.verbose || chainHasWeather(chainInput);
     const debug = needsDebug ? engine.getCoreDebugSnapshot() : null;
-    const weather = normalizeWeatherFace(state, dialPosition, parsed);
+    const weatherNorm = normalizeWeatherFace(state, dialPosition, parsed);
 
-    errors = collectAuditErrors(parsed, state, weather, debug);
+    errors = collectAuditErrors(parsed, state, weatherNorm, debug);
 
     const base: AuditResult = { chainIds, chainInput, errors };
 
@@ -86,18 +87,20 @@ export function runChainAuditOnEngine(
   options: Omit<RunChainAuditOptions, "verbose"> = {},
 ): AuditResult {
   const dialPosition = options.dialPosition ?? 1;
+  const weather = options.weather ?? DEFAULT_AUDIT_WEATHER;
   const chainInput = buildChain(chainIds, {
     withCore: options.withCore ?? true,
   });
 
-  seedEngine(engine, chainInput, dialPosition, options.weather ?? DEFAULT_AUDIT_WEATHER);
+  engine.mockAdapters.setWeather(weather);
+  seedEngine(engine, chainInput, dialPosition);
 
   const state = engine.getOutputState();
   const parsed = parseChain(engine.getChain());
   const needsDebug = chainHasWeather(chainInput);
   const debug = needsDebug ? engine.getCoreDebugSnapshot() : null;
-  const weather = normalizeWeatherFace(state, dialPosition, parsed);
-  const errors = collectAuditErrors(parsed, state, weather, debug);
+  const weatherNorm = normalizeWeatherFace(state, dialPosition, parsed);
+  const errors = collectAuditErrors(parsed, state, weatherNorm, debug);
 
   return { chainIds, chainInput, errors };
 }

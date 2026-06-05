@@ -52,7 +52,6 @@ import { isRaining, weatherToLightMood, type LightMood } from "./weather-light.j
 import {
   defaultLiveWeatherCoords,
   resolvePlaceProfile,
-  resolvePlaceProfilesFromSlots,
   hourFractionInTimezone,
   type PlaceProfile,
 } from "./place-profile.js";
@@ -63,6 +62,10 @@ import {
   weatherFaceContentKey,
   type WeatherFaceState,
 } from "./weather-face.js";
+import {
+  resolveWeatherForChain,
+  type ResolvedWeatherSnapshot,
+} from "./resolved-weather.js";
 import {
   SignalRouter,
   smoothValue,
@@ -76,6 +79,9 @@ export interface FoundryEngineOptions {
   onSignal?: (message: SignalMessage) => void;
   dialDefault?: number;
   sliderDefault?: number;
+  /** Deterministic weather for grammar audit — no random tick emissions. */
+  auditMode?: boolean;
+  initialWeather?: { temp: number; rain: number };
 }
 
 export interface FoundryOutputState {
@@ -112,6 +118,8 @@ export interface FoundryOutputState {
   batteryPercent: number;
   /** Latched e-ink face on Weather cube; persists when unpowered. */
   weatherFace: WeatherFaceState | null;
+  /** Unified weather for face, LCD, light, and chime when Weather is in chain. */
+  resolvedWeather: ResolvedWeatherSnapshot | null;
 }
 
 export interface CoreDebugSnapshot {
@@ -172,7 +180,10 @@ export class FoundryEngine {
     this.dialPosition = options.dialDefault ?? 0.65;
     this.sliderPosition = options.sliderDefault ?? 0.5;
     this.router = new SignalRouter({ onPublish: options.onSignal });
-    this.mockAdapters = new MockAdapters(this.router);
+    this.mockAdapters = new MockAdapters(this.router, {
+      initialWeather: options.initialWeather,
+      auditMode: options.auditMode,
+    });
     this.outputState = this.defaultOutputState();
   }
 
@@ -209,7 +220,25 @@ export class FoundryEngine {
       powerSource: "usb",
       batteryPercent: 100,
       weatherFace: null,
+      resolvedWeather: null,
     };
+  }
+
+  private pipelineWeather(): { temp: number; rain: number } {
+    if (!this.parsed) return { temp: 14, rain: 0.3 };
+    const useCalm =
+      this.context?.useCalm ?? hasCalmModifier(this.parsed);
+    return {
+      temp: this.outputState.weatherTemp ?? 14,
+      rain: useCalm
+        ? this.smoothedRain
+        : (this.outputState.weatherRain ?? 0.3),
+    };
+  }
+
+  private resolveCurrentWeather(): ResolvedWeatherSnapshot | null {
+    if (!this.parsed?.powered) return null;
+    return resolveWeatherForChain(this.parsed, this.pipelineWeather());
   }
 
   setChain(cubes: ChainCubeInput[]): void {
@@ -256,8 +285,12 @@ export class FoundryEngine {
             lightBehaviour,
             {
               githubActivity: this.outputState.githubActivity,
-              weatherTemp: this.outputState.weatherTemp,
-              weatherRain: this.outputState.weatherRain,
+              weatherTemp:
+                this.outputState.resolvedWeather?.temp ??
+                this.outputState.weatherTemp,
+              weatherRain:
+                this.outputState.resolvedWeather?.rain ??
+                this.outputState.weatherRain,
               sensorTemp: this.outputState.sensorTemp,
               timeHour: this.outputState.timeHour,
               dialPosition: this.outputState.dialPosition,
@@ -291,6 +324,7 @@ export class FoundryEngine {
               {
                 weatherRain: this.outputState.weatherRain,
                 smoothedRain: this.smoothedRain,
+                resolvedRain: this.outputState.resolvedWeather?.rain,
               },
             ),
           }
@@ -303,7 +337,9 @@ export class FoundryEngine {
             {
               activeRecipeId: this.outputState.activeRecipeId,
               activeRecipeName: this.outputState.activeRecipeName,
-              weatherRain: this.outputState.weatherRain,
+              weatherRain:
+                this.outputState.resolvedWeather?.rain ??
+                this.outputState.weatherRain,
               smoothedRain: this.smoothedRain,
               dialPosition: this.dialPosition,
             },
@@ -595,10 +631,12 @@ export class FoundryEngine {
             this.context?.recipe.id === "rain-motion-chime" &&
             this.parsed
           ) {
-            const useCalm = hasCalmModifier(this.parsed);
-            const rain = useCalm
-              ? this.smoothedRain
-              : (this.outputState.weatherRain ?? 0.3);
+            const resolved = this.resolveCurrentWeather();
+            const rain =
+              resolved?.rain ??
+              (hasCalmModifier(this.parsed)
+                ? this.smoothedRain
+                : (this.outputState.weatherRain ?? 0.3));
             const threshold = dialTunesWeather(this.parsed)
               ? dialToRainThreshold(this.dialPosition)
               : 0.5;
@@ -696,17 +734,16 @@ export class FoundryEngine {
       return;
     }
 
-    const useCalm =
-      this.context?.useCalm ?? hasCalmModifier(this.parsed);
-    const temp = this.outputState.weatherTemp ?? 14;
-    const rain = useCalm
-      ? this.smoothedRain
-      : (this.outputState.weatherRain ?? 0.3);
+    const pipeline = this.pipelineWeather();
+    const resolved = this.resolveCurrentWeather();
+    this.outputState.resolvedWeather = resolved;
 
     const lightBehaviour = resolveLightBehaviour(this.parsed);
-    this.applyLightBehaviour(lightBehaviour, temp, rain);
+    this.applyLightBehaviour(lightBehaviour, resolved);
 
     if (this.context?.recipe?.id === "tokyo-weather-music") {
+      const temp = resolved?.temp ?? pipeline.temp;
+      const rain = resolved?.rain ?? pipeline.rain;
       const note = 48 + Math.round(((temp + 10) / 40) * 24);
       const velocity = Math.round(40 + (1 - rain) * 60);
       this.setMusicOutput(note, velocity);
@@ -714,35 +751,29 @@ export class FoundryEngine {
 
     this.syncModifierNoise();
     this.syncLcdFromChain();
-    this.syncWeatherFace(temp, rain);
+    this.syncWeatherFace(resolved);
   }
 
   /** Commit Weather cube face when powered; latched across unpowered (e-ink). */
-  private syncWeatherFace(temp: number, rain: number): void {
+  private syncWeatherFace(resolved: ResolvedWeatherSnapshot | null): void {
     const parsed = this.parsed;
     if (!parsed || !hasWeatherSource(parsed)) {
       if (parsed?.powered) {
-        this.outputState.weatherFace = null;
-      }
+    this.outputState.weatherFace = null;
+    this.outputState.resolvedWeather = null;
+  }
       return;
     }
-    if (!parsed.powered) return;
+    if (!parsed.powered || !resolved) return;
 
-    const placeLabel = parsed.places[0]?.definition.label;
-    let displayTemp = temp;
-    let displayRain = rain;
-    if (!dialTunesWeather(parsed) && parsed.places.length > 0) {
-      const profile = resolvePlaceProfilesFromSlots(parsed.cubes)[0];
-      if (profile) {
-        displayTemp = profile.mockBaseTemp;
-        displayRain = profile.mockRainBias;
-      }
-    }
-
-    const next: WeatherFaceState = dialTunesWeather(parsed)
+    const next: WeatherFaceState = resolved.isThresholdMode
       ? { ...buildThresholdFaceState(this.dialPosition), latched: true }
       : {
-          ...buildConditionFaceState(displayTemp, displayRain, placeLabel),
+          ...buildConditionFaceState(
+            resolved.temp,
+            resolved.rain,
+            resolved.placeLabel ?? undefined,
+          ),
           latched: true,
         };
 
@@ -755,8 +786,7 @@ export class FoundryEngine {
 
   private applyLightBehaviour(
     behaviour: LightBehaviourId | null,
-    temp: number,
-    rain: number,
+    resolved: ResolvedWeatherSnapshot | null,
   ): void {
     if (!hasLightOutput(this.parsed!)) {
       this.outputState.lightMood = null;
@@ -767,6 +797,9 @@ export class FoundryEngine {
       this.setLightOutput(0.02, null);
       return;
     }
+
+    const temp = resolved?.temp ?? this.pipelineWeather().temp;
+    const rain = resolved?.rain ?? this.pipelineWeather().rain;
 
     switch (behaviour) {
       case "london-weather-light": {
@@ -821,6 +854,7 @@ export class FoundryEngine {
     const lightBehaviour = this.parsed
       ? resolveLightBehaviour(this.parsed)
       : null;
+    const resolved = this.outputState.resolvedWeather;
     return {
       timeHour: this.outputState.timeHour,
       sensorTemp: this.outputState.sensorTemp,
@@ -992,6 +1026,11 @@ export {
   parseRainPercentFromDetail,
 } from "./weather-face-debug.js";
 export type { WeatherFaceDebugContext } from "./weather-face-debug.js";
+export {
+  resolveWeatherForChain,
+  type ResolvedWeatherSnapshot,
+  type WeatherResolutionSource,
+} from "./resolved-weather.js";
 export {
   buildChimeGateDebugOutput,
 } from "./chime-debug.js";

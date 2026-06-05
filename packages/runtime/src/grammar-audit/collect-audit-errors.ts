@@ -2,12 +2,14 @@ import type { ParsedChain } from "../chain-parser.js";
 import {
   dialSelectsWeatherField,
   dialTunesWeather,
+  dialTunesWeatherInSlots,
 } from "../chain-parser.js";
 import type { CoreDebugSnapshot, FoundryOutputState } from "../index.js";
 import {
   matchesPlaceWeatherLightWindow,
   resolveLightBehaviour,
 } from "../output-bindings.js";
+import { resolveWeatherForUpstreamWindow } from "../resolved-weather.js";
 import { dialToRainThreshold } from "../weather-face.js";
 import {
   collectWeatherDebugErrors,
@@ -137,6 +139,52 @@ function collectPlaceWeatherLightErrors(parsed: ParsedChain): string[] {
   return errors;
 }
 
+const WEATHER_DRIVEN_LIGHT = new Set([
+  "london-weather-light",
+  "tuned-weather-light",
+  "weather-dial-light",
+]);
+
+function parseRainFromLcd(text: string): number | null {
+  const match = text.match(/(\d+)% rain/);
+  return match ? parseInt(match[1]!, 10) : null;
+}
+
+function parseTempFromLcd(text: string): number | null {
+  const match = text.match(/(\d+)°C/);
+  return match ? parseInt(match[1]!, 10) : null;
+}
+
+function collectWeatherUnificationErrors(
+  parsed: ParsedChain,
+  state: FoundryOutputState,
+): string[] {
+  const errors: string[] = [];
+  const resolved = state.resolvedWeather;
+  if (!resolved) return errors;
+
+  const behaviour = resolveLightBehaviour(parsed);
+  if (
+    behaviour &&
+    WEATHER_DRIVEN_LIGHT.has(behaviour) &&
+    state.lightMood != null &&
+    state.lightMood !== resolved.mood
+  ) {
+    errors.push(
+      `Light mood ${state.lightMood} disagrees with resolved weather mood ${resolved.mood}`,
+    );
+  }
+
+  const face = state.weatherFace;
+  if (face?.mode === "condition" && face.symbol !== resolved.faceSymbol) {
+    errors.push(
+      `Weather face symbol ${face.symbol} disagrees with resolved symbol ${resolved.faceSymbol}`,
+    );
+  }
+
+  return errors;
+}
+
 export function collectAuditErrors(
   parsed: ParsedChain,
   state: FoundryOutputState,
@@ -213,8 +261,9 @@ export function collectAuditErrors(
           `Threshold ${weather.thresholdPct}% disagrees with dial-derived ${expectedThreshold}%`,
         );
       }
-      if (weather.gateOpen != null && state.weatherRain != null) {
-        const expectedGate = state.weatherRain >= dialToRainThreshold(state.dialPosition);
+      if (weather.gateOpen != null) {
+        const rain = state.resolvedWeather?.rain ?? state.weatherRain ?? 0;
+        const expectedGate = rain >= dialToRainThreshold(state.dialPosition);
         if (weather.gateOpen !== expectedGate) {
           errors.push(
             `Gate ${weather.gateOpen ? "open" : "closed"} disagrees with rain vs threshold`,
@@ -229,33 +278,94 @@ export function collectAuditErrors(
   errors.push(...collectRecipeNameErrors(parsed, state));
   errors.push(...collectI2cDuplicateErrors(debug));
   errors.push(...collectPlaceWeatherLightErrors(parsed));
+  errors.push(...collectWeatherUnificationErrors(parsed, state));
 
   if (hasLcd && parsed.powered) {
-    for (const lcd of allLcdTexts(state)) {
-      if (lcd === "--") continue;
+    const pipelineTemp = state.weatherTemp ?? 14;
+    const pipelineRain = state.weatherRain ?? 0.3;
 
-      if (tunedLcdWindow && hasWeather) {
-        if (!isTunedWeatherLcd(lcd)) {
-          errors.push("LCD rendered plain weather, expected tuned threshold state");
-        }
-        if (isPlainWeatherLcd(lcd)) {
-          errors.push("LCD shows combined temp/rain line under Wheel → Weather tuning");
-        }
-      }
+    for (const lcdCube of parsed.cubes.filter(
+      (c) => c.definition.id === "output/lcd",
+    )) {
+      const lcdIdx = parsed.cubes.findIndex(
+        (c) => c.instanceId === lcdCube.instanceId,
+      );
+      const text =
+        state.lcdTexts[lcdCube.instanceId] ??
+        (Object.keys(state.lcdTexts).length === 1 ? state.lcdText : null);
+      if (!text || text === "--") continue;
 
-      if (fieldSelectLcdWindow && hasWeather && !tunesWeather) {
-        if (isTunedWeatherLcd(lcd)) {
-          errors.push("LCD shows threshold state under Weather → Wheel field-select");
+      const upstream = parsed.cubes.slice(0, lcdIdx);
+      const windowHasWeather = upstream.some(
+        (c) => c.definition.id === "identity/weather",
+      );
+      if (!windowHasWeather) continue;
+
+      const windowSupportsWeather =
+        !upstream.some((c) => c.definition.id === "sensor/motion") &&
+        !upstream.some((c) => c.definition.id === "source/time") &&
+        !upstream.some((c) => c.definition.id === "modifier/calm") &&
+        !upstream.some((c) => c.definition.id === "modifier/random") &&
+        !upstream.some((c) => c.definition.id === "transform/split");
+
+      const windowResolved = resolveWeatherForUpstreamWindow(
+        upstream,
+        { temp: pipelineTemp, rain: pipelineRain },
+        dialTunesWeatherInSlots(upstream),
+      );
+
+      const tunesWeatherInWindow = dialTunesWeatherInSlots(upstream);
+      const fieldSelectInWindow =
+        upstream.some((c) => c.definition.id === "control/dial") &&
+        upstream.some((c) => c.definition.id === "identity/weather") &&
+        upstream.findIndex((c) => c.definition.id === "control/dial") >
+          upstream.findIndex((c) => c.definition.id === "identity/weather");
+
+      if (
+        windowResolved &&
+        windowSupportsWeather &&
+        !tunesWeatherInWindow &&
+        !fieldSelectInWindow &&
+        isPlainWeatherLcd(text)
+      ) {
+        const lcdRain = parseRainFromLcd(text);
+        const lcdTemp = parseTempFromLcd(text);
+        const expectedRain = Math.round(windowResolved.rain * 100);
+        const expectedTemp = Math.round(windowResolved.temp);
+        if (lcdRain != null && lcdRain !== expectedRain) {
+          errors.push(
+            `LCD rain ${lcdRain}% disagrees with resolved weather ${expectedRain}%`,
+          );
+        }
+        if (lcdTemp != null && lcdTemp !== expectedTemp) {
+          errors.push(
+            `LCD temp ${lcdTemp}°C disagrees with resolved weather ${expectedTemp}°C`,
+          );
         }
       }
 
       if (
-        lcdWindowSupportsWeatherSemantics(parsed) &&
-        !fieldSelectLcdWindow &&
-        !tunedLcdWindow &&
-        isLightOnlyTelemetry(lcd)
+        windowSupportsWeather &&
+        !fieldSelectInWindow &&
+        !tunesWeatherInWindow &&
+        isLightOnlyTelemetry(text)
       ) {
         errors.push("LCD shows light telemetry in weather upstream window");
+      }
+
+      if (tunesWeatherInWindow && windowHasWeather && windowSupportsWeather) {
+        if (!isTunedWeatherLcd(text)) {
+          errors.push("LCD rendered plain weather, expected tuned threshold state");
+        }
+        if (isPlainWeatherLcd(text)) {
+          errors.push("LCD shows combined temp/rain line under Wheel → Weather tuning");
+        }
+      }
+
+      if (fieldSelectInWindow && windowHasWeather && !tunesWeatherInWindow) {
+        if (isTunedWeatherLcd(text)) {
+          errors.push("LCD shows threshold state under Weather → Wheel field-select");
+        }
       }
     }
   }

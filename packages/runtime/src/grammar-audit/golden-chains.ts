@@ -28,7 +28,7 @@ export const GOLDEN_CHAINS: GoldenChainCase[] = [
       "identity/weather",
       "output/lcd",
     ],
-    lcdIncludes: ["London", "RAIN > 85%", "21%", "closed"],
+    lcdIncludes: ["London", "RAIN > 85%", "45%", "closed"],
     lcdExcludes: ["°C ·", "45% rain"],
   },
   {
