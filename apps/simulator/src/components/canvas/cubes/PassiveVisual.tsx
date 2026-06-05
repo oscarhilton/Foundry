@@ -1,4 +1,3 @@
-import { CUBE_FACE } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { CubeIcon } from "./CubeIcon";
 

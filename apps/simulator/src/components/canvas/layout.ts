@@ -1,8 +1,31 @@
-export const CUBE_SIZE = 100;
+export const CUBE_SIZE = 120;
 export const CHAIN_GAP = 16;
 export const CONNECTOR_W = 24;
 export const SLOT_WIDTH = CUBE_SIZE + CHAIN_GAP + CONNECTOR_W;
 export const SHELF_GAP = 10;
+
+export interface ChainCubeDimensions {
+  width: number;
+  height: number;
+}
+
+/** Chain strip render size per cube type (defaults to compact width). */
+export const CHAIN_CUBE_DIMENSIONS: Record<string, ChainCubeDimensions> = {
+  "output/lcd": { width: CUBE_SIZE * 2, height: CUBE_SIZE },
+  "output/light": { width: CUBE_SIZE, height: CUBE_SIZE },
+  "output/chime": { width: CUBE_SIZE, height: CUBE_SIZE },
+  "control/dial": { width: CUBE_SIZE, height: CUBE_SIZE },
+  "core/core": { width: CUBE_SIZE, height: CUBE_SIZE },
+};
+
+const DEFAULT_CHAIN_CUBE_DIMENSIONS: ChainCubeDimensions = {
+  width: CUBE_SIZE * 0.8,
+  height: CUBE_SIZE,
+};
+
+export function getChainCubeDimensions(definitionId: string): ChainCubeDimensions {
+  return CHAIN_CUBE_DIMENSIONS[definitionId] ?? DEFAULT_CHAIN_CUBE_DIMENSIONS;
+}
 
 export type ChainLayout = "horizontal" | "vertical";
 

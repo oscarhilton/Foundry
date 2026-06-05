@@ -170,6 +170,7 @@ const defaultOutputState = (): FoundryOutputState => ({
   modifierCalmNoise: null,
   powerSource: "usb",
   batteryPercent: 100,
+  buttonCircuitClosed: false,
 });
 
 export const useSimulatorStore = create<SimulatorState>((set, get) => ({

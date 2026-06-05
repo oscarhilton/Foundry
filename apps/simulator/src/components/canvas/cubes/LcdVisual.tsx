@@ -17,7 +17,6 @@ const LCD_H = CUBE_SIZE - LCD_PAD * 2;
 
 const BEZEL_OFFSET = "translate(-3.41 -3.05)";
 const LCD_FONT = `"HD44780", ${FONTS.mono}`;
-const LCD_INK = "#000000";
 
 function lcdLine(text: string, size = LCD_CHARS): string {
   return text.slice(0, size);

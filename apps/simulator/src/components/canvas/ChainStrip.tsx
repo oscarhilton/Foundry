@@ -9,9 +9,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { getDefinition, useSimulatorStore } from "../../store";
-import { CUBE_SIZE } from "./layout";
+import { CUBE_SIZE, getChainCubeDimensions } from "./layout";
 import { CubeNode, type CubeVisualState } from "./CubeNode";
-import { ChainConnector } from "./ChainConnector";
 import { ChainInsertGap } from "./ChainInsertGap";
 import { useAnimTime } from "./useAnimTime";
 import { useEffectTimestamps } from "./effect-timestamps";
@@ -69,6 +68,8 @@ function SortableChainCube({
   const def = cube ? getDefinition(cube.definitionId) : null;
   if (!def || !cube) return null;
 
+  const { width, height } = getChainCubeDimensions(def.id);
+
   const sortableTransform = CSS.Transform.toString(transform);
 
   return (
@@ -103,6 +104,8 @@ function SortableChainCube({
           )
         }
         onHoverEnd={onCubeHoverEnd}
+        width={width}
+        height={height}
       />
     </div>
   );

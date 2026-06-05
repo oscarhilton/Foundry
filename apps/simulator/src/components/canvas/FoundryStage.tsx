@@ -65,6 +65,7 @@ const SHELF_VISUAL_STATE = {
     modifierCalmNoise: null,
     powerSource: "usb" as const,
     batteryPercent: 100,
+    buttonCircuitClosed: false,
   },
   animTime: 0,
   recipeActive: false,

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { ChainLayout } from "./layout";
 import { CHAIN_GAP, CUBE_SIZE } from "./layout";
 import { COLORS } from "./design-tokens";
-import { ChainConnector } from "./ChainConnector";
 
 const GAP_SIZE = CUBE_SIZE + CHAIN_GAP;
 const TRANSITION =
@@ -17,10 +16,6 @@ interface ChainInsertGapProps {
 }
 
 export function ChainInsertGap({
-  showConnector,
-  connectorOpacity,
-  flowHintActive,
-  powered,
   orientation = "horizontal",
 }: ChainInsertGapProps) {
   const [open, setOpen] = useState(false);

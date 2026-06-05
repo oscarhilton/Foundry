@@ -1,6 +1,6 @@
 import { SvgCircle, SvgGroup, getSvgPoint } from "../svg/primitives";
 import { useRef } from "react";
-import { COLORS, CUBE_FACE } from "../design-tokens";
+import { COLORS } from "../design-tokens";
 import { CUBE_SIZE } from "../layout";
 import { eventPhase, lerp } from "../animations";
 
