@@ -85,8 +85,10 @@ The **Wheel** control cube (`control/dial` in protocol — position 0–1) chang
 | `Weather → Wheel` | **Select** which weather field reaches the LCD (temperature / rain / full). Weather face stays on **live condition** (`RAIN`, `SUN`, `OVERCAST`). |
 | `Wheel → Weather → Light` | Wheel sets the **rain threshold**; Light is on when rain exceeds it (**Tuned Weather Light**). |
 | `Weather → Wheel → Light` | Weather drives mood; Wheel **scales** brightness (**Weather Wheel Light** preset). |
+| `Wheel → Weather → LCD` | LCD shows **tuned threshold state** (`RAIN > N%`, live rain %, gate open/closed) — not plain weather. |
+| `Weather → Wheel → LCD` | Wheel **selects** which weather field reaches the LCD (temperature / rain / full). |
 
-`London → Weather → Wheel → LCD` — wheel thirds pick **temperature**, **rain**, or **full weather** on the display.
+`London → Weather → Wheel → LCD` — same as `Weather → Wheel → LCD`: wheel thirds pick **temperature**, **rain**, or **full weather** on the display.
 
 When **Light** is in the chain with Wheel and weather, order decides whether the wheel tunes the gate or scales brightness — see table above. The visual rename does not change runtime semantics; only the product word changes from Dial to Wheel.
 

@@ -636,6 +636,59 @@ describe("FoundryEngine", () => {
     engine.destroy();
   });
 
+  it("shows tuned weather on LCD when Wheel tunes Weather", () => {
+    engine.setChain(
+      withCore("control/dial", "identity/weather", "output/lcd"),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 20, rain: 0.48 });
+    engine.setDialPosition(1);
+
+    const lcd = Object.values(engine.getOutputState().lcdTexts)[0];
+    expect(lcd).toBe("RAIN > 85%\n48% · closed");
+    expect(lcd).not.toMatch(/°C/);
+
+    engine.destroy();
+  });
+
+  it("uses live rain on tuned weather LCD when place is upstream", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "control/dial",
+        "identity/weather",
+        "output/lcd",
+      ),
+    );
+    engine.start();
+    engine.mockAdapters.setWeather({ temp: 17, rain: 0.206 });
+    engine.setDialPosition(1);
+
+    const lcd = Object.values(engine.getOutputState().lcdTexts)[0];
+    expect(lcd).toBe("London\nRAIN > 85%\n21% · closed");
+    expect(lcd).not.toMatch(/45% rain/);
+
+    engine.destroy();
+  });
+
+  it("keeps field-select LCD when Weather is before Wheel", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "control/dial",
+        "output/lcd",
+      ),
+    );
+    engine.start();
+    engine.setDialPosition(0.5);
+
+    const lcd = Object.values(engine.getOutputState().lcdTexts)[0];
+    expect(lcd).toBe("45% rain");
+
+    engine.destroy();
+  });
+
   it("shows weather face without place when no place cube in chain", () => {
     engine.setChain(withCore("identity/weather"));
     engine.start();

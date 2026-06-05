@@ -17,6 +17,7 @@ import {
   formatPlaceTime,
   formatTemp,
   formatTime,
+  formatTunedWeatherLcd,
   formatWeather,
   formatWeatherDialLightViewport,
   pickWeatherSegmentForDial,
@@ -110,8 +111,10 @@ export function buildSegmentContext(
     chain != null &&
     isWallClockWindow(cubes, chain, lcdChainIndex);
 
+  const dialTunesWeather = dialTunesWeatherInSlots(cubes);
+
   let windowFmt = fmt;
-  if (hasWeatherSource && places.length > 0) {
+  if (hasWeatherSource && places.length > 0 && !dialTunesWeather) {
     const place = places[0]!;
     windowFmt = {
       ...fmt,
@@ -130,7 +133,6 @@ export function buildSegmentContext(
   const lcdCount = chain
     ? chain.cubes.filter((c) => c.definition.id === "output/lcd").length
     : 1;
-  const dialTunesWeather = dialTunesWeatherInSlots(cubes);
   const dialSelectsWeather =
     hasDial &&
     hasWeatherSource &&
@@ -193,6 +195,14 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
       segments.push(
         ...buildSplitWeatherSegments(
           fmt.weatherTemp,
+          fmt.weatherRain,
+          boundPlace,
+        ),
+      );
+    } else if (ctx.dialTunesWeather) {
+      segments.push(
+        formatTunedWeatherLcd(
+          fmt.dialPosition,
           fmt.weatherRain,
           boundPlace,
         ),

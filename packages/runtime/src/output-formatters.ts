@@ -1,5 +1,6 @@
 import { hourFractionInTimezone } from "./place-profile.js";
-import type { LightMood } from "./weather-light.js";
+import { dialToRainThreshold } from "./weather-face.js";
+import { isRaining, type LightMood } from "./weather-light.js";
 
 export interface OutputFormatState {
   timeHour: number | null;
@@ -129,6 +130,21 @@ export function renderSplitWeatherChunk(chunks: string[]): string {
     return `${temp} · ${rain}`;
   }
   return concatLcdSegments(chunks);
+}
+
+/** Wheel → Weather → LCD: tuned threshold state, not plain weather. */
+export function formatTunedWeatherLcd(
+  dialPosition: number,
+  currentRain: number | null | undefined,
+  placeLabel?: string,
+): string {
+  const threshold = dialToRainThreshold(dialPosition);
+  const thresholdPct = Math.round(threshold * 100);
+  const rain = currentRain ?? 0;
+  const rainPct = Math.round(rain * 100);
+  const gate = isRaining(rain, threshold) ? "open" : "closed";
+  const body = `RAIN > ${thresholdPct}%\n${rainPct}% · ${gate}`;
+  return placeLabel ? `${placeLabel}\n${body}` : body;
 }
 
 /** Dial in window with weather: pick one field for LCD. */
