@@ -3,6 +3,7 @@ import {
   buildSplitWeatherSegments,
   formatTunedWeatherLcd,
   formatWeather,
+  pickWeatherSegmentForDial,
   renderSplitWeatherChunk,
 } from "./output-formatters.js";
 
@@ -31,6 +32,34 @@ describe("formatTunedWeatherLcd", () => {
 
   it("reports open gate when rain exceeds threshold", () => {
     expect(formatTunedWeatherLcd(1, 0.9)).toBe("RAIN > 85%\n90% · open");
+  });
+});
+
+describe("pickWeatherSegmentForDial", () => {
+  it("formats temp field with place", () => {
+    expect(pickWeatherSegmentForDial(0.1, 12, 0.45, "London")).toBe(
+      "London\nTEMP\n12°C",
+    );
+  });
+
+  it("formats temp field without place", () => {
+    expect(pickWeatherSegmentForDial(0.1, 12, 0.45)).toBe("TEMP\n12°C");
+  });
+
+  it("formats rain field with place", () => {
+    expect(pickWeatherSegmentForDial(0.5, 12, 0.45, "London")).toBe(
+      "London\nRAIN\n45% rain",
+    );
+  });
+
+  it("formats rain field without place", () => {
+    expect(pickWeatherSegmentForDial(0.5, 12, 0.45)).toBe("RAIN\n45% rain");
+  });
+
+  it("formats combined weather unchanged", () => {
+    expect(pickWeatherSegmentForDial(0.8, 12, 0.45, "London")).toBe(
+      "London\n12°C · 45% rain",
+    );
   });
 });
 

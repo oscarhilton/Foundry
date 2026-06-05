@@ -155,10 +155,12 @@ export function pickWeatherSegmentForDial(
   placeLabel?: string,
 ): string {
   if (dialPosition < 0.34) {
-    return formatWeatherTempLine(weatherTemp, placeLabel);
+    const line = `${Math.round(weatherTemp ?? 14)}°C`;
+    return placeLabel ? `${placeLabel}\nTEMP\n${line}` : `TEMP\n${line}`;
   }
   if (dialPosition < 0.67) {
-    return formatWeatherRainLine(weatherRain);
+    const line = `${Math.round((weatherRain ?? 0.3) * 100)}% rain`;
+    return placeLabel ? `${placeLabel}\nRAIN\n${line}` : `RAIN\n${line}`;
   }
   return formatWeather(weatherTemp, weatherRain, placeLabel);
 }

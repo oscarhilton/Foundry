@@ -733,7 +733,25 @@ describe("FoundryEngine", () => {
     engine.setDialPosition(0.5);
 
     const lcd = Object.values(engine.getOutputState().lcdTexts)[0];
-    expect(lcd).toBe("45% rain");
+    expect(lcd).toBe("London\nRAIN\n45% rain");
+
+    engine.destroy();
+  });
+
+  it("shows TEMP label on field-select LCD in temp band", () => {
+    engine.setChain(
+      withCore(
+        "identity/london",
+        "identity/weather",
+        "control/dial",
+        "output/lcd",
+      ),
+    );
+    engine.start();
+    engine.setDialPosition(0.1);
+
+    const lcd = Object.values(engine.getOutputState().lcdTexts)[0];
+    expect(lcd).toBe("London\nTEMP\n12°C");
 
     engine.destroy();
   });

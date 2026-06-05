@@ -40,7 +40,7 @@ export const GOLDEN_CHAINS: GoldenChainCase[] = [
       "output/lcd",
     ],
     dialPosition: 0.5,
-    lcdIncludes: ["45% rain"],
+    lcdIncludes: ["London", "RAIN", "45% rain"],
     lcdExcludes: ["RAIN >"],
   },
   {
