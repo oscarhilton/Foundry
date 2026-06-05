@@ -19,6 +19,11 @@ const PLACE_DEFAULTS: Record<
     mockBaseTemp: 12,
     mockRainBias: 0.45,
   },
+  "identity/hallway": {
+    timezone: "Europe/London",
+    mockBaseTemp: 12,
+    mockRainBias: 0.45,
+  },
   "identity/tokyo": {
     timezone: "Asia/Tokyo",
     mockBaseTemp: 22,

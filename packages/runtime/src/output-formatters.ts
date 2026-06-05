@@ -40,6 +40,43 @@ export function formatTemp(sensorTemp: number | null | undefined): string {
   return `${Math.round(sensorTemp ?? 20)}°C`;
 }
 
+export function formatClothingAdvice(
+  weatherTemp: number | null | undefined,
+  weatherRain: number | null | undefined,
+): string {
+  const temp = weatherTemp ?? 14;
+  const rain = weatherRain ?? 0.3;
+  if (temp < 10) {
+    return "Warm layer\nCold out";
+  }
+  if (rain > 0.5) {
+    return "Rain layer\nWet out";
+  }
+  if (rain <= 0.28) {
+    return "Sun cream\nUV high";
+  }
+  return "Light jacket\nLayers today";
+}
+
+/** Short urgent copy for doorway / hallway chains. */
+export function formatHallwayReminder(
+  weatherTemp: number | null | undefined,
+  weatherRain: number | null | undefined,
+): string {
+  const temp = weatherTemp ?? 14;
+  const rain = weatherRain ?? 0.3;
+  if (rain > 0.5) {
+    return "Take umbrella\nRain likely";
+  }
+  if (temp < 10) {
+    return "Grab jacket\nCold out";
+  }
+  if (rain <= 0.28) {
+    return "Sun cream\nUV high";
+  }
+  return "Grab jacket\nWindy later";
+}
+
 export function formatWeather(
   weatherTemp: number | null | undefined,
   weatherRain: number | null | undefined,
@@ -195,8 +232,8 @@ export function formatLightBrightnessMood(
   mood: LightMood | null,
 ): string {
   const pct = formatControlPercent(brightness);
-  if (!mood) return `Light\n${pct}`;
-  return `Light\n${pct} · ${formatMoodLabel(mood)}`;
+  if (!mood) return `Glow\n${pct}`;
+  return `Glow\n${pct} · ${formatMoodLabel(mood)}`;
 }
 
 /** LCD when dial scales light: weather context + optional calm + light summary. */

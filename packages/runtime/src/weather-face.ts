@@ -63,15 +63,6 @@ export function weatherFaceContentKey(face: WeatherFaceState): string {
   return `${face.mode}|${face.symbol}|${face.headline}|${face.text}|${face.detail ?? ""}`;
 }
 
-function weatherDetailLine(
-  temp: number | null | undefined,
-  rain: number | null | undefined,
-): string {
-  const t = Math.round(temp ?? 14);
-  const r = Math.round((rain ?? 0.3) * 100);
-  return `${t}°C · ${r}% rain`;
-}
-
 export function truncatePlaceLabel(label: string, max = 12): string {
   return label.length > max ? `${label.slice(0, max - 1)}…` : label;
 }
@@ -88,7 +79,7 @@ export function buildConditionFaceState(
     mode: "condition",
     symbol,
     headline: symbolToHeadline(symbol),
-    detail: weatherDetailLine(temp, rain),
+    detail: null,
     placeLabel: placeLabel ?? null,
     text,
     rainThreshold: null,

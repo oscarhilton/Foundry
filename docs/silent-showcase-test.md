@@ -59,15 +59,21 @@ Ask optionally: *"What would you need to build the first example?"*
 
 | Participant says… | Meaning |
 |-------------------|---------|
-| "Core, Place, Weather, Light" | **Purchase path clear** |
+| "Core, Place, Weather, Motion, Glow, Display" | **Purchase path clear** |
 | "London, Tokyo, Wi-Fi, Display…" | **Leaking implementation** — tighten Start Here / Place copy |
 
 Success: ≥3 of 5 name the four starter cubes **without** city names or infrastructure cubes.
+
+| "When I walk past…" / "what to wear" / "when I'm leaving" | **Ritual signal** — hallway or doorway demo landing |
+| "Button in bedroom, motion at the door" / "I'd press it when getting ready" | **Trigger grammar** — ask / notice / remind modes landing |
+| "Add another Display" / "forecast on one, clothes on the other" | **Modularity** — dual Display teaching preset landing |
 
 ### Unhealthy (core concept still unclear)
 
 | First question sounds like… | Meaning |
 |-----------------------------|---------|
+| "What's the difference between Weather and Display?" / "Why do both show weather?" | **Weather vs Display confusion** — Weather must stay symbolic; Display carries the sentence |
+| "It keeps telling me things" / "It keeps bothering me" | **Wrong trigger for context** — Morning Check default should stay quiet until pressed |
 | "What does Weather do?" / "Why is there a Core?" | **Grammar problem** — language not yet intuitive |
 | "How do I make London weather control a light?" / "What is Split?" | **Runtime problem** — still teaching the simulator |
 
@@ -132,7 +138,9 @@ Notes (30s behaviour):
 
 **Trust-boundary copy:** ideal first questions include hometown, rename, or Wi-Fi — not "What does Weather do?"
 
-**Start Here copy:** ≥3 of 5 can list Core + Place + Weather + Light; no one asks for a Wi-Fi cube.
+**Start Here copy:** ≥3 of 5 can list Core + Place + Weather + Motion + Glow + Display; no one asks for a Wi-Fi cube.
+
+**Ritual signal:** first question describes a when/where reminder ("when I leave…") not a widget ("temperature display").
 
 **Extensibility signal:** log custom-cube and durability questions; ≥2 of 5 asking about custom words is a strong language signal (not a build trigger).
 

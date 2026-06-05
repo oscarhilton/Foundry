@@ -117,6 +117,8 @@ export interface SimulatorState {
   reorderChain: (fromIndex: number, toIndex: number) => void;
   setDialPosition: (value: number) => void;
   setSliderPosition: (value: number) => void;
+  rotateTimerFace: () => void;
+  startTimer: () => void;
   setPowerSource: (source: "usb" | "battery") => void;
   setBatteryPercent: (percent: number) => void;
   togglePowerSource: () => void;
@@ -171,6 +173,10 @@ const defaultOutputState = (): FoundryOutputState => ({
   powerSource: "usb",
   batteryPercent: 100,
   buttonCircuitClosed: false,
+  resolvedWeather: null,
+  timerFaceIndex: 0,
+  timerRemainingMs: null,
+  timerRunning: false,
 });
 
 export const useSimulatorStore = create<SimulatorState>((set, get) => ({
@@ -219,7 +225,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     });
     engine.start();
 
-    const defaultPreset = PRESET_CHAINS.find((p) => p.id === "weather-dial-light");
+    const defaultPreset = PRESET_CHAINS.find((p) => p.id === "morning-check");
     if (defaultPreset) {
       get().loadPreset(defaultPreset.id);
     }
@@ -301,6 +307,16 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
   setSliderPosition: (value) => {
     getEngine().setSliderPosition(value);
+    applyEngineOutput(get, set);
+  },
+
+  rotateTimerFace: () => {
+    getEngine().rotateTimerFace();
+    applyEngineOutput(get, set);
+  },
+
+  startTimer: () => {
+    getEngine().startTimer();
     applyEngineOutput(get, set);
   },
 

@@ -93,7 +93,7 @@ describe("ChainParser", () => {
       withCore("output/light", "output/light"),
     );
     expect(
-      chain.warnings.some((w) => w.includes("Multiple Light cubes")),
+      chain.warnings.some((w) => w.includes("Multiple Glow cubes")),
     ).toBe(true);
   });
 });
@@ -620,7 +620,7 @@ describe("FoundryEngine", () => {
     expect(state.lcdTexts).toEqual({});
     expect(state.weatherFace?.text).toBe("London\n12°C · 45% rain");
     expect(state.weatherFace?.headline).toBe("OVERCAST");
-    expect(state.weatherFace?.detail).toBe("12°C · 45% rain");
+    expect(state.weatherFace?.detail).toBeNull();
     expect(state.weatherFace?.placeLabel).toBe("London");
     expect(state.weatherFace?.latched).toBe(true);
 
@@ -916,23 +916,23 @@ describe("FoundryEngine", () => {
     expect(state.activeRecipeName).toBe("Button Light");
     expect(state.lightBrightness).toBeCloseTo(0.02, 2);
     const lcdId = "cube-2";
-    expect(state.lcdTexts[lcdId]).toBe("Light\n2%");
+    expect(state.lcdTexts[lcdId]).toBe("Glow\n2%");
 
     engine.triggerButton();
     state = engine.getOutputState();
     expect(state.buttonCircuitClosed).toBe(true);
     expect(state.lightBrightness).toBeCloseTo(1, 2);
-    expect(state.lcdTexts[lcdId]).toBe("Light\n100%");
+    expect(state.lcdTexts[lcdId]).toBe("Glow\n100%");
 
     engine.triggerButton();
     state = engine.getOutputState();
     expect(state.buttonCircuitClosed).toBe(false);
     expect(state.lightBrightness).toBeCloseTo(0.02, 2);
-    expect(state.lcdTexts[lcdId]).toBe("Light\n2%");
+    expect(state.lcdTexts[lcdId]).toBe("Glow\n2%");
 
     const snap = engine.getCoreDebugSnapshot();
     const lcdStep = snap.viewportTrace.find((s) => s.targetId === lcdId);
-    expect(lcdStep?.rendered).toBe("Light\n2%");
+    expect(lcdStep?.rendered).toBe("Glow\n2%");
 
     engine.destroy();
   });
@@ -1088,7 +1088,7 @@ describe("FoundryEngine", () => {
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
     expect(state.lcdText).toBe(
-      "London\n12°C · 45% rain\nLight\n32% · Overcast",
+      "London\n12°C · 45% rain\nGlow\n32% · Overcast",
     );
 
     engine.destroy();
@@ -1408,7 +1408,7 @@ describe("FoundryEngine", () => {
     const state = engine.getOutputState();
     expect(state.activeRecipeId).toBe("weather-dial-light");
     expect(state.lcdText).toBe(
-      "London\n12°C · 45% rain\nLight\n32% · Overcast",
+      "London\n12°C · 45% rain\nGlow\n32% · Overcast",
     );
     expect(state.lightBrightness).toBeGreaterThan(0.1);
 
@@ -1632,7 +1632,7 @@ describe("FoundryEngine", () => {
 
     const state = engine.getOutputState();
     expect(
-      state.warnings.some((w) => w.includes("Multiple Light cubes")),
+      state.warnings.some((w) => w.includes("Multiple Glow cubes")),
     ).toBe(false);
     expect(state.musicNote).not.toBeNull();
     expect(state.activeRecipeId).toBe("tokyo-weather-music");

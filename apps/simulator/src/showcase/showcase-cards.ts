@@ -1,11 +1,19 @@
-import { getCubeDefinition, PRESET_CHAINS, type PresetChain } from "@foundry/cube-defs";
+import {
+  getCubeDefinition,
+  HERO_PRESET_IDS,
+  PRESET_CHAINS,
+  type PresetChain,
+} from "@foundry/cube-defs";
 
 export const SHOWCASE_PRESET_IDS = [
+  "morning-check",
+  "doorway-signal",
+  "kitchen-timer",
+  "dual-weather-clothing",
+  "hallway-clothing-display",
+  "weather-lcd",
   "weather-moods",
-  "weather-dial-lcd",
-  "split-weather-dual-lcd",
   "presence-weather-lcd",
-  "world-desk",
 ] as const;
 
 export type ShowcasePresetId = (typeof SHOWCASE_PRESET_IDS)[number];
@@ -28,30 +36,50 @@ function chainLabelFromPreset(preset: PresetChain): string {
 
 const TEACHES: Record<ShowcasePresetId, { whatItDoes: string; sentenceTeaches: string }> =
   {
+    "morning-check": {
+      whatItDoes:
+        "Press while getting ready. Display shows what to wear — only when you ask.",
+      sentenceTeaches:
+        "Button = ask me. Display speaks only when you press.",
+    },
+    "doorway-signal": {
+      whatItDoes:
+        "As you pass the door, Glow hints if the weather needs attention — no words.",
+      sentenceTeaches: "Motion = notice me. Glow hints without words.",
+    },
+    "kitchen-timer": {
+      whatItDoes: "Turn the cube to pick 5, 10, 15, or 30 minutes. Chime when time is up.",
+      sentenceTeaches: "Timer = remind me later.",
+    },
+    "dual-weather-clothing": {
+      whatItDoes:
+        "Forecast on the first Display, clothing suggestion on the second.",
+      sentenceTeaches:
+        "Add another Display to see forecast and suggestion separately.",
+    },
+    "hallway-clothing-display": {
+      whatItDoes:
+        "When you pass the hallway, a short urgent reminder — umbrella, jacket, sun cream.",
+      sentenceTeaches:
+        "Motion gates a ritual; Clothes turns weather into a doorway reminder.",
+    },
+    "weather-lcd": {
+      whatItDoes:
+        "Weather shows a symbol on its face (OVERCAST, RAIN, SUN). Display shows the full sentence.",
+      sentenceTeaches: "Weather is the source; Display is where the sentence is read.",
+    },
     "weather-moods": {
       whatItDoes:
-        "The light reflects the weather for that place — blue for rain, yellow when dry, soft grey in between. Brightness shifts with temperature too.",
-      sentenceTeaches: "Nouns scope facts; outputs express them.",
-    },
-    "weather-dial-lcd": {
-      whatItDoes: "Wheel picks which weather line hits the LCD.",
-      sentenceTeaches: "Transforms reshape facts before the viewport.",
-    },
-    "split-weather-dual-lcd": {
-      whatItDoes:
-        "Split breaks weather into clauses — place and temperature on one display, rain on the other.",
-      sentenceTeaches: "Split decomposes weather — one clause per display when available.",
+        "Glow reflects the weather — blue for rain, yellow when dry, soft grey in between.",
+      sentenceTeaches: "Nouns scope facts; outputs express them as ambient signals.",
     },
     "presence-weather-lcd": {
-      whatItDoes: "Weather appears only when motion is detected.",
+      whatItDoes: "Weather appears on Display only when motion is detected.",
       sentenceTeaches: "Sensors can gate whether a sentence is spoken.",
     },
-    "world-desk": {
-      whatItDoes:
-        "Three sentences on one desk: Tokyo time on a display, London weather on another, and GitHub activity as ambient light.",
-      sentenceTeaches: "Multiple sentences on one bus, without fighting.",
-    },
   };
+
+const HERO_IDS = new Set<string>(HERO_PRESET_IDS);
 
 function buildCards(): ShowcaseCardContent[] {
   return SHOWCASE_PRESET_IDS.map((presetId) => {
@@ -66,7 +94,7 @@ function buildCards(): ShowcaseCardContent[] {
       chainLabel: chainLabelFromPreset(preset),
       whatItDoes: copy.whatItDoes,
       sentenceTeaches: copy.sentenceTeaches,
-      hero: presetId === "world-desk",
+      hero: HERO_IDS.has(presetId),
     };
   });
 }
@@ -77,8 +105,9 @@ export const SHOWCASE_CARDS = buildCards();
 export const START_HERE = {
   title: "Start Here",
   kitTitle: "Starter Kit",
-  kitItems: ["Core", "Place", "Weather", "Light"] as const,
-  firstSentence: "Place → Weather → Light",
-  addOns: ["Display", "Time", "Wheel", "Motion"] as const,
-  tryPresetId: "weather-moods" as const satisfies ShowcasePresetId,
+  kitItems: ["Core", "Place", "Weather", "Motion", "Glow", "Display"] as const,
+  firstSentence: "Place → Weather → Glow",
+  addOns: ["Timer", "Chime", "Time", "Wheel"] as const,
+  kitchenPack: ["Timer", "Chime"] as const,
+  tryPresetId: "morning-check" as const satisfies ShowcasePresetId,
 };

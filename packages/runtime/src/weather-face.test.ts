@@ -13,7 +13,7 @@ describe("weather-face", () => {
     const rainy = buildConditionFaceState(12, 0.8, "London");
     expect(rainy.headline).toBe("RAIN");
     expect(rainy.text).toBe("London\n12°C · 80% rain");
-    expect(rainy.detail).toBe("12°C · 80% rain");
+    expect(rainy.detail).toBeNull();
     expect(rainy.placeLabel).toBe("London");
 
     expect(buildConditionFaceState(18, 0.1).headline).toBe("SUN");

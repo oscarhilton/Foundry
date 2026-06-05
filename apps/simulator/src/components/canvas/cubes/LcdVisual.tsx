@@ -128,7 +128,15 @@ export function LcdVisual({ text, animTime, lcdChangedAt }: LcdVisualProps) {
 
   return (
     <div className="box-border flex h-full w-full items-center justify-center shadow-lg rounded-sm">
-      <div className="inset-0 rounded-sm overflow-hidden border border-gray-200 flex h-full w-full items-center justify-center" style={{ backgroundColor: COLORS.cubeUnpowered, width: LCD_W, height: LCD_H }}>
+      <div
+        className="inset-0 rounded-sm overflow-hidden border border-gray-200 flex h-full w-full items-center justify-center"
+        style={{
+          backgroundColor: COLORS.cubeUnpowered,
+          width: LCD_W,
+          height: LCD_H,
+          boxShadow: `0 0 ${8 + pulseBoost * 6}px rgba(92, 107, 192, ${0.12 + pulseBoost * 0.08})`,
+        }}
+      >
         <LCD
           gradientId={gradientId}
           backlit

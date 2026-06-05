@@ -1,11 +1,11 @@
 import type { ChainCubeInput } from "../chain-parser.js";
-import type { AuditCubeId } from "./cube-ids.js";
 
 export interface GoldenChainCase {
   name: string;
-  chainIds: readonly AuditCubeId[];
-  /** Override dial after seed (default 1 in runChainAudit). */
+  chainIds: readonly string[];
   dialPosition?: number;
+  motionDetected?: boolean;
+  buttonPressed?: boolean;
   chainInput?: ChainCubeInput[];
   lcdIncludes?: string[];
   lcdExcludes?: string[];
@@ -16,7 +16,89 @@ export interface GoldenChainCase {
 
 export const GOLDEN_CHAINS: GoldenChainCase[] = [
   {
-    name: "London → Weather → LCD",
+    name: "Button → Weather → Clothes → Display (circuit open)",
+    chainIds: [
+      "control/button",
+      "identity/weather",
+      "transform/clothes",
+      "output/lcd",
+    ],
+    lcdIncludes: ["--"],
+    lcdExcludes: ["Light jacket", "Grab jacket"],
+  },
+  {
+    name: "Button → Weather → Clothes → Display (pressed)",
+    chainIds: [
+      "control/button",
+      "identity/weather",
+      "transform/clothes",
+      "output/lcd",
+    ],
+    buttonPressed: true,
+    lcdIncludes: ["Sun cream", "UV"],
+  },
+  {
+    name: "Motion → Hallway → Weather → Glow (idle)",
+    chainIds: [
+      "sensor/motion",
+      "identity/hallway",
+      "identity/weather",
+      "output/light",
+    ],
+    motionDetected: false,
+    assert: (state) => {
+      if (state.lightBrightness > 0.03) {
+        throw new Error(
+          `Doorway glow should stay dim without motion, got ${state.lightBrightness}`,
+        );
+      }
+    },
+  },
+  {
+    name: "Motion → Hallway → Weather → Glow (presence)",
+    chainIds: [
+      "sensor/motion",
+      "identity/hallway",
+      "identity/weather",
+      "output/light",
+    ],
+    motionDetected: true,
+    assert: (state) => {
+      if (state.lightBrightness <= 0.03) {
+        throw new Error(
+          `Doorway glow should brighten on motion, got ${state.lightBrightness}`,
+        );
+      }
+      if (!state.lightMood) {
+        throw new Error("Doorway glow should carry weather mood on motion");
+      }
+    },
+  },
+  {
+    name: "Motion → Hallway → Weather → Clothes → Display",
+    chainIds: [
+      "sensor/motion",
+      "identity/hallway",
+      "identity/weather",
+      "transform/clothes",
+      "output/lcd",
+    ],
+    motionDetected: true,
+    lcdIncludes: ["Grab jacket", "Windy"],
+    assert: (state) => {
+      const headline = state.weatherFace?.headline;
+      if (headline && !["OVERCAST", "RAIN", "SUN", "--"].includes(headline)) {
+        throw new Error(`Weather face headline should be symbolic, got ${headline}`);
+      }
+    },
+  },
+  {
+    name: "Timer → Chime",
+    chainIds: ["control/timer", "output/chime"],
+    expectRecipe: "timer-chime",
+  },
+  {
+    name: "London → Weather → Display",
     chainIds: ["identity/london", "identity/weather", "output/lcd"],
     lcdIncludes: ["London", "12°C", "45% rain"],
   },
@@ -114,6 +196,23 @@ export const GOLDEN_CHAINS: GoldenChainCase[] = [
 ];
 
 export const DUPLICATE_CUBE_CHAINS: GoldenChainCase[] = [
+  {
+    name: "Weather → Display → Clothes → Display",
+    chainInput: [
+      { instanceId: "weather", definitionId: "identity/weather" },
+      { instanceId: "lcd1", definitionId: "output/lcd" },
+      { instanceId: "clothes", definitionId: "transform/clothes" },
+      { instanceId: "lcd2", definitionId: "output/lcd" },
+      { instanceId: "core", definitionId: "core/core" },
+    ],
+    chainIds: [
+      "identity/weather",
+      "output/lcd",
+      "transform/clothes",
+      "output/lcd",
+    ],
+    lcdIncludes: ["17°C", "21% rain", "Sun cream"],
+  },
   {
     name: "London → Weather → LCD → LCD",
     chainInput: [

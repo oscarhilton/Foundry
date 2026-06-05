@@ -16,6 +16,7 @@ import {
   hasPlaceBefore,
   hasTemperatureSensor,
   hasDialCube,
+  hasTimerCube,
   hasTimeSource,
   hasTokyoPlace,
   hasWeatherSource,
@@ -34,6 +35,16 @@ function powered(chain: ParsedChain, predicate: () => boolean): boolean {
 }
 
 export const RECIPES: Recipe[] = [
+  {
+    id: "timer-chime",
+    name: "Timer Chime",
+    description: "Timer countdown triggers chime",
+    match: (chain) =>
+      powered(
+        chain,
+        () => hasTimerCube(chain) && hasChimeOutput(chain),
+      ),
+  },
   {
     id: "button-chime",
     name: "Button Chime",

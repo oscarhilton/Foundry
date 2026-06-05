@@ -17,6 +17,10 @@ import { buildRecipeContext, matchRecipe, RECIPES } from "./recipes.js";
 import { MockAdapters, LiveWeatherAdapter, fetchLiveWeather } from "./adapters/mock.js";
 import { formatPowerBattery } from "./output-formatters.js";
 import {
+  timerMinutesForFace,
+  type TimerFaceIndex,
+} from "./timer.js";
+import {
   compileChainToGraph,
   getRemainderEdges,
   hasRemainderEdge,
@@ -120,6 +124,10 @@ export interface FoundryOutputState {
   weatherFace: WeatherFaceState | null;
   /** Unified weather for face, LCD, light, and chime when Weather is in chain. */
   resolvedWeather: ResolvedWeatherSnapshot | null;
+  /** Timer cube: selected face 0–3 → 5/10/15/30 minutes. */
+  timerFaceIndex: number;
+  timerRemainingMs: number | null;
+  timerRunning: boolean;
 }
 
 export interface CoreDebugSnapshot {
@@ -175,6 +183,8 @@ export class FoundryEngine {
   private devices = new Map<string, DiscoveredDevice>();
   private timeTimer?: ReturnType<typeof setInterval>;
   private tempTimer?: ReturnType<typeof setInterval>;
+  private timerTick?: ReturnType<typeof setInterval>;
+  private timerFaceIndex = 0;
 
   constructor(options: FoundryEngineOptions = {}) {
     this.dialPosition = options.dialDefault ?? 0.65;
@@ -221,6 +231,9 @@ export class FoundryEngine {
       batteryPercent: 100,
       weatherFace: null,
       resolvedWeather: null,
+      timerFaceIndex: 0,
+      timerRemainingMs: null,
+      timerRunning: false,
     };
   }
 
@@ -396,6 +409,42 @@ export class FoundryEngine {
     this.recalculateOutputs();
   }
 
+  rotateTimerFace(): void {
+    if (!this.outputState.powered) return;
+    this.timerFaceIndex = (this.timerFaceIndex + 1) % 4;
+    this.outputState.timerFaceIndex = this.timerFaceIndex;
+    this.router.publish("control/timer/face", this.timerFaceIndex, "ui/timer");
+    if (!this.outputState.timerRunning) {
+      this.outputState.timerRemainingMs = null;
+    }
+  }
+
+  startTimer(): void {
+    if (!this.outputState.powered) return;
+    const minutes = timerMinutesForFace(this.timerFaceIndex as TimerFaceIndex);
+    this.outputState.timerRunning = true;
+    this.outputState.timerRemainingMs = minutes * 60 * 1000;
+    this.router.publish("control/timer/start", minutes, "ui/timer");
+
+    if (this.timerTick) clearInterval(this.timerTick);
+    this.timerTick = setInterval(() => {
+      if (this.outputState.timerRemainingMs == null) return;
+      this.outputState.timerRemainingMs = Math.max(
+        0,
+        this.outputState.timerRemainingMs - 250,
+      );
+      if (this.outputState.timerRemainingMs <= 0) {
+        this.outputState.timerRunning = false;
+        this.outputState.timerRemainingMs = null;
+        if (this.timerTick) clearInterval(this.timerTick);
+        this.timerTick = undefined;
+        if (this.context?.recipe.id === "timer-chime") {
+          this.fireChime();
+        }
+      }
+    }, 250);
+  }
+
   setPowerSource(source: "usb" | "battery"): void {
     this.outputState.powerSource = source;
     this.syncCorePower();
@@ -445,6 +494,8 @@ export class FoundryEngine {
     this.liveWeather?.stop();
     if (this.timeTimer) clearInterval(this.timeTimer);
     if (this.tempTimer) clearInterval(this.tempTimer);
+    if (this.timerTick) clearInterval(this.timerTick);
+    this.timerTick = undefined;
   }
 
   destroy(): void {
@@ -740,6 +791,7 @@ export class FoundryEngine {
 
     const lightBehaviour = resolveLightBehaviour(this.parsed);
     this.applyLightBehaviour(lightBehaviour, resolved);
+    this.applyMotionGatedGlow();
 
     if (this.context?.recipe?.id === "tokyo-weather-music") {
       const temp = resolved?.temp ?? pipeline.temp;
@@ -850,11 +902,26 @@ export class FoundryEngine {
     }
   }
 
+  /** Motion + weather + glow: idle until presence (doorway signal). */
+  private applyMotionGatedGlow(): void {
+    const parsed = this.parsed;
+    if (!parsed?.powered) return;
+    if (
+      !hasMotionSensor(parsed) ||
+      !hasWeatherSource(parsed) ||
+      !hasLightOutput(parsed)
+    ) {
+      return;
+    }
+    if (!this.outputState.motionDetected) {
+      this.setLightOutput(0.02, null);
+    }
+  }
+
   private formatState() {
     const lightBehaviour = this.parsed
       ? resolveLightBehaviour(this.parsed)
       : null;
-    const resolved = this.outputState.resolvedWeather;
     return {
       timeHour: this.outputState.timeHour,
       sensorTemp: this.outputState.sensorTemp,
@@ -927,6 +994,7 @@ export class FoundryEngine {
         texts,
         resolveViewportTextsForChain(chain, this.formatState(), {
           motionDetected: this.outputState.motionDetected,
+          buttonCircuitClosed: this.outputState.buttonCircuitClosed,
         }),
       );
     }
@@ -952,6 +1020,10 @@ export class FoundryEngine {
     this.outputState.modifierRandom = null;
     this.outputState.modifierCalmNoise = null;
     this.outputState.buttonCircuitClosed = false;
+    this.outputState.timerRunning = false;
+    this.outputState.timerRemainingMs = null;
+    if (this.timerTick) clearInterval(this.timerTick);
+    this.timerTick = undefined;
   }
 
   private setLightOutput(brightness: number, mood: LightMood | null): void {
@@ -1058,6 +1130,14 @@ export type { LightDebugOutput } from "./light-debug.js";
 export {
   shouldBroadcastMotionToLcds,
 } from "./segment-pipeline.js";
+export { formatClothingAdvice, formatHallwayReminder } from "./output-formatters.js";
+export {
+  formatTimerCountdown,
+  formatTimerFaceLabel,
+  timerMinutesForFace,
+  TIMER_FACE_MINUTES,
+} from "./timer.js";
+export type { TimerFaceIndex } from "./timer.js";
 export {
   SignalRouter,
   smoothValue,

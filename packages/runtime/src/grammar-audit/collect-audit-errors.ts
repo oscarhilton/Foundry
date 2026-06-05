@@ -1,7 +1,5 @@
 import type { ParsedChain } from "../chain-parser.js";
 import {
-  dialSelectsWeatherField,
-  dialTunesWeather,
   dialTunesWeatherInSlots,
 } from "../chain-parser.js";
 import type { CoreDebugSnapshot, FoundryOutputState } from "../index.js";
@@ -12,6 +10,7 @@ import {
 import { resolveWeatherForUpstreamWindow } from "../resolved-weather.js";
 import { dialToRainThreshold } from "../weather-face.js";
 import {
+  collectSymbolicFaceErrors,
   collectWeatherDebugErrors,
   expectedPlaceProfileRainPct,
   type WeatherFaceNormalized,
@@ -21,58 +20,6 @@ const PLACE_LABELS = ["London", "Tokyo"] as const;
 
 function chainHas(parsed: ParsedChain, definitionId: string): boolean {
   return parsed.cubes.some((c) => c.definition.id === definitionId);
-}
-
-function firstCubeIndex(parsed: ParsedChain, definitionId: string): number {
-  return parsed.cubes.findIndex((c) => c.definition.id === definitionId);
-}
-
-function lcdUpstreamWindow(parsed: ParsedChain): ParsedChain["cubes"] {
-  const lcdIdx = firstCubeIndex(parsed, "output/lcd");
-  if (lcdIdx < 0) return [];
-  return parsed.cubes.slice(0, lcdIdx);
-}
-
-function lcdWindowHasCube(parsed: ParsedChain, definitionId: string): boolean {
-  return lcdUpstreamWindow(parsed).some((c) => c.definition.id === definitionId);
-}
-
-/** Tuned / field-select LCD rules only when the LCD upstream window is weather-shaped. */
-function lcdWindowSupportsWeatherSemantics(parsed: ParsedChain): boolean {
-  if (!lcdWindowHasCube(parsed, "identity/weather")) return false;
-  if (lcdWindowHasCube(parsed, "sensor/motion")) return false;
-  if (lcdWindowHasCube(parsed, "source/time")) return false;
-  if (lcdWindowHasCube(parsed, "modifier/calm")) return false;
-  if (lcdWindowHasCube(parsed, "modifier/random")) return false;
-  if (lcdWindowHasCube(parsed, "transform/split")) return false;
-  return true;
-}
-
-/** LCD only sees tuned threshold when Dial tunes Weather in a clean upstream window. */
-function lcdDownstreamOfTunedWeather(parsed: ParsedChain): boolean {
-  if (!dialTunesWeather(parsed)) return false;
-  const weatherIdx = firstCubeIndex(parsed, "identity/weather");
-  const lcdIdx = firstCubeIndex(parsed, "output/lcd");
-  if (weatherIdx < 0 || lcdIdx < 0 || lcdIdx <= weatherIdx) return false;
-  return lcdWindowSupportsWeatherSemantics(parsed);
-}
-
-/** Field-select LCD when Dial follows Weather in a clean upstream window. */
-function lcdDownstreamOfWeatherFieldSelect(parsed: ParsedChain): boolean {
-  if (!dialSelectsWeatherField(parsed)) return false;
-  const dialIdx = firstCubeIndex(parsed, "control/dial");
-  const lcdIdx = firstCubeIndex(parsed, "output/lcd");
-  if (dialIdx < 0 || lcdIdx < 0 || lcdIdx <= dialIdx) return false;
-  const weatherIdx = firstCubeIndex(parsed, "identity/weather");
-  if (weatherIdx < 0 || weatherIdx >= dialIdx) return false;
-  return lcdWindowSupportsWeatherSemantics(parsed);
-}
-
-function allLcdTexts(state: FoundryOutputState): string[] {
-  const fromRecord = Object.values(state.lcdTexts).filter(Boolean);
-  if (fromRecord.length > 0) return fromRecord;
-  if (state.lcdText) return [state.lcdText];
-  return [];
 }
 
 function isPlainWeatherLcd(text: string): boolean {
@@ -197,9 +144,6 @@ export function collectAuditErrors(
   const hasLight = chainHas(parsed, "output/light");
   const hasChime = chainHas(parsed, "output/chime");
   const hasWeather = chainHas(parsed, "identity/weather");
-  const tunesWeather = dialTunesWeather(parsed);
-  const tunedLcdWindow = lcdDownstreamOfTunedWeather(parsed);
-  const fieldSelectLcdWindow = lcdDownstreamOfWeatherFieldSelect(parsed);
 
   if (state.powered !== parsed.powered) {
     errors.push(
@@ -273,6 +217,7 @@ export function collectAuditErrors(
     }
 
     errors.push(...collectWeatherDebugErrors(weather, debug));
+    errors.push(...collectSymbolicFaceErrors(state));
   }
 
   errors.push(...collectRecipeNameErrors(parsed, state));

@@ -12,7 +12,6 @@ import {
 import { normalizeWeatherFace } from "./weather-assertions.js";
 
 import type { ChainCubeInput } from "../chain-parser.js";
-import type { WeatherData } from "../adapters/mock.js";
 
 function seedEngine(
   engine: FoundryEngine,

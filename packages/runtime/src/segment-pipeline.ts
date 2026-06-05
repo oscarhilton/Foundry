@@ -23,6 +23,8 @@ import {
   formatTime,
   formatTunedWeatherLcd,
   formatWeather,
+  formatClothingAdvice,
+  formatHallwayReminder,
   formatWeatherDialLightViewport,
   pickWeatherSegmentForDial,
   buildSplitWeatherSegments,
@@ -60,6 +62,8 @@ export interface SegmentBuildContext {
   hasCalm: boolean;
   hasRandom: boolean;
   hasButton: boolean;
+  hasClothes: boolean;
+  hasHallwayPlace: boolean;
   hasLight: boolean;
   /** Light exists anywhere in the chain (not only the LCD upstream window). */
   hasLightInChain: boolean;
@@ -181,11 +185,21 @@ export function buildSegmentContext(
     hasCalm: cubes.some((c) => c.definition.id === "modifier/calm"),
     hasRandom: cubes.some((c) => c.definition.id === "modifier/random"),
     hasButton: cubes.some((c) => c.definition.id === "control/button"),
+    hasClothes: cubes.some((c) => c.definition.id === "transform/clothes"),
+    hasHallwayPlace: cubes.some((c) => c.definition.id === "identity/hallway"),
     hasLight: hasLightInWindow,
     hasLightInChain,
     useWeatherDialLightComposite,
     buttonControlsLight: fmt.buttonControlsLight,
   };
+}
+
+function clothingSegment(
+  ctx: SegmentBuildContext,
+): Segment {
+  return ctx.hasHallwayPlace
+    ? formatHallwayReminder(ctx.fmt.weatherTemp, ctx.fmt.weatherRain)
+    : formatClothingAdvice(ctx.fmt.weatherTemp, ctx.fmt.weatherRain);
 }
 
 export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
@@ -232,11 +246,16 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
           boundPlace,
         ),
       );
+    } else if (ctx.hasClothes) {
+      segments.push(clothingSegment(ctx));
     } else {
       segments.push(
         formatWeather(fmt.weatherTemp, fmt.weatherRain, boundPlace),
       );
     }
+  }
+  if (ctx.hasClothes && !ctx.hasWeatherSource) {
+    segments.push(clothingSegment(ctx));
   }
   if (ctx.hasGithub) {
     const repoLabel =
@@ -278,7 +297,14 @@ export function buildSegments(ctx: SegmentBuildContext): ConsumablePayload {
     segments.push(formatModifierNoise("RND", fmt.modifierRandom));
   }
   if (ctx.hasButton && !ctx.buttonControlsLight) {
-    segments.push(formatButtonCircuit(fmt.buttonCircuitClosed));
+    const buttonGatesContent =
+      ctx.hasWeatherSource ||
+      ctx.hasClothes ||
+      ctx.hasGithub ||
+      ctx.places.length > 0;
+    if (!buttonGatesContent) {
+      segments.push(formatButtonCircuit(fmt.buttonCircuitClosed));
+    }
   }
   if (ctx.hasLight && !dialScalesLight) {
     if (ctx.buttonControlsLight) {
@@ -299,19 +325,32 @@ function isSignalCube(cube: ParsedChainSlot): boolean {
   return cube.definition.role !== "core" && cube.definition.id !== "output/lcd";
 }
 
-function windowNeedsMotionGate(cubes: ParsedChainSlot[]): boolean {
-  const hasMotion = cubes.some((c) => c.definition.id === "sensor/motion");
-  if (!hasMotion) return false;
+function windowContentNeedsAttentionGate(cubes: ParsedChainSlot[]): boolean {
   return cubes.some(
     (c) =>
       c.definition.id === "identity/weather" ||
+      c.definition.id === "transform/clothes" ||
       c.definition.role === "place" ||
       c.definition.id === "source/github",
   );
 }
 
+function windowNeedsMotionGate(cubes: ParsedChainSlot[]): boolean {
+  const hasMotion = cubes.some((c) => c.definition.id === "sensor/motion");
+  if (!hasMotion) return false;
+  return windowContentNeedsAttentionGate(cubes);
+}
+
+function windowNeedsButtonGate(cubes: ParsedChainSlot[]): boolean {
+  const hasButton = cubes.some((c) => c.definition.id === "control/button");
+  if (!hasButton) return false;
+  return windowContentNeedsAttentionGate(cubes);
+}
+
 export interface SegmentPipelineOptions {
   motionDetected?: boolean;
+  /** true = circuit CLOSED (pressed) — show gated content. */
+  buttonCircuitClosed?: boolean;
 }
 
 function segmentsForWindowCubes(
@@ -325,6 +364,12 @@ function segmentsForWindowCubes(
   if (
     windowNeedsMotionGate(cubes) &&
     options.motionDetected === false
+  ) {
+    return [];
+  }
+  if (
+    windowNeedsButtonGate(cubes) &&
+    options.buttonCircuitClosed !== true
   ) {
     return [];
   }

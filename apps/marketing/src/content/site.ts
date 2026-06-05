@@ -6,20 +6,20 @@ export const site = {
   hero: {
     headline: "Snap cubes into a sentence.",
     subhead:
-      "Foundry is a physical language for behaviours. Snap magnetic cubes together to sense, decide, and act — right on your desk.",
+      "No voice. No app doom-scroll. Physical cause and effect for daily rituals.",
     promise:
-      "I snapped together a little sentence, and now my desk knows something useful.",
+      "I snapped together a little sentence, and now my hallway knows when to remind me.",
     badge: "Designed in London. Built to last.",
   },
   infoCards: [
     {
       title: "What is Foundry?",
-      body: "Magnetic cubes that snap into a chain — a physical language for behaviours, not a smart-home dashboard.",
+      body: "Magnetic cubes that snap into a chain — calm physical routines you build with your hands, not a smart-home dashboard.",
       icon: "cube" as const,
     },
     {
       title: "What do I need?",
-      body: "A Starter Kit: Core, Place, Weather, and Light. Build Place → Weather → Light, then add vocabulary cubes as you go.",
+      body: "Starter Kit: Core, Place, Weather, Motion, Glow, and Display. Build Place → Weather → Glow, then add packs as you go.",
       icon: "cube" as const,
     },
     {
@@ -31,10 +31,10 @@ export const site = {
   starterKit: {
     eyebrow: "Start Here",
     title: "Starter Kit",
-    body: "Everything you need to build your first sentence on a desk.",
+    body: "Everything you need for your first ritual on a desk or in a hallway.",
     cta: "Explore the showcase",
-    firstSentence: "Place → Weather → Light",
-    addOns: ["Display", "Time", "Wheel", "Motion"],
+    firstSentence: "Place → Weather → Glow",
+    addOns: ["Timer", "Chime", "Time", "Wheel"],
     cubes: [
       {
         name: "Core",
@@ -42,15 +42,23 @@ export const site = {
       },
       {
         name: "Place",
-        role: "Programmable context — demo kits may show London or Tokyo.",
+        role: "Programmable context — demo kits may show London or Hallway.",
       },
       {
         name: "Weather",
-        role: "Fetches weather for your place — rain, temperature, and conditions.",
+        role: "Source symbol — OVERCAST, RAIN, or SUN on the cube face.",
       },
       {
-        name: "Light",
-        role: "Blue for rain. Yellow when dry. Grey when overcast.",
+        name: "Motion",
+        role: "Gate rituals — speak the sentence when someone walks past.",
+      },
+      {
+        name: "Glow",
+        role: "Ambient colour signal — not a lamp. Blue for rain, yellow when dry.",
+      },
+      {
+        name: "Display",
+        role: "Sentence viewport — where the chain is read aloud.",
       },
     ],
   },
@@ -61,34 +69,52 @@ export const site = {
   },
   examplePresets: [
     {
+      id: "morning-check" as ExamplePresetId,
+      title: "Morning Check",
+      chain: "Button → Weather → Clothes → Display",
+      description: "Press while getting ready. Foundry suggests what to wear.",
+    },
+    {
+      id: "doorway-signal" as ExamplePresetId,
+      title: "Doorway Signal",
+      chain: "Motion → Hallway → Weather → Glow",
+      description: "As you pass the door, it glows if the weather needs attention.",
+    },
+    {
+      id: "kitchen-timer" as ExamplePresetId,
+      title: "Kitchen Timer",
+      chain: "Timer → Chime",
+      description: "Turn the cube to choose 5, 10, 15, or 30 minutes.",
+    },
+    {
+      id: "hallway-clothing-display" as ExamplePresetId,
+      title: "Hallway Clothing Display",
+      chain: "Motion → Hallway → Weather → Clothes → Display",
+      description: "A short urgent reminder when you pass the hallway.",
+    },
+    {
+      id: "dual-weather-clothing" as ExamplePresetId,
+      title: "Two Displays",
+      chain: "Weather → Display → Clothes → Display",
+      description: "Forecast on one Display, clothing suggestion on the other.",
+    },
+    {
+      id: "weather-lcd" as ExamplePresetId,
+      title: "Place Weather Display",
+      chain: "London → Weather → Display",
+      description: "Weather shows a symbol; Display shows the full sentence.",
+    },
+    {
       id: "weather-moods" as ExamplePresetId,
       title: "Weather Moods",
-      chain: "London → Weather → Light",
-      description: "Blue for rain. Yellow for dry weather. Grey when overcast.",
-    },
-    {
-      id: "weather-dial-lcd" as ExamplePresetId,
-      title: "Weather Wheel LCD",
-      chain: "London → Weather → Wheel → Display",
-      description: "Wheel picks temperature, rain, or full forecast on the display.",
-    },
-    {
-      id: "split-weather-dual-lcd" as ExamplePresetId,
-      title: "Split Weather LCD",
-      chain: "London → Weather → Split → Display → Display",
-      description: "London and 12°C on one display; 45% rain on the other.",
+      chain: "London → Weather → Glow",
+      description: "Glow reflects the weather — blue for rain, yellow when dry.",
     },
     {
       id: "presence-weather-lcd" as ExamplePresetId,
       title: "Presence Weather",
       chain: "Motion → London → Weather → Display",
-      description: "Weather on the display only when someone walks by.",
-    },
-    {
-      id: "world-desk" as ExamplePresetId,
-      title: "World Desk",
-      chain: "Tokyo → Time → Display · London → Weather → Display · Foundry → GitHub → Light",
-      description: "Tokyo clock, London weather, GitHub light — three sentences at once.",
+      description: "Weather on Display only when someone walks by.",
     },
   ],
   language: {
@@ -107,13 +133,13 @@ export const site = {
     },
     outputs: {
       label: "Outputs",
-      examples: "Light, Display",
+      examples: "Glow, Display",
       detail: "Where the sentence becomes visible on your desk.",
     },
   },
   trust: {
     headline: "Foundry is not a smart-home platform.",
-    subhead: "It is a physical language for behaviours.",
+    subhead: "It is a physical language for daily rituals.",
     bullets: [
       "Sentences execute on the Core",
       "Place cubes are programmable — not one cube per city",

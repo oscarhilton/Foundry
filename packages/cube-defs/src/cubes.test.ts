@@ -45,13 +45,13 @@ describe("Cube definitions", () => {
     expect(PRESET_CHAINS.length).toBeGreaterThanOrEqual(15);
   });
 
-  it("includes all hero showcase presets", () => {
+  it("includes hero showcase presets", () => {
     const showcaseIds = [
-      "weather-moods",
-      "weather-dial-lcd",
-      "split-weather-dual-lcd",
-      "presence-weather-lcd",
-      "world-desk",
+      "morning-check",
+      "doorway-signal",
+      "kitchen-timer",
+      "hallway-clothing-display",
+      "dual-weather-clothing",
     ];
     for (const id of showcaseIds) {
       expect(PRESET_CHAINS.some((p) => p.id === id)).toBe(true);

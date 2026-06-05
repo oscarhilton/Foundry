@@ -9,6 +9,34 @@ export const marketingAssets = {
   languageDiagram: "/marketing/nouns_verbs_outputs_diagram_only.png",
   trustCube: "/marketing/trust_banner_light_cube.png",
   examples: {
+    "morning-check": {
+      card: "/marketing/example_weather_dial_lcd_card.png",
+      miniChain: "/marketing/mini_chain_weather_dial_lcd.png",
+    },
+    "doorway-signal": {
+      card: "/marketing/example_weather_moods_card.png",
+      miniChain: "/marketing/mini_chain_weather_moods.png",
+    },
+    "kitchen-timer": {
+      card: "/marketing/example_weather_moods_card.png",
+      miniChain: "/marketing/mini_chain_weather_moods.png",
+    },
+    "hallway-clothing-display": {
+      card: "/marketing/example_presence_weather_card.png",
+      miniChain: "/marketing/mini_chain_presence_weather.png",
+    },
+    "dual-weather-clothing": {
+      card: "/marketing/example_split_weather_lcd_card.png",
+      miniChain: "/marketing/mini_chain_split_weather_lcd.png",
+    },
+    "room-motion-chime": {
+      card: "/marketing/example_weather_moods_card.png",
+      miniChain: "/marketing/mini_chain_weather_moods.png",
+    },
+    "weather-lcd": {
+      card: "/marketing/example_weather_dial_lcd_card.png",
+      miniChain: "/marketing/mini_chain_weather_dial_lcd.png",
+    },
     "weather-moods": {
       card: "/marketing/example_weather_moods_card.png",
       miniChain: "/marketing/mini_chain_weather_moods.png",

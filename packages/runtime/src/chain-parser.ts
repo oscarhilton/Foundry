@@ -69,7 +69,7 @@ export function parseChain(cubes: ChainCubeInput[]): ParsedChain {
 
   if (lightOutputs.length > 1) {
     warnings.push(
-      "Multiple Light cubes detected; only the first drives brightness",
+      "Multiple Glow cubes detected; only the first drives brightness",
     );
   }
   if (lcdOutputs.length > 1) {
@@ -293,6 +293,10 @@ export function hasTimeCube(chain: ParsedChain): boolean {
 
 export function hasDialCube(chain: ParsedChain): boolean {
   return chain.cubes.some((c) => c.definition.id === "control/dial");
+}
+
+export function hasTimerCube(chain: ParsedChain): boolean {
+  return chain.cubes.some((c) => c.definition.id === "control/timer");
 }
 
 /** Target cube has `beforeId` immediately to its left in the slot list. */

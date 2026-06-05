@@ -61,6 +61,8 @@ function SortableChainCube({
   const removeCube = useSimulatorStore((s) => s.removeCube);
   const setDialPosition = useSimulatorStore((s) => s.setDialPosition);
   const setSliderPosition = useSimulatorStore((s) => s.setSliderPosition);
+  const rotateTimerFace = useSimulatorStore((s) => s.rotateTimerFace);
+  const startTimer = useSimulatorStore((s) => s.startTimer);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: instanceId });
@@ -95,6 +97,8 @@ function SortableChainCube({
         onClick={() => onCubeClick(def.id)}
         onDialChange={setDialPosition}
         onSliderChange={setSliderPosition}
+        onTimerRotate={rotateTimerFace}
+        onTimerStart={startTimer}
         onHoverStart={(definition, clientX, clientY) =>
           onCubeHover?.(
             definition.label,
@@ -189,7 +193,7 @@ export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function Chai
 
   const warnings = useSimulatorStore((s) => s.warnings);
   const multipleLightsWarning = warnings.some((w) =>
-    w.includes("Multiple Light cubes"),
+    w.includes("Multiple Glow cubes"),
   );
   const multiDisplayHint = warnings.some((w) =>
     w.includes("Multiple displays share"),
@@ -248,7 +252,7 @@ export const ChainStrip = forwardRef<HTMLElement, ChainStripProps>(function Chai
 
       {multipleLightsWarning && outputState.powered && (
         <p className="w-full max-w-md text-center text-xs px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800">
-          Only the first Light cube drives brightness
+          Only the first Glow cube drives brightness
         </p>
       )}
 

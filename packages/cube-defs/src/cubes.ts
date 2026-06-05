@@ -42,6 +42,19 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
   },
   {
     schema: 1,
+    id: "identity/hallway",
+    label: "Hallway",
+    category: "identity",
+    role: "place",
+    colorAccent: "#8D99AE",
+    capabilities: ["place"],
+    metadata: { lat: 51.5074, lon: -0.1278, city: "Hallway", timezone: "Europe/London" },
+    registers: [],
+    topics: { publish: ["place/name"], subscribe: [] },
+    description: "Scope rituals to the hallway — leaving home, coats, shoes",
+  },
+  {
+    schema: 1,
     id: "identity/weather",
     label: "Weather",
     category: "identity",
@@ -105,6 +118,18 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
   },
   {
     schema: 1,
+    id: "transform/clothes",
+    label: "Clothes",
+    category: "identity",
+    role: "transform",
+    colorAccent: "#BC6C25",
+    capabilities: ["clothes"],
+    registers: [],
+    topics: { publish: [], subscribe: [] },
+    description: "Turn weather into what to wear",
+  },
+  {
+    schema: 1,
     id: "control/dial",
     label: "Wheel",
     category: "control",
@@ -141,6 +166,18 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
     registers: [{ name: "pressed", offset: 16, type: "uint8" }],
     topics: { publish: ["control/button/press"], subscribe: [] },
     description: "Toggle contact — OPEN or CLOSED; drives outputs downstream",
+  },
+  {
+    schema: 1,
+    id: "control/timer",
+    label: "Timer",
+    category: "control",
+    role: "control",
+    colorAccent: "#E07A5F",
+    capabilities: ["timer"],
+    registers: [{ name: "duration_minutes", offset: 16, type: "uint16" }],
+    topics: { publish: ["control/timer/start"], subscribe: [] },
+    description: "Turn to a side to pick 5, 10, 15, or 30 minutes",
   },
   {
     schema: 1,
@@ -183,14 +220,14 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
   {
     schema: 1,
     id: "output/light",
-    label: "Light",
+    label: "Glow",
     category: "output",
     role: "output",
     colorAccent: "#FFD166",
     capabilities: ["pwm-led"],
     registers: [{ name: "brightness", offset: 16, type: "uint16", scale: 0.001 }],
     topics: { publish: [], subscribe: ["output/light/brightness"] },
-    description: "Warm ambient light output",
+    description: "Ambient colour signal — not a lamp",
     outputModality: "visual",
   },
   {
@@ -212,14 +249,14 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
   {
     schema: 1,
     id: "output/lcd",
-    label: "LCD",
+    label: "Display",
     category: "output",
     role: "output",
     colorAccent: "#06D6A0",
     capabilities: ["lcd"],
     registers: [],
     topics: { publish: [], subscribe: ["output/lcd/text"] },
-    description: "Backlit character LCD",
+    description: "Backlit sentence viewport — where the chain is read aloud",
     outputModality: "visual",
   },
   {
@@ -250,6 +287,61 @@ export const CUBE_DEFINITIONS: CubeDefinition[] = [
 ];
 
 export const PRESET_CHAINS: PresetChain[] = [
+  {
+    id: "morning-check",
+    name: "Morning Check",
+    description: "Press while getting ready. Foundry suggests what to wear.",
+    cubes: [
+      "control/button",
+      "identity/weather",
+      "transform/clothes",
+      "output/lcd",
+      "core/core",
+    ],
+  },
+  {
+    id: "doorway-signal",
+    name: "Doorway Signal",
+    description: "As you pass the door, it glows if the weather needs attention.",
+    cubes: [
+      "sensor/motion",
+      "identity/hallway",
+      "identity/weather",
+      "output/light",
+      "core/core",
+    ],
+  },
+  {
+    id: "kitchen-timer",
+    name: "Kitchen Timer",
+    description: "Turn the cube to choose 5, 10, 15 or 30 minutes",
+    cubes: ["control/timer", "output/chime", "core/core"],
+  },
+  {
+    id: "hallway-clothing-display",
+    name: "Hallway Clothing Display",
+    description: "When you pass the hallway, a short reminder on Display",
+    cubes: [
+      "sensor/motion",
+      "identity/hallway",
+      "identity/weather",
+      "transform/clothes",
+      "output/lcd",
+      "core/core",
+    ],
+  },
+  {
+    id: "dual-weather-clothing",
+    name: "Two Displays",
+    description: "Forecast on one Display, clothing suggestion on the other",
+    cubes: [
+      "identity/weather",
+      "output/lcd",
+      "transform/clothes",
+      "output/lcd",
+      "core/core",
+    ],
+  },
   {
     id: "london-weather-light",
     name: "London Weather Light",
@@ -353,8 +445,8 @@ export const PRESET_CHAINS: PresetChain[] = [
   },
   {
     id: "weather-lcd",
-    name: "Weather LCD",
-    description: "London weather on backlit LCD",
+    name: "Place Weather Display",
+    description: "Weather source on the cube face; full sentence on Display",
     cubes: [
       "identity/london",
       "identity/weather",
@@ -469,20 +561,17 @@ export const PRESET_CHAINS: PresetChain[] = [
 export const STARTER_CUBE_IDS = new Set([
   "identity/london",
   "identity/weather",
-  "control/dial",
-  "output/light",
   "sensor/motion",
-  "output/chime",
+  "output/light",
+  "output/lcd",
   "core/core",
 ]);
 
 /** Hero presets shown by default in product mode. */
 export const HERO_PRESET_IDS = [
-  "weather-moods",
-  "weather-dial-lcd",
-  "world-desk",
-  "split-weather-dual-lcd",
-  "room-motion-chime",
+  "morning-check",
+  "doorway-signal",
+  "kitchen-timer",
 ] as const;
 
 export function getCubeDefinition(id: string): CubeDefinition | undefined {

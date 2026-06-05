@@ -1,50 +1,45 @@
 # Foundry Starter Kit
 
-Consumer summary: **Start Here** card on showcase (`?showcase=1`) — Core, Place, Weather, Light → `Place → Weather → Light`.
+Consumer summary: **Start Here** card on showcase (`?showcase=1`) — Core, Place, Weather, Motion, Glow, Display → `Place → Weather → Glow`.
 
-Two kit definitions exist on purpose: **what we build first on the bench** (M6 proof) vs **what we might sell in a box** (retail narrative).
+Hero demos: **Morning Check** (`Button → Weather → Clothes → Display`), **Doorway Signal** (`Motion → Hallway → Weather → Glow`), **Kitchen Timer** (`Timer → Chime`).
 
-## M6 proof kit (build this first)
+See [packs.md](packs.md) for Kitchen pack (Timer + Chime) and future add-ons.
 
-Minimum hardware to de-risk the product. Four cubes, one sentence.
+## Retail starter kit
 
 | Cube | Simulator ID | Role |
 |------|----------------|------|
 | Core | `core/core` | Power, connectivity, runtime |
-| Place | `identity/london` (demo sticker) | Noun |
-| Weather | `identity/weather` | Verb |
-| Light | `output/light` | Output |
+| Place | `identity/london` (demo sticker) | Context noun |
+| Weather | `identity/weather` | Source symbol (OVERCAST / RAIN / SUN) |
+| Motion | `sensor/motion` | Gate rituals |
+| Glow | `output/light` | Ambient colour signal — not a lamp |
+| Display | `output/lcd` | Sentence viewport |
 
-**Proof chain:** `London → Weather → Light`
+**First sentence:** `Place → Weather → Glow`
 
-**Why no Display in M6:** Light changes are noticeable from across a room. LCD text requires walking over and reading. M6.1 adds `Tokyo → Time → Display`.
+**Kitchen pack add-on:** Timer + Chime → `Timer → Chime`
 
-**80% magic test:** If a stranger snaps this chain and the light shifts with weather without opening the simulator, M6 succeeds.
+## M6 proof kit (bench)
 
-## Retail / showcase narrative (broader)
+Minimum hardware to de-risk the product. Still valid for first bring-up:
 
-What we tell people exploring `?showcase=1` or the workshop:
+| Cube | Role |
+|------|------|
+| Core | Power + runtime |
+| Place | Noun |
+| Weather | Verb |
+| Glow | Output |
 
-- Start with a **Core**
-- Add a **Light** or **Display**
-- Add cubes to grow vocabulary (Place, Weather, Time, Dial, Motion, …)
+**Proof chain:** `London → Weather → Glow`
 
-The simulator demonstrates Split, World Desk, and multi-LCD sentences. Those require **software + more cubes**; they are not the first box on the bench.
-
-## Optional add-ons (post-M6)
-
-| Cube | Unlocks |
-|------|---------|
-| Time | `Tokyo → Time → Display` (M6.1) |
-| Display (LCD) | Viewport sentences, Split |
-| Dial | Weather dial light / field select |
-| Motion | Presence-gated weather |
-| Second Place | Multi-city (with grammar care) |
+M6.1 adds Display: `Tokyo → Time → Display`.
 
 ## Pricing
 
-Not set. Silent showcase test success looks like: *"How much is the starter kit?"* — not *"How do I wire London to the light?"*
+Not set. Silent showcase success looks like: *"In the bedroom I'd press the button, but at the door it notices me"* — not *"It keeps bothering me"* or *"What's the difference between these two weather cubes?"*
 
 ## Code alignment
 
-`STARTER_CUBE_IDS` in `packages/cube-defs` reflects an earlier validation shelf (dial, motion, chime). Reconcile with this doc when the retail SKU locks; do not block M6 on that merge.
+`STARTER_CUBE_IDS` in `packages/cube-defs` matches the retail starter (Core, Place, Weather, Motion, Glow, Display). Clothes, Hallway, and Button are demo vocabulary for Morning Check and Doorway Signal; Timer/Chime are Kitchen pack.

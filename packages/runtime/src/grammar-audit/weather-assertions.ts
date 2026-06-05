@@ -46,7 +46,9 @@ export function normalizeWeatherFace(
     face.mode === "condition"
       ? state.resolvedWeather != null
         ? Math.round(state.resolvedWeather.rain * 100)
-        : parseRainPercentFromDetail(face.detail)
+        : face.detail
+          ? parseRainPercentFromDetail(face.detail)
+          : sourceRainPct
       : null;
   const usesPlaceProfile =
     state.resolvedWeather?.source === "place-profile" ||
@@ -82,6 +84,29 @@ export function normalizeWeatherFace(
     latched: face.latched,
     usesPlaceProfile,
   };
+}
+
+export function collectSymbolicFaceErrors(
+  state: FoundryOutputState,
+): string[] {
+  const errors: string[] = [];
+  const face = state.weatherFace;
+  if (!face || face.mode !== "condition") return errors;
+
+  const symbolic = ["OVERCAST", "RAIN", "SUN", "--"];
+  if (!symbolic.includes(face.headline)) {
+    errors.push(
+      `Weather face headline should be symbolic (OVERCAST/RAIN/SUN), got "${face.headline}"`,
+    );
+  }
+
+  if (face.detail?.includes("°C")) {
+    errors.push(
+      "Weather face detail must not expose viewport numbers — Display carries temp/rain text",
+    );
+  }
+
+  return errors;
 }
 
 export function collectWeatherDebugErrors(

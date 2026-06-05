@@ -54,6 +54,14 @@ function runGoldenCase(testCase: GoldenChainCase) {
 
   seedEngine(engine, chainInput, dial);
 
+  if (testCase.motionDetected) {
+    engine.mockAdapters.triggerMotion(true);
+  }
+
+  if (testCase.buttonPressed) {
+    engine.triggerButton();
+  }
+
   const state = engine.getOutputState();
   const parsed = parseChain(engine.getChain());
   const debug = engine.getCoreDebugSnapshot();
@@ -101,6 +109,11 @@ describe("Grammar audit — duplicate-cube chains", () => {
       const lcd = lcdBlob(state);
       for (const fragment of testCase.lcdIncludes ?? []) {
         expect(lcd).toContain(fragment);
+      }
+
+      if (testCase.name === "Weather → Display → Clothes → Display") {
+        expect(state.lcdTexts.lcd1).toContain("17°C");
+        expect(state.lcdTexts.lcd2).toContain("Sun cream");
       }
 
       if (testCase.name === "London → Weather → LCD → LCD") {

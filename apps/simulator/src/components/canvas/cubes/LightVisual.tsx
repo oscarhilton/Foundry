@@ -43,7 +43,8 @@ function peakColor(mood: LightMoodProp): string {
 }
 
 export function panelFill(brightness: number, mood: LightMoodProp = null): string {
-  return lerpColor(IDLE_GREY, peakColor(mood), clamp01(brightness));
+  const softened = brightness * 0.65;
+  return lerpColor(IDLE_GREY, peakColor(mood), clamp01(softened));
 }
 
 interface LightVisualProps {
@@ -60,8 +61,8 @@ export function LightVisual({ brightness, animTime, mood = null }: LightVisualPr
   lastFrame.current = animTime;
   displayBrightness.current = lerp(
     displayBrightness.current,
-    brightness,
-    Math.min(1, dt / 250),
+    brightness * 0.65,
+    Math.min(1, dt / 350),
   );
 
   const fill = panelFill(displayBrightness.current, mood);

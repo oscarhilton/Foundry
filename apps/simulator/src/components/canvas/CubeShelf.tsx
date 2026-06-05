@@ -44,6 +44,10 @@ const SHELF_OUTPUT_STATE: FoundryOutputState = {
   powerSource: "usb",
   batteryPercent: 100,
   buttonCircuitClosed: false,
+  resolvedWeather: null,
+  timerFaceIndex: 0,
+  timerRemainingMs: null,
+  timerRunning: false,
 };
 
 const SHELF_VISUAL_STATE: CubeVisualState = {

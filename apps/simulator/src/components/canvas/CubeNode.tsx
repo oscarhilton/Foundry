@@ -17,6 +17,7 @@ import { ButtonVisual } from "./cubes/ButtonVisual";
 import { SliderVisual } from "./cubes/SliderVisual";
 import { MusicVisual } from "./cubes/MusicVisual";
 import { LcdVisual } from "./cubes/LcdVisual";
+import { TimerVisual } from "./cubes/TimerVisual";
 import { TemperatureVisual } from "./cubes/TemperatureVisual";
 import { TimeVisual, formatTimeDisplay } from "./cubes/TimeVisual";
 import { RandomVisual } from "./cubes/RandomVisual";
@@ -59,6 +60,8 @@ interface CubeNodeProps {
   onClick?: () => void;
   onDialChange?: (value: number) => void;
   onSliderChange?: (value: number) => void;
+  onTimerRotate?: () => void;
+  onTimerStart?: () => void;
   onHoverStart?: (definition: CubeDefinition, clientX: number, clientY: number) => void;
   onHoverEnd?: () => void;
   width?: number;
@@ -157,6 +160,8 @@ function CubeNodeInner({
   dragAttributes,
   onDialChange,
   onSliderChange,
+  onTimerRotate,
+  onTimerStart,
   onHoverStart,
   onHoverEnd,
   width = CUBE_SIZE,
@@ -246,6 +251,17 @@ function CubeNodeInner({
         />
       );
     }
+    if (id === "control/timer" && inChain && powered) {
+      return (
+        <TimerVisual
+          faceIndex={outputState.timerFaceIndex as 0 | 1 | 2 | 3}
+          remainingMs={outputState.timerRemainingMs}
+          running={outputState.timerRunning}
+          onRotate={onTimerRotate}
+          onStart={onTimerStart}
+        />
+      );
+    }
     if (id === "sensor/motion") {
       return (
         <MotionVisual
@@ -287,7 +303,6 @@ function CubeNodeInner({
         <WeatherVisual
           face={outputState.weatherFace}
           rain={outputState.weatherRain}
-          animTime={animTime}
         />
       );
     }
@@ -379,18 +394,12 @@ function CubeNodeInner({
   const stateSlot = buildStateSlot();
   const identityFooter =
     id === "identity/weather"
-      ? weatherFooterLabel(
-          animTime,
-          outputState.weatherTemp,
-          outputState.weatherRain,
-          outputState.weatherFace,
-          definition.label,
-        )
+      ? weatherFooterLabel(outputState.weatherFace, definition.label)
       : id === "source/time"
         ? outputState.timeHour != null
           ? formatTimeDisplay(outputState.timeHour)
           : definition.label
-        : ["identity/london", "identity/tokyo", "identity/foundry"].includes(id)
+        : ["identity/london", "identity/tokyo", "identity/foundry", "identity/hallway"].includes(id)
           ? definition.label
           : null;
   const iconSlot = stateSlot ? null : (

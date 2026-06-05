@@ -4,7 +4,7 @@ import { closeShowcase } from "./showcase-nav";
 const CUBE_GROUPS = [
   {
     label: "Output cubes",
-    items: ["Light", "Display", "Sound"],
+    items: ["Glow", "Display", "Sound"],
   },
   {
     label: "Input cubes",
@@ -33,7 +33,7 @@ function PlaceAssignVisual() {
 
 /** M6 proof chain — visible from across a room */
 function M6ProofChainVisual() {
-  const blocks = ["Place", "Weather", "Light", "Core"];
+  const blocks = ["Place", "Weather", "Glow", "Core"];
   return (
     <div
       className="flex items-center justify-center gap-0 py-1 pointer-events-none select-none"
@@ -107,7 +107,7 @@ export function HowFoundryWorksCard() {
                 behaviours. Each chain becomes a sentence.
               </p>
               <p className="font-mono text-xs text-foundry-muted">
-                London → Weather → Light
+                London → Weather → Glow
                 <br />
                 Tokyo → Time → Display
               </p>
@@ -115,8 +115,9 @@ export function HowFoundryWorksCard() {
 
             <ProductQa title="What do I need?">
               <p>
-                Start with a <strong>Core</strong>, a <strong>Display</strong>{" "}
-                or <strong>Light</strong>, and a few cubes.
+                Start with a <strong>Core</strong>, <strong>Place</strong>,{" "}
+                <strong>Weather</strong>, <strong>Motion</strong>,{" "}
+                <strong>Glow</strong>, and <strong>Display</strong>.
               </p>
               <p>More cubes add new words to your vocabulary.</p>
             </ProductQa>
@@ -191,6 +192,31 @@ export function HowFoundryWorksCard() {
           <p className="font-medium text-foundry-ink">
             Snap them together to create behaviours.
           </p>
+
+          <ProductQa title="How does a reminder enter your life?">
+            <ul className="mt-1 space-y-1 text-foundry-muted">
+              <li>
+                <strong className="text-foundry-ink">Button</strong> — ask me
+              </li>
+              <li>
+                <strong className="text-foundry-ink">Motion</strong> — notice me
+              </li>
+              <li>
+                <strong className="text-foundry-ink">Timer</strong> — remind me
+                later
+              </li>
+              <li>
+                <strong className="text-foundry-ink">Display</strong> — tell me
+              </li>
+              <li>
+                <strong className="text-foundry-ink">Glow</strong> — hint to me
+              </li>
+              <li>
+                <strong className="text-foundry-ink">Chime</strong> — interrupt
+                me
+              </li>
+            </ul>
+          </ProductQa>
         </div>
 
         <div className="space-y-3">
@@ -207,7 +233,7 @@ export function HowFoundryWorksCard() {
             <M6ProofChainVisual />
             <p className="text-[10px] text-center text-foundry-muted pb-2 px-1">
               Core provides power and Wi-Fi · semantic chain is Place → Weather
-              → Light
+              → Glow
             </p>
           </div>
         </div>
