@@ -10,7 +10,7 @@ interface DiePoolProps {
 export function DiePool({ dice, silent }: DiePoolProps) {
   if (silent) {
     return (
-      <div className="flex flex-wrap gap-4 justify-center max-w-[720px] mx-auto">
+      <div className="flex flex-wrap gap-4 justify-center max-w-[900px] mx-auto">
         {dice.map((die) => (
           <PoolDie key={die.id} die={die} />
         ))}

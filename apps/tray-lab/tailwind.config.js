@@ -25,7 +25,9 @@ export default {
         ],
       },
       boxShadow: {
-        die: "0 2px 0 rgba(0,0,0,0.12), 0 6px 16px rgba(0,0,0,0.08)",
+        die: "0 8px 20px rgba(0,0,0,0.08)",
+        "die-placed": "0 4px 12px rgba(0,0,0,0.10)",
+        "die-drag": "0 18px 38px rgba(0,0,0,0.16)",
         tray: "0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.4)",
       },
     },

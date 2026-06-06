@@ -11,7 +11,7 @@ const NOW = 1_717_632_000_000;
 function armedTimerState() {
   const tray = createTrayFromPlacements([
     { slotIndex: 0, cubeId: "button", activeModeId: "press" },
-    { slotIndex: 1, cubeId: "timer", activeModeId: "15" },
+    { slotIndex: 1, cubeId: "timer", activeModeId: "15_min" },
   ]);
   const state = rebuildRuntimeStateFromTray(tray, NOW);
   expect(state.timer?.state).toBe("armed");
@@ -77,7 +77,7 @@ describe("event-reducer", () => {
     const mutated = reduceTrayEvent(running, {
       type: "die_rotated",
       slotIndex: 1,
-      activeModeId: "30",
+      activeModeId: "30_min",
     });
 
     expect(mutated.timer?.state).not.toBe("running");
@@ -86,7 +86,7 @@ describe("event-reducer", () => {
   it("wrong button does not start armed timer", () => {
     const tray = createTrayFromPlacements([
       { slotIndex: 0, cubeId: "button", activeModeId: "press" },
-      { slotIndex: 2, cubeId: "timer", activeModeId: "15" },
+      { slotIndex: 2, cubeId: "timer", activeModeId: "15_min" },
       { slotIndex: 4, cubeId: "button", activeModeId: "press" },
     ]);
     const state = rebuildRuntimeStateFromTray(tray, NOW);

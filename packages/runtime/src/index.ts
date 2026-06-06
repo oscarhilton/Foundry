@@ -858,12 +858,8 @@ export class FoundryEngine {
 
   private syncTrayDisplay(): void {
     if (!this.trayState || !this.trayContext) return;
-    const pipeline = this.parsed?.powered ? this.pipelineWeather() : null;
-    const fact = buildTrayWeatherFact(
-      this.trayState,
-      this.trayContext,
-      pipeline,
-    );
+    // Tray Lab uses place-profile mock weather — not live chain pipeline values.
+    const fact = buildTrayWeatherFact(this.trayState, this.trayContext);
     this.trayTranslation = resolveTrayTranslation(
       this.trayState,
       fact,
@@ -1270,6 +1266,8 @@ export {
   getDefaultFaceId,
   getDefaultModeId,
   detectHeroMoment,
+  toLegacyParserToken,
+  compileTrayTokensForLegacyParser,
 } from "./tray-compile.js";
 export type {
   LensItem,
@@ -1277,6 +1275,8 @@ export type {
   TimerIntentCandidate,
   RunningTimerState,
   ResolvedSlot,
+  SourceBindingResult,
+  UpstreamContext,
 } from "./intent-resolver.js";
 export {
   buildTrayCompileContext,
@@ -1284,6 +1284,9 @@ export {
   getSlotSignature,
   getBoundSignature,
   shouldCancelRunningTimer,
+  resolveLensSourceBinding,
+  resolveUpstreamContext,
+  isCompatibleSourceMode,
 } from "./intent-resolver.js";
 export type { TrayEvent, TrayRuntimeState } from "./event-reducer.js";
 export {
@@ -1294,6 +1297,7 @@ export {
 export {
   composeFinalOutput,
   buildTrayTranslation,
+  resolveDominantHint,
 } from "./tray-compose.js";
 export {
   translatePlaceSlot,

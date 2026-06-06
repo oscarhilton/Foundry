@@ -6,12 +6,17 @@ import {
   createTrayFromPlacements,
   detectHeroMoment,
   resolveTraySlotTexts,
+  compileTrayTokensForLegacyParser,
 } from "./tray-compile.js";
+import {
+  resolveLensSourceBinding,
+  buildTrayCompileContext,
+} from "./intent-resolver.js";
 
 function canonicalMorningTray(lensModeId = "any") {
   return createTrayFromPlacements([
     { slotIndex: 0, cubeId: "home", activeModeId: "home" },
-    { slotIndex: 1, cubeId: "morning", activeModeId: "full" },
+    { slotIndex: 1, cubeId: "morning", activeModeId: "morning" },
     { slotIndex: 2, cubeId: "weather", activeModeId: "full" },
     { slotIndex: 3, cubeId: "umbrella", activeModeId: lensModeId },
   ]);
@@ -35,6 +40,20 @@ describe("tray-compile v2", () => {
     expect(translation.finalOutputTone).toBe("answer");
   });
 
+  it("express: morning weather umbrella uses default home context", () => {
+    const tray = createTrayFromPlacements([
+      { slotIndex: 0, cubeId: "morning", activeModeId: "morning" },
+      { slotIndex: 1, cubeId: "weather", activeModeId: "full" },
+      { slotIndex: 2, cubeId: "umbrella", activeModeId: "any" },
+    ]);
+    const { trayContext } = compileTrayState(tray);
+    const fact = buildTrayWeatherFact(tray, trayContext)!;
+    const translation = resolveTrayTranslation(tray, fact, trayContext);
+
+    expect(translation.finalOutput).toBe("No umbrella needed this morning.");
+    expect(translation.finalOutputTone).toBe("answer");
+  });
+
   it("minimal: weather umbrella without place or moment", () => {
     const tray = createTrayFromPlacements([
       { slotIndex: 2, cubeId: "weather", activeModeId: "full" },
@@ -46,14 +65,14 @@ describe("tray-compile v2", () => {
 
     expect(translation.localTranslations[2]).toBe("22% rain after 4pm");
     expect(translation.localTranslations[3]).toBe("No umbrella needed");
-    expect(translation.finalOutput).toBe("No umbrella needed.");
+    expect(translation.finalOutput).toBe("No umbrella needed today.");
   });
 
   it("weather rain mode changes source line; lens stable on rotate", () => {
     const rainModeTray = canonicalMorningTray();
     const rainModeTray2 = createTrayFromPlacements([
       { slotIndex: 0, cubeId: "home", activeModeId: "home" },
-      { slotIndex: 1, cubeId: "morning", activeModeId: "full" },
+      { slotIndex: 1, cubeId: "morning", activeModeId: "morning" },
       { slotIndex: 2, cubeId: "weather", activeModeId: "rain" },
       { slotIndex: 3, cubeId: "umbrella", activeModeId: "any" },
     ]);
@@ -86,7 +105,7 @@ describe("tray-compile v2", () => {
     const umbrellaTray = canonicalMorningTray("any");
     const wearTray = createTrayFromPlacements([
       { slotIndex: 0, cubeId: "home", activeModeId: "home" },
-      { slotIndex: 1, cubeId: "morning", activeModeId: "full" },
+      { slotIndex: 1, cubeId: "morning", activeModeId: "morning" },
       { slotIndex: 2, cubeId: "weather", activeModeId: "full" },
       { slotIndex: 3, cubeId: "wear", activeModeId: "light" },
     ]);
@@ -104,7 +123,7 @@ describe("tray-compile v2", () => {
   it("gapped tray compacts chain but preserves display indices", () => {
     const tray = createTrayFromPlacements([
       { slotIndex: 0, cubeId: "home", activeModeId: "home" },
-      { slotIndex: 2, cubeId: "morning", activeModeId: "full" },
+      { slotIndex: 2, cubeId: "morning", activeModeId: "morning" },
       { slotIndex: 4, cubeId: "weather", activeModeId: "full" },
     ]);
     const { chainCubes, trayContext } = compileTrayState(tray);
@@ -172,6 +191,10 @@ describe("tray-compile v2", () => {
     expect(chainCubes.some((c) => c.definitionId.startsWith("lens/"))).toBe(
       false,
     );
+    expect(chainCubes.some((c) => c.definitionId === "identity/hallway")).toBe(
+      true,
+    );
+    expect(chainCubes.some((c) => c.definitionId === "place/home")).toBe(false);
   });
 
   it("morning is moment role, not control", () => {
@@ -179,5 +202,86 @@ describe("tray-compile v2", () => {
     const { trayContext } = compileTrayState(tray);
     expect(trayContext.momentSlotIndex).toBe(1);
     expect(trayContext.slots[1]?.role).toBe("moment");
+  });
+
+  it("maps clean place tokens to legacy parser tokens without mutating physical tokens", () => {
+    const compiled = compileTrayTokensForLegacyParser([
+      { token: "place/home", slotIndex: 0 },
+      { token: "moment/morning", slotIndex: 1 },
+      { token: "source/weather", slotIndex: 2 },
+    ]);
+
+    expect(compiled).toEqual([
+      {
+        physicalToken: "place/home",
+        parserToken: "identity/hallway",
+        slotIndex: 0,
+      },
+      {
+        physicalToken: "moment/morning",
+        parserToken: "moment/morning",
+        slotIndex: 1,
+      },
+      {
+        physicalToken: "source/weather",
+        parserToken: "identity/weather",
+        slotIndex: 2,
+      },
+    ]);
+  });
+});
+
+describe("TRAY-109 — upstream source binding", () => {
+  it("does not let UMBRELLA bind to downstream WEATHER", () => {
+    const tray = createTrayFromPlacements([
+      { slotIndex: 0, cubeId: "home", activeModeId: "outside" },
+      { slotIndex: 1, cubeId: "morning", activeModeId: "morning" },
+      { slotIndex: 2, cubeId: "umbrella", activeModeId: "heavy" },
+      { slotIndex: 3, cubeId: "weather", activeModeId: "full" },
+    ]);
+
+    const lensItem = {
+      lensId: "umbrella",
+      slotIndex: 2,
+      domain: "weather" as const,
+      label: "UMBRELLA",
+    };
+    const binding = resolveLensSourceBinding(lensItem, tray);
+
+    expect(binding.sourceAttached).toBe(false);
+    expect(binding.sourceSlotIndex).toBeNull();
+    expect(binding.hint).toBe("Put WEATHER before UMBRELLA.");
+
+    const ctx = buildTrayCompileContext(tray);
+    const fact = buildTrayWeatherFact(tray, ctx)!;
+    const translation = resolveTrayTranslation(tray, fact, ctx);
+
+    expect(translation.finalOutputTone).toBe("hint");
+    expect(translation.finalOutput).toBe("Put WEATHER before UMBRELLA.");
+    expect(translation.localTranslations[0]).toBe("Outside");
+    expect(translation.localTranslations[1]).toBe("Morning");
+    expect(translation.localTranslations[2]).toBe("Put WEATHER before UMBRELLA.");
+    expect(translation.localTranslations[3]).toMatch(/rain/);
+  });
+
+  it("rejects place blocks as upstream sources", () => {
+    const tray = createTrayFromPlacements([
+      { slotIndex: 0, cubeId: "home", activeModeId: "outside" },
+      { slotIndex: 1, cubeId: "morning", activeModeId: "morning" },
+      { slotIndex: 2, cubeId: "umbrella", activeModeId: "heavy" },
+      { slotIndex: 3, cubeId: "weather", activeModeId: "full" },
+    ]);
+
+    const binding = resolveLensSourceBinding(
+      {
+        lensId: "umbrella",
+        slotIndex: 2,
+        domain: "weather",
+        label: "UMBRELLA",
+      },
+      tray,
+    );
+
+    expect(binding.sourceAttached).toBe(false);
   });
 });

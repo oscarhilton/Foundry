@@ -26,8 +26,7 @@ export function TraySlot({ index, placed, silent, onRotate, onRemove }: TraySlot
         "relative flex items-center justify-center",
         "w-[88px] h-[88px] rounded-md",
         "bg-tray-recess",
-        "ring-1 ring-inset ring-black/5",
-        isOver ? "ring-tray-ink/30 bg-tray-recess/80" : "",
+        isOver ? "bg-tray-recess/90" : "",
       ].join(" ")}
     >
       {placed && die ? (

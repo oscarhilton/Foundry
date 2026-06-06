@@ -12,6 +12,8 @@ export type TrayWordMode = {
   id: string;
   label: string;
   faceText: string;
+  /** Face-level runtime token — canonical when present. */
+  runtimeToken?: string;
   dataKey?: string;
 };
 
@@ -25,10 +27,7 @@ export type TrayWordCube = {
   pack?: "starter" | "weather" | "routine" | "reminder";
   requires?: TrayWordRole[];
   provides: string[];
-  /**
-   * Legacy parser token for parseChain(). Product vocabulary must not leak this into UI.
-   * e.g. home → identity/hallway until parser evolves to identity/place/home
-   */
+  /** Fallback parser token when modes lack face-level runtimeToken. */
   runtimeToken: string;
 };
 
@@ -36,9 +35,10 @@ function mode(
   id: string,
   label: string,
   faceText: string,
+  runtimeToken?: string,
   dataKey?: string,
 ): TrayWordMode {
-  return { id, label, faceText, dataKey };
+  return { id, label, faceText, runtimeToken, dataKey };
 }
 
 function cube(
@@ -51,30 +51,30 @@ function cube(
 export const STARTER_CUBES: TrayWordCube[] = [
   cube({
     id: "home",
-    label: "Home",
+    label: "Place Context",
     word: "HOME",
     role: "place",
     modes: [
-      mode("home", "Home", "HOME"),
-      mode("outside", "Outside", "OUTSIDE"),
-      mode("door", "Door", "DOOR"),
-      mode("away", "Away", "AWAY"),
+      mode("home", "Home", "HOME", "place/home"),
+      mode("work", "Work", "WORK", "place/work"),
+      mode("outside", "Outside", "OUTSIDE", "place/outside"),
+      mode("commute", "Commute", "COMMUTE", "place/commute"),
     ],
     starter: true,
     pack: "starter",
     provides: ["place"],
-    runtimeToken: "identity/hallway",
+    runtimeToken: "place/home",
   }),
   cube({
     id: "morning",
-    label: "Morning",
+    label: "Temporal Context",
     word: "MORNING",
     role: "moment",
     modes: [
-      mode("full", "Full", "MORNING"),
-      mode("work", "Work", "MORNING"),
-      mode("weekend", "Weekend", "MORNING"),
-      mode("quick", "Quick", "MORNING"),
+      mode("morning", "Morning", "MORNING", "moment/morning"),
+      mode("now", "Now", "NOW", "moment/now"),
+      mode("later", "Later", "LATER", "moment/later"),
+      mode("evening", "Evening", "EVENING", "moment/evening"),
     ],
     starter: true,
     pack: "starter",
@@ -87,15 +87,32 @@ export const STARTER_CUBES: TrayWordCube[] = [
     word: "WEATHER",
     role: "source",
     modes: [
-      mode("full", "Full", "WEATHER"),
-      mode("temp", "Temp", "WEATHER"),
-      mode("rain", "Rain", "WEATHER"),
-      mode("wind", "Wind", "WEATHER"),
+      mode("full", "Full", "WEATHER", "source/weather"),
+      mode("temp", "Temp", "WEATHER", "source/weather"),
+      mode("rain", "Rain", "WEATHER", "source/weather"),
+      mode("wind", "Wind", "WEATHER", "source/weather"),
     ],
     starter: true,
     pack: "starter",
     provides: ["weather"],
-    runtimeToken: "identity/weather",
+    runtimeToken: "source/weather",
+  }),
+  cube({
+    id: "rain",
+    label: "Rain",
+    word: "RAIN",
+    role: "lens",
+    modes: [
+      mode("any", "Any", "RAIN"),
+      mode("later", "Later", "RAIN"),
+      mode("today", "Today", "RAIN"),
+      mode("now", "Now", "RAIN"),
+    ],
+    starter: true,
+    pack: "starter",
+    requires: ["source"],
+    provides: ["rain-outlook"],
+    runtimeToken: "lens/rain",
   }),
   cube({
     id: "umbrella",
@@ -122,7 +139,7 @@ export const STARTER_CUBES: TrayWordCube[] = [
     modes: [
       mode("light", "Light", "WEAR"),
       mode("warm", "Warm", "WEAR"),
-      mode("rain", "Rain", "WEAR"),
+      mode("coat", "Coat", "WEAR"),
       mode("smart", "Smart", "WEAR"),
     ],
     starter: true,
@@ -153,10 +170,10 @@ export const STARTER_CUBES: TrayWordCube[] = [
     word: "TIMER",
     role: "control",
     modes: [
-      mode("5", "5", "5", "5"),
-      mode("10", "10", "10", "10"),
-      mode("15", "15", "15", "15"),
-      mode("30", "30", "30", "30"),
+      mode("timer", "Timer", "TIMER"),
+      mode("5_min", "5 MIN", "5 MIN", undefined, "5"),
+      mode("15_min", "15 MIN", "15 MIN", undefined, "15"),
+      mode("30_min", "30 MIN", "30 MIN", undefined, "30"),
     ],
     starter: true,
     pack: "starter",
@@ -173,14 +190,14 @@ export const CATALOG_CUBES: TrayWordCube[] = [
     word: "LONDON",
     role: "place",
     modes: [
-      mode("london", "London", "LONDON"),
-      mode("central", "Central", "LONDON"),
-      mode("north", "North", "LONDON"),
-      mode("south", "South", "LONDON"),
+      mode("london", "London", "LONDON", "place/london"),
+      mode("central", "Central", "LONDON", "place/london"),
+      mode("north", "North", "LONDON", "place/london"),
+      mode("south", "South", "LONDON", "place/london"),
     ],
     pack: "weather",
     provides: ["place"],
-    runtimeToken: "identity/london",
+    runtimeToken: "place/london",
   }),
 ];
 
@@ -210,4 +227,20 @@ export function rotateTrayModeId(cubeId: string, activeModeId: string): string {
 
 export function defaultModeId(cubeId: string): string {
   return getTrayWordCube(cubeId)?.modes[0]?.id ?? "";
+}
+
+/** Grammar-biased tray-lab pool order (8 starter cubes). */
+export const STARTER_POOL_ORDER = [
+  "home",
+  "morning",
+  "weather",
+  "rain",
+  "umbrella",
+  "wear",
+  "button",
+  "timer",
+] as const;
+
+export function orderedStarterPool(): TrayWordCube[] {
+  return STARTER_POOL_ORDER.map((id) => getTrayWordCube(id)!);
 }

@@ -6,28 +6,38 @@ interface TrayDisplayProps {
 
 export function TrayDisplay({ translation }: TrayDisplayProps) {
   const { slots, localTranslations, finalOutput, finalOutputTone } = translation;
-  const hintsOnly = finalOutputTone === "invalid" && finalOutput === null;
+  const showFinal =
+    finalOutput !== null &&
+    (finalOutputTone === "answer" ||
+      finalOutputTone === "timer" ||
+      finalOutputTone === "hint");
 
   return (
     <div className="flex flex-col gap-3 w-full max-w-[720px] mx-auto">
-      <div className="grid grid-cols-5 gap-2">
-        {localTranslations.map((local, index) => (
-          <div
-            key={`local-${index}`}
-            className="min-h-[44px] rounded-sm bg-tray-lcd/60 px-2 py-1.5 flex items-center justify-center text-center"
-          >
-            <LocalZone text={local} slot={slots[index]} />
-          </div>
-        ))}
+      <div className="rounded-sm bg-tray-lcd min-h-[44px] px-2 py-2">
+        <div className="grid grid-cols-5 gap-0">
+          {localTranslations.map((local, index) => (
+            <div
+              key={`local-${index}`}
+              className="flex items-center justify-center text-center px-1"
+            >
+              <LocalZone text={local} slot={slots[index]} />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {!hintsOnly && finalOutput && (
+      {showFinal && (
         <>
           <div className="border-t border-tray-ink/10" />
           <p
             className={[
-              "text-center font-medium leading-snug px-2",
-              finalOutputTone === "timer" ? "text-lg tabular-nums" : "text-base",
+              "text-center leading-snug px-2",
+              finalOutputTone === "timer"
+                ? "text-lg tabular-nums font-medium"
+                : finalOutputTone === "hint"
+                  ? "text-sm text-tray-hint font-normal"
+                  : "text-base font-medium",
             ].join(" ")}
           >
             {finalOutput}
@@ -45,21 +55,20 @@ function LocalZone({
   text: string | null;
   slot: TrayTranslation["slots"][number] | undefined;
 }) {
-  if (text) {
-    return (
-      <span className="text-tray-ink text-sm leading-snug font-medium whitespace-pre-line">
-        {text}
-      </span>
-    );
+  if (!text) {
+    return <span className="text-tray-hint/40 text-sm">&nbsp;</span>;
   }
 
-  if (slot?.kind === "hint") {
-    return (
-      <span className="text-tray-hint text-xs leading-snug font-normal">
-        {slot.value}
-      </span>
-    );
-  }
+  const isHint = slot?.kind === "hint";
 
-  return <span className="text-tray-hint/40 text-sm">&nbsp;</span>;
+  return (
+    <span
+      className={[
+        "text-sm leading-snug whitespace-pre-line",
+        isHint ? "text-tray-hint font-normal" : "text-tray-ink font-medium",
+      ].join(" ")}
+    >
+      {text}
+    </span>
+  );
 }

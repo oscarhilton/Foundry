@@ -10,8 +10,8 @@ import {
 } from "./dice.js";
 
 describe("word cubes (v2)", () => {
-  it("starter pool has seven per-word cubes with four modes each", () => {
-    expect(STARTER_CUBES).toHaveLength(7);
+  it("starter pool has eight per-word cubes with four modes each", () => {
+    expect(STARTER_CUBES).toHaveLength(8);
     for (const cube of STARTER_CUBES) {
       expect(cube.modes).toHaveLength(4);
     }
@@ -46,6 +46,15 @@ describe("word cubes (v2)", () => {
       activeModeId: "london",
     });
     expect(face?.label).toBe("LONDON");
-    expect(face?.token).toBe("identity/london");
+    expect(face?.token).toBe("place/london");
+  });
+
+  it("never exposes legacy identity tokens in mode vocabulary", () => {
+    const allModeTokens = STARTER_CUBES.flatMap((cube) =>
+      cube.modes.map((m) => m.runtimeToken).filter(Boolean),
+    );
+    expect(allModeTokens).toContain("place/home");
+    expect(allModeTokens).toContain("place/work");
+    expect(allModeTokens).not.toContain("identity/hallway");
   });
 });

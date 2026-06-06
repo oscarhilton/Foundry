@@ -14,14 +14,14 @@ import {
 import { PLACE_DEFAULTS } from "./tray-place-defaults.js";
 import {
   translateControlSlot,
-  translateLensSlot,
+  translateLensLocal,
   translateMomentSlot,
   translatePlaceSlot,
   translateSourceSlot,
-  translateWearLens,
 } from "./tray-translate.js";
 import {
   buildTrayCompileContext,
+  resolveLensSourceBinding,
   TRAY_CORE_INSTANCE,
   type ResolvedSlot,
   type TrayCompileContext,
@@ -31,9 +31,18 @@ import {
   type TrayTranslation,
 } from "./tray-compose.js";
 import type { RunningTimerState } from "./intent-resolver.js";
+import {
+  isWeatherSourceToken,
+  toLegacyParserToken,
+} from "./tray-legacy-tokens.js";
 
 export type { ResolvedSlot, TrayCompileContext } from "./intent-resolver.js";
 export type { TrayTranslation, FinalOutputTone } from "./tray-compose.js";
+export type { CompiledTrayToken } from "./tray-legacy-tokens.js";
+export {
+  toLegacyParserToken,
+  compileTrayTokensForLegacyParser,
+} from "./tray-legacy-tokens.js";
 
 export type TraySlotText =
   | { kind: "text"; value: string }
@@ -54,7 +63,7 @@ export function compileTrayState(tray: TrayState): {
     chainToSlot.push(slot.slotIndex);
     chainCubes.push({
       instanceId: `tray-${instanceCounter++}`,
-      definitionId: slot.token,
+      definitionId: toLegacyParserToken(slot.token),
     });
   }
 
@@ -74,6 +83,17 @@ function resolvePlaceLabel(slot: ResolvedSlot): string {
   return "Home";
 }
 
+function findPlaceForSlot(
+  ctx: TrayCompileContext,
+  beforeIndex: number,
+): ResolvedSlot | null {
+  for (let i = beforeIndex - 1; i >= 0; i--) {
+    const slot = ctx.slots[i];
+    if (slot?.role === "place") return slot;
+  }
+  return null;
+}
+
 function mockWeatherForPlaceToken(placeToken: string): {
   temp: number;
   rain: number;
@@ -90,23 +110,27 @@ export function buildTrayWeatherFact(
   ctx: TrayCompileContext,
   pipeline?: { temp: number; rain: number } | null,
 ): WeatherFact | null {
-  const placeSlot =
-    ctx.placeSlotIndex !== null ? ctx.slots[ctx.placeSlotIndex] : null;
-  const sourceSlot =
-    ctx.sourceSlotIndex !== null ? ctx.slots[ctx.sourceSlotIndex] : null;
-
-  const hasWeatherSource = sourceSlot?.token === "identity/weather";
+  const weatherSource = ctx.slots.find(
+    (s) => s.role === "source" && isWeatherSourceToken(s.token ?? ""),
+  );
   const hasLens = ctx.primaryLensSlotIndex !== null;
 
-  if (!hasWeatherSource && !hasLens) {
+  if (!weatherSource && !hasLens) {
     return null;
   }
 
+  const anchorIndex =
+    weatherSource?.slotIndex ??
+    ctx.primaryLensSlotIndex ??
+    ctx.sourceSlotIndex ??
+    0;
+  const placeSlot =
+    findPlaceForSlot(ctx, anchorIndex) ??
+    (ctx.placeSlotIndex !== null ? ctx.slots[ctx.placeSlotIndex] : null);
+
   const placeToken =
     placeSlot?.token ??
-    (ctx.slots.some((s) => s.role === "source" || s.role === "lens")
-      ? ctx.defaultPlaceToken
-      : null);
+    (weatherSource || hasLens ? ctx.defaultPlaceToken : null);
 
   if (!placeToken) return null;
 
@@ -120,7 +144,7 @@ export function buildTrayWeatherFact(
 }
 
 export function resolveTraySlotTexts(
-  _tray: TrayState,
+  tray: TrayState,
   weatherFact: WeatherFact | null,
   ctx: TrayCompileContext,
 ): TraySlotText[] {
@@ -128,12 +152,14 @@ export function resolveTraySlotTexts(
     kind: "empty",
   }));
 
-  const hasWeatherSource = ctx.sourceSlotIndex !== null;
+  const hasWeatherSourceInTray = ctx.slots.some(
+    (s) => s.role === "source" && isWeatherSourceToken(s.token ?? ""),
+  );
   const hasLens = ctx.primaryLensSlotIndex !== null;
   const placeMissingButNeeded =
     ctx.placeSlotIndex === null &&
-    (hasWeatherSource || hasLens) &&
-    !(hasWeatherSource && hasLens);
+    (hasWeatherSourceInTray || hasLens) &&
+    !(hasWeatherSourceInTray && hasLens);
 
   for (const slot of ctx.slots) {
     if (!slot.role) continue;
@@ -149,7 +175,7 @@ export function resolveTraySlotTexts(
     if (slot.role === "moment") {
       result[slot.slotIndex] = {
         kind: "text",
-        value: translateMomentSlot(slot.modeId ?? "full"),
+        value: translateMomentSlot(slot.modeId ?? "morning"),
       };
       continue;
     }
@@ -163,8 +189,11 @@ export function resolveTraySlotTexts(
     }
 
     if (slot.role === "source") {
-      if (slot.token === "identity/weather") {
-        if (!weatherFact) {
+      if (isWeatherSourceToken(slot.token ?? "")) {
+        const placeUpstream = findPlaceForSlot(ctx, slot.slotIndex);
+        if (!placeUpstream && ctx.placeSlotIndex === null && !weatherFact) {
+          result[slot.slotIndex] = { kind: "hint", value: "Add place" };
+        } else if (!weatherFact) {
           result[slot.slotIndex] = { kind: "hint", value: "Add weather" };
         } else {
           result[slot.slotIndex] = {
@@ -186,7 +215,7 @@ export function resolveTraySlotTexts(
     }
 
     if (slot.role === "lens") {
-      const lens = slot.lensId;
+      const lensItem = ctx.lenses.find((l) => l.slotIndex === slot.slotIndex);
       const isSecondary =
         ctx.secondaryLensSlotIndex !== null &&
         slot.slotIndex === ctx.secondaryLensSlotIndex;
@@ -199,28 +228,36 @@ export function resolveTraySlotTexts(
         continue;
       }
 
-      if (!hasWeatherSource) {
+      const binding = lensItem
+        ? resolveLensSourceBinding(lensItem, tray)
+        : {
+            sourceAttached: false,
+            sourceSlotIndex: null,
+            sourceId: null,
+            hint: "Needs weather",
+          };
+
+      if (!binding.sourceAttached) {
         result[slot.slotIndex] = {
           kind: "hint",
-          value:
-            slot.cubeId === "umbrella"
-              ? "Umbrella needs weather"
-              : "Needs weather",
+          value: binding.hint ?? "Needs weather",
         };
         continue;
       }
 
-      if (!weatherFact || !lens) {
+      if (!weatherFact || !slot.cubeId) {
         result[slot.slotIndex] = { kind: "hint", value: "Needs weather" };
         continue;
       }
 
-      const value =
-        slot.cubeId === "wear"
-          ? translateWearLens(weatherFact, slot.modeId ?? "light")
-          : translateLensSlot(weatherFact, lens);
-
-      result[slot.slotIndex] = { kind: "text", value };
+      result[slot.slotIndex] = {
+        kind: "text",
+        value: translateLensLocal(
+          slot.cubeId,
+          slot.modeId ?? "any",
+          weatherFact,
+        ),
+      };
       continue;
     }
   }
@@ -231,8 +268,8 @@ export function resolveTraySlotTexts(
 
   if (
     ctx.placeSlotIndex !== null &&
-    ctx.sourceSlotIndex === null &&
-    ctx.primaryLensSlotIndex !== null
+    ctx.primaryLensSlotIndex !== null &&
+    ctx.sourceSlotIndex === null
   ) {
     const start = ctx.placeSlotIndex + 1;
     const end = ctx.primaryLensSlotIndex;
@@ -240,20 +277,6 @@ export function resolveTraySlotTexts(
       if (!ctx.slots[i]?.role && result[i]?.kind === "empty") {
         result[i] = { kind: "hint", value: "Add weather" };
         break;
-      }
-    }
-  }
-
-  if (ctx.placeSlotIndex === null && ctx.sourceSlotIndex === null && hasLens) {
-    for (const slot of ctx.slots) {
-      if (slot.role === "lens") {
-        result[slot.slotIndex] = {
-          kind: "hint",
-          value:
-            slot.cubeId === "umbrella"
-              ? "Umbrella needs weather"
-              : "Needs weather",
-        };
       }
     }
   }

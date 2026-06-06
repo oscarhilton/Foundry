@@ -8,15 +8,103 @@ The most important QA for the tray + dice product direction. Run after each tray
 
 The tray is a **translator** — each cube gets a local interpretation in the slot-aligned zone beneath it, plus one concise **final answer** line. Local translations show *why*; final output says *what to do*.
 
-## Vocabulary rule (v2)
+## Vocabulary rule (v2.1)
 
-**One die = one word.** Faces are **modes of that word**, not alternate nouns.
+**One die = one word.** Faces are **modes of that word**, not alternate product categories.
 
-- HOME, MORNING, WEATHER, UMBRELLA are separate physical cubes
-- Rotating WEATHER cycles Full / Temp / Rain / Wind — the word stays WEATHER
+- HOME, MORNING, WEATHER, RAIN, UMBRELLA, WEAR are separate physical cubes where intent matters
+- **Place die** faces: HOME / WORK / OUTSIDE / COMMUTE (face tokens `place/*`)
+- **Moment die** faces: MORNING / NOW / LATER / EVENING (face tokens `moment/*`)
+- Rotating WEATHER cycles Full / Temp / Rain / Wind — emphasis modes, not alternate source nouns
 - Lens role is labeled **Decision** in the UI (internal name: `lens`)
 
-**Forgiving grammar:** not every sentence needs every role. `WEATHER → UMBRELLA` alone should still yield a useful answer.
+Physical tokens stay clean in vocabulary; `tray-compile.ts` maps to legacy parser tokens at the chain boundary only.
+
+**Forgiving grammar:** not every sentence needs every role. Both umbrella paths resolve to the same final answer:
+
+- **Express:** `MORNING → WEATHER → UMBRELLA` (default home inferred)
+- **Canonical:** `HOME → MORNING → WEATHER → UMBRELLA` (explicit home anchor)
+
+Both → `No umbrella needed this morning.`
+
+## Tray Lab modes
+
+| Mode | URL | Tray on load | Purpose |
+|------|-----|--------------|---------|
+| **Silent test** | `?silent=1` | Empty tray, 8-cube pool | Can a stranger discover the product? |
+| **Default dev** | `/` | Empty tray, 8-cube pool | Honest grammar — no pre-docked answer |
+| **Showcase demo** | `?showcase=1` | Preloaded `HOME → MORNING → WEATHER → UMBRELLA` | Beautiful instant demo |
+
+Do not preload the silent test tray. Pre-docking teaches the answer.
+
+## Lens intent alignment (TRAY-111)
+
+**The word you see is the question being answered.**
+
+Each weather lens cube asks a different question of the same WEATHER source:
+
+| Lens | Question | Example final (`NOW`, 22% rain) |
+|------|----------|-------------------------------|
+| **RAIN** (phenomenon) | Will it rain? | `Rain unlikely right now.` |
+| **UMBRELLA** (utility) | Should I take one? | `No umbrella needed right now.` |
+| **WEAR** (comfort) | What should I wear? | `Light jacket right now.` |
+
+The silent test foil: placing **RAIN** when asked about an umbrella gives accurate weather data but not the requested action — the user discovers they need **UMBRELLA**.
+
+WEAR must not carry a rain face. RAIN is its own starter cube.
+
+## Cube display (physical language — TRAY-110)
+
+**The largest word on the die is the word the runtime reads.**
+
+- **Default orientation:** identity word centered large (e.g. `WEATHER`, `HOME`, `TIMER`)
+- **Rotated orientation:** active face centered large (e.g. `OUTSIDE`, `RAIN`) with die word tiny and debossed below (e.g. `home`, `weather`)
+- The cube has not changed; the user has turned it
+
+**Product rule:** Dice are physical objects first, UI elements second — never a selectable dashboard. No orange selection borders, no completion badges.
+
+## Physical grammar (TRAY-109)
+
+**A word can only use what appears before it.**
+
+- Lenses bind only to a **compatible upstream source face** to their left
+- Places and moments are **upstream context**, not data sources — OUTSIDE does not satisfy UMBRELLA
+- Downstream sources are **diagnostic only** — they produce layout hints, never power an answer
+- Source compatibility checks the **active face**, not the die category
+
+**No-lookahead example:**
+
+```
+OUTSIDE → MORNING → UMBRELLA → WEATHER
+Local:  Outside  Morning  Put WEATHER before UMBRELLA.  22% rain after 4pm
+Final:  Put WEATHER before UMBRELLA.
+```
+
+Valid canonical order still resolves normally:
+
+```
+HOME → MORNING → WEATHER → UMBRELLA  →  No umbrella needed this morning.
+```
+
+## Final line rules (TRAY-108)
+
+The final line may **answer**, **count down**, or **hint**. It must never merge contradictory local meanings into a franken-sentence.
+
+**Composition order:**
+
+1. Running timer owns the final line
+2. Any local slot hint blocks synthetic advice — final tone becomes `hint`
+3. Normal canonical sentence assembly
+
+**Hint dominance examples:**
+
+| Layout issue | Final line |
+|--------------|------------|
+| Two decision cubes (umbrella + wear) | `Choose umbrella or clothing.` |
+| Umbrella before weather (local hint) | Pass-through local hint — not synthetic advice |
+| Valid canonical/express umbrella paths | Normal answer tone |
+
+If the local layer says something is wrong (e.g. `One concern at a time`), the final layer must say "not quite" — not `Take umbrella later right now.`
 
 ## Protocol
 
@@ -37,9 +125,16 @@ Optional debug logging: add `&debug=1` to log session JSON to the browser consol
 
 Run once before a major interaction change (baseline), once after (validation).
 
-## Starter kit (tray-lab pool)
+## Starter kit (tray-lab pool — 8 cubes)
 
-Home · Morning · Weather · Umbrella · Wear · Button · Timer
+Pool order (grammar-biased): **HOME · MORNING · WEATHER · RAIN · UMBRELLA · WEAR · BUTTON · TIMER**
+
+| Class | Cubes |
+|-------|-------|
+| Context | HOME, MORNING |
+| Source | WEATHER |
+| Weather lenses | RAIN, UMBRELLA, WEAR |
+| Controls | BUTTON, TIMER |
 
 ## Canonical scenario
 

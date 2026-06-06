@@ -4,10 +4,10 @@ import {
   getWordDie,
   rotateModeId,
   defaultModeId,
-  STARTER_CUBES,
+  orderedStarterPool,
 } from "@foundry/cube-defs";
 import type { TrayTranslation } from "@foundry/runtime";
-import { FoundryEngine } from "@foundry/runtime";
+import { createTrayFromPlacements, FoundryEngine } from "@foundry/runtime";
 import { create } from "zustand";
 import {
   exportSessionJson,
@@ -31,6 +31,7 @@ interface TrayLabState {
   scenarioId: ScenarioId;
   trayTranslation: TrayTranslation;
   silentMode: boolean;
+  showcaseMode: boolean;
   observerMode: boolean;
   poolDice: WordDie[];
   placeDie: (slotIndex: number, cubeId: string) => void;
@@ -51,6 +52,10 @@ function getEngine(): FoundryEngine {
   return engine;
 }
 
+function resetEngine(): void {
+  engine = null;
+}
+
 function emptyTranslation(): TrayTranslation {
   return {
     slots: Array.from({ length: 5 }, () => ({ kind: "empty" as const })),
@@ -68,18 +73,35 @@ function commitTray(tray: TrayState): TrayTranslation {
   return trayTranslation;
 }
 
-function initialTray(): TrayState {
+function buildInitialTray(showcaseMode: boolean): TrayState {
+  if (showcaseMode) {
+    return createTrayFromPlacements([...morningLeavingScenario.canonicalSlots]);
+  }
   return emptyTrayState();
 }
 
-const searchParams = new URLSearchParams(window.location.search);
+function readSilentFromUrl(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).has("silent");
+}
+
+function readShowcaseFromUrl(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).has("showcase");
+}
+
+function readObserverFromUrl(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).has("observer");
+}
 
 export const useTrayLabStore = create<TrayLabState>((set, get) => ({
-  tray: initialTray(),
+  tray: emptyTrayState(),
   scenarioId: "morning-leaving",
   trayTranslation: emptyTranslation(),
-  silentMode: searchParams.has("silent"),
-  observerMode: searchParams.has("observer"),
+  silentMode: readSilentFromUrl(),
+  showcaseMode: readShowcaseFromUrl(),
+  observerMode: readObserverFromUrl(),
   poolDice: morningLeavingScenario.dicePool,
 
   placeDie: (slotIndex, cubeId) => {
@@ -112,20 +134,41 @@ export const useTrayLabStore = create<TrayLabState>((set, get) => ({
   },
 
   resetScenario: () => {
-    const tray = initialTray();
+    const tray = buildInitialTray(get().showcaseMode);
     resetSessionJournal();
     set({ tray, trayTranslation: commitTray(tray) });
   },
 }));
 
 export function getDieFromPool(cubeId: string): WordDie | undefined {
-  return getWordDie(cubeId) ?? STARTER_CUBES.find((d) => d.id === cubeId);
+  return getWordDie(cubeId) ?? orderedStarterPool().find((d) => d.id === cubeId);
 }
 
-export function initTrayLab(): void {
+export type InitTrayLabOptions = {
+  silentMode?: boolean;
+  showcaseMode?: boolean;
+};
+
+export function initTrayLab(options: InitTrayLabOptions = {}): TrayLabState {
+  resetEngine();
   resetSessionJournal();
-  const tray = initialTray();
-  useTrayLabStore.setState({ trayTranslation: commitTray(tray) });
+
+  const silentMode = options.silentMode ?? readSilentFromUrl();
+  const showcaseMode = options.showcaseMode ?? readShowcaseFromUrl();
+  const tray = buildInitialTray(showcaseMode);
+  const trayTranslation = commitTray(tray);
+
+  useTrayLabStore.setState({
+    silentMode,
+    showcaseMode,
+    observerMode:
+      options.silentMode !== undefined ? false : readObserverFromUrl(),
+    poolDice: morningLeavingScenario.dicePool,
+    tray,
+    trayTranslation,
+  });
+
+  return useTrayLabStore.getState();
 }
 
 export {
@@ -153,3 +196,5 @@ export function roleDisplayLabel(role: TrayWordRole): string {
       return role;
   }
 }
+
+export { buildInitialTray, emptyTrayState, readShowcaseFromUrl };

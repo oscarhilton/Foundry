@@ -36,10 +36,12 @@ export {
   STARTER_CUBES,
   CATALOG_CUBES,
   ALL_WORD_CUBES,
+  STARTER_POOL_ORDER,
   getTrayWordCube,
   getTrayWordMode,
   rotateTrayModeId,
   defaultModeId,
+  orderedStarterPool,
 } from "./vocabulary.js";
 
 export type {

@@ -77,7 +77,7 @@ export function getDieFace(cubeId: string, modeId: string): DieFace | undefined 
     id: modeDef.id,
     label: modeDef.faceText,
     role: cubeDef.role,
-    token: cubeDef.runtimeToken,
+    token: modeDef.runtimeToken ?? cubeDef.runtimeToken,
   };
 }
 

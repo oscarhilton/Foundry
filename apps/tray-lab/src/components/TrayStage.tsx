@@ -106,7 +106,11 @@ export function TrayStage() {
 
       <DragOverlay>
         {activeDie ? (
-          <WordDieView die={activeDie} activeModeId={activeDie.modes[0]!.id} />
+          <WordDieView
+            die={activeDie}
+            activeModeId={activeDie.modes[0]!.id}
+            isDragging
+          />
         ) : null}
       </DragOverlay>
     </DndContext>

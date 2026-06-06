@@ -1,12 +1,14 @@
 import type { TrayCompileContext, RunningTimerState } from "./intent-resolver.js";
 import type { TraySlotText } from "./tray-compile.js";
 import type { WeatherFact } from "./weather-lens.js";
+import { composeLensFinal } from "./tray-translate.js";
 
 export type FinalOutputTone =
   | "answer"
   | "warning"
   | "timer"
   | "reminder"
+  | "hint"
   | "invalid";
 
 export type TrayTranslation = {
@@ -18,7 +20,7 @@ export type TrayTranslation = {
 };
 
 function slotLocalText(slot: TraySlotText | undefined): string | null {
-  if (!slot || slot.kind !== "text") return null;
+  if (!slot || slot.kind === "empty") return null;
   return slot.value;
 }
 
@@ -26,10 +28,25 @@ function momentPhrase(ctx: TrayCompileContext): string | null {
   if (ctx.momentSlotIndex === null) return null;
   const slot = ctx.slots[ctx.momentSlotIndex];
   if (!slot?.modeId) return null;
-  if (slot.modeId === "weekend") return "this weekend";
-  if (slot.modeId === "work") return "for work";
-  if (slot.modeId === "quick") return "right now";
-  return "this morning";
+  switch (slot.modeId) {
+    case "now":
+      return "right now";
+    case "later":
+      return "later";
+    case "evening":
+      return "this evening";
+    case "morning":
+    default:
+      return "this morning";
+  }
+}
+
+function ambientPhrase(ctx: TrayCompileContext): string | null {
+  if (ctx.placeSlotIndex !== null) {
+    const placeMode = ctx.slots[ctx.placeSlotIndex]?.modeId;
+    if (placeMode === "work") return "for work";
+  }
+  return momentPhrase(ctx);
 }
 
 function primaryLensLocal(
@@ -37,7 +54,9 @@ function primaryLensLocal(
   ctx: TrayCompileContext,
 ): string | null {
   if (ctx.primaryLensSlotIndex === null) return null;
-  return slotLocalText(slots[ctx.primaryLensSlotIndex]);
+  const slot = slots[ctx.primaryLensSlotIndex];
+  if (!slot || slot.kind !== "text") return null;
+  return slot.value;
 }
 
 function formatTimerRemaining(remainingMs: number): string {
@@ -47,22 +66,29 @@ function formatTimerRemaining(remainingMs: number): string {
   return `${min}:${String(sec).padStart(2, "0")} remaining`;
 }
 
-function composeUmbrellaFinal(
-  lensLocal: string,
-  moment: string | null,
+export function resolveDominantHint(
+  ctx: TrayCompileContext,
+  hintSlot: Extract<TraySlotText, { kind: "hint" }>,
 ): string {
-  const base = lensLocal.replace(/\.$/, "");
-  if (!moment) return `${base}.`;
-  if (base.toLowerCase().includes("umbrella")) {
-    return `${base} ${moment}.`;
-  }
-  return `${base} ${moment}.`;
-}
+  const lensIds = ctx.lenses.map((l) => l.lensId);
+  const hasRain = lensIds.includes("rain");
+  const hasUmbrella = lensIds.includes("umbrella");
+  const hasWear = lensIds.includes("wear");
+  const weatherLensCount = [hasRain, hasUmbrella, hasWear].filter(Boolean).length;
 
-function composeWearFinal(lensLocal: string, moment: string | null): string {
-  const base = lensLocal.replace(/\.$/, "");
-  if (!moment) return `${base}.`;
-  return `${base} ${moment}.`;
+  if (weatherLensCount >= 3) {
+    return "Choose rain, umbrella, or clothing.";
+  }
+  if (hasUmbrella && hasWear) {
+    return "Choose umbrella or clothing.";
+  }
+  if (hasRain && hasUmbrella) {
+    return "Choose rain or umbrella.";
+  }
+  if (hasRain && hasWear) {
+    return "Choose rain or clothing.";
+  }
+  return hintSlot.value;
 }
 
 export function composeFinalOutput(
@@ -85,42 +111,58 @@ export function composeFinalOutput(
     };
   }
 
-  const hasHintOnly = slots.every(
-    (s) => s.kind === "empty" || s.kind === "hint",
+  const primaryHintSlot = slots.find(
+    (s): s is Extract<TraySlotText, { kind: "hint" }> => s.kind === "hint",
   );
-  if (hasHintOnly) {
+  if (primaryHintSlot) {
+    return {
+      finalOutput: resolveDominantHint(ctx, primaryHintSlot),
+      finalOutputTone: "hint",
+    };
+  }
+
+  const hasContentOnlyEmpty = slots.every((s) => s.kind === "empty");
+  if (hasContentOnlyEmpty) {
     return { finalOutput: null, finalOutputTone: "invalid" };
   }
 
   const lensLocal = primaryLensLocal(slots, ctx);
-  const moment = momentPhrase(ctx);
-  const primaryCubeId =
+  const primarySlot =
     ctx.primaryLensSlotIndex !== null
-      ? ctx.slots[ctx.primaryLensSlotIndex]?.cubeId
+      ? ctx.slots[ctx.primaryLensSlotIndex]
       : null;
+  const primaryCubeId = primarySlot?.cubeId ?? null;
+  const primaryModeId = primarySlot?.modeId ?? "any";
 
-  if (lensLocal && primaryCubeId === "umbrella") {
-    return {
-      finalOutput: composeUmbrellaFinal(lensLocal, moment),
-      finalOutputTone: "answer",
-    };
-  }
-
-  if (lensLocal && primaryCubeId === "wear") {
-    return {
-      finalOutput: composeWearFinal(lensLocal, moment),
-      finalOutputTone: "answer",
-    };
+  if (lensLocal && primaryCubeId && fact) {
+    const isWeatherLens = ["rain", "umbrella", "wear"].includes(primaryCubeId);
+    if (isWeatherLens) {
+      return {
+        finalOutput: composeLensFinal(
+          primaryCubeId,
+          primaryModeId,
+          fact,
+          ambientPhrase(ctx),
+        ),
+        finalOutputTone: "answer",
+      };
+    }
   }
 
   if (lensLocal) {
+    const moment = ambientPhrase(ctx);
     return {
-      finalOutput: moment ? `${lensLocal.replace(/\.$/, "")} ${moment}.` : `${lensLocal.replace(/\.$/, "")}.`,
+      finalOutput: moment
+        ? `${lensLocal.replace(/\.$/, "")} ${moment}.`
+        : `${lensLocal.replace(/\.$/, "")}.`,
       finalOutputTone: "answer",
     };
   }
 
-  if (ctx.sourceSlotIndex !== null && slotLocalText(slots[ctx.sourceSlotIndex])) {
+  if (
+    ctx.sourceSlotIndex !== null &&
+    slots[ctx.sourceSlotIndex]?.kind === "text"
+  ) {
     return { finalOutput: null, finalOutputTone: "invalid" };
   }
 

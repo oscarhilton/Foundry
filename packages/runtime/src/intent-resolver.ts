@@ -1,7 +1,13 @@
-import type { TrayState } from "@foundry/cube-defs";
-import { getTrayWordCube, TRAY_SLOT_COUNT } from "@foundry/cube-defs";
+import type { TrayState, TrayWordCube, TrayWordMode } from "@foundry/cube-defs";
+import {
+  ALL_WORD_CUBES,
+  getTrayWordCube,
+  getTrayWordMode,
+  TRAY_SLOT_COUNT,
+} from "@foundry/cube-defs";
 import type { WeatherLens } from "./weather-lens.js";
 import { weatherLensFromFaceToken } from "./weather-lens.js";
+import { isWeatherSourceToken } from "./tray-legacy-tokens.js";
 
 export type ResolvedSlot = {
   slotIndex: number;
@@ -26,6 +32,18 @@ export type ControlItem = {
   controlId: string;
   slotIndex: number;
   label: string;
+};
+
+export type SourceBindingResult = {
+  sourceAttached: boolean;
+  sourceSlotIndex: number | null;
+  sourceId: string | null;
+  hint?: string;
+};
+
+export type UpstreamContext = {
+  placeSlotIndex: number | null;
+  momentSlotIndex: number | null;
 };
 
 export type TimerIntentCandidate =
@@ -97,8 +115,115 @@ export function shouldCancelRunningTimer(
 }
 
 function lensDomainForCube(cubeId: string): LensItem["domain"] {
-  if (cubeId === "umbrella" || cubeId === "wear") return "weather";
+  if (cubeId === "umbrella" || cubeId === "wear" || cubeId === "rain") {
+    return "weather";
+  }
   return "generic";
+}
+
+function formatDownstreamHint(sourceCubeId: string, lensCubeId: string): string {
+  const sourceWord = getTrayWordCube(sourceCubeId)?.word ?? "SOURCE";
+  const lensWord = getTrayWordCube(lensCubeId)?.word ?? "LENS";
+  return `Put ${sourceWord} before ${lensWord}.`;
+}
+
+function formatNeedsHint(domain: LensItem["domain"]): string {
+  switch (domain) {
+    case "weather":
+      return "Needs weather";
+    case "time":
+      return "Needs time";
+    case "airQuality":
+      return "Needs air quality";
+    default:
+      return "Needs source";
+  }
+}
+
+export function isCompatibleSourceMode(
+  mode: TrayWordMode,
+  lens: LensItem,
+): boolean {
+  const token = mode.runtimeToken;
+  if (!token) return false;
+  if (lens.domain === "weather") {
+    return isWeatherSourceToken(token);
+  }
+  return false;
+}
+
+export function resolveUpstreamContext(
+  lensSlotIndex: number,
+  tray: TrayState,
+  catalog: TrayWordCube[] = ALL_WORD_CUBES,
+): UpstreamContext {
+  let placeSlotIndex: number | null = null;
+  let momentSlotIndex: number | null = null;
+
+  for (let i = lensSlotIndex - 1; i >= 0; i--) {
+    const slot = tray.slots[i];
+    if (!slot) continue;
+    const def = catalog.find((c) => c.id === slot.cubeId);
+    if (!def) continue;
+    if (def.role === "place" && placeSlotIndex === null) {
+      placeSlotIndex = i;
+    }
+    if (def.role === "moment" && momentSlotIndex === null) {
+      momentSlotIndex = i;
+    }
+  }
+
+  return { placeSlotIndex, momentSlotIndex };
+}
+
+export function resolveLensSourceBinding(
+  lens: LensItem,
+  tray: TrayState,
+  catalog: TrayWordCube[] = ALL_WORD_CUBES,
+): SourceBindingResult {
+  for (let i = lens.slotIndex - 1; i >= 0; i--) {
+    const slot = tray.slots[i];
+    if (!slot) continue;
+
+    const def = catalog.find((c) => c.id === slot.cubeId);
+    if (!def || def.role !== "source") continue;
+
+    const activeMode = def.modes.find((m) => m.id === slot.activeModeId);
+    if (activeMode && isCompatibleSourceMode(activeMode, lens)) {
+      const sourceId =
+        activeMode.runtimeToken ?? def.runtimeToken ?? null;
+      return {
+        sourceAttached: true,
+        sourceSlotIndex: i,
+        sourceId,
+      };
+    }
+  }
+
+  let downstreamSourceCubeId: string | null = null;
+  const hasDownstreamCompatibleSource = tray.slots
+    .slice(lens.slotIndex + 1)
+    .some((slot) => {
+      if (!slot) return false;
+      const def = catalog.find((c) => c.id === slot.cubeId);
+      if (!def || def.role !== "source") return false;
+
+      const activeMode = def.modes.find((m) => m.id === slot.activeModeId);
+      if (activeMode && isCompatibleSourceMode(activeMode, lens)) {
+        downstreamSourceCubeId = def.id;
+        return true;
+      }
+      return false;
+    });
+
+  return {
+    sourceAttached: false,
+    sourceSlotIndex: null,
+    sourceId: null,
+    hint: hasDownstreamCompatibleSource
+      ? formatDownstreamHint(downstreamSourceCubeId!, lens.lensId)
+      : formatNeedsHint(lens.domain),
+  };
 }
 
 function resolveTimerIntent(
@@ -116,8 +241,11 @@ function resolveTimerIntent(
 
   const boundSignature = getBoundSignature(tray, boundSlots);
   const timerSlot = tray.slots[timer.slotIndex];
-  const durationMinutes = timerSlot
-    ? Number.parseInt(timerSlot.activeModeId, 10)
+  const timerMode = timerSlot
+    ? getTrayWordMode("timer", timerSlot.activeModeId)
+    : undefined;
+  const durationMinutes = timerMode?.dataKey
+    ? Number.parseInt(timerMode.dataKey, 10)
     : NaN;
 
   if (!Number.isFinite(durationMinutes)) {
@@ -192,6 +320,7 @@ export function resolveTraySlots(tray: TrayState): ResolvedSlot[] {
       continue;
     }
 
+    const physicalToken = modeDef.runtimeToken ?? cubeDef.runtimeToken;
     const lensId =
       cubeDef.role === "lens"
         ? weatherLensFromFaceToken(cubeDef.runtimeToken)
@@ -203,7 +332,7 @@ export function resolveTraySlots(tray: TrayState): ResolvedSlot[] {
       modeId: modeDef.id,
       modeLabel: modeDef.label,
       role: cubeDef.role,
-      token: cubeDef.runtimeToken,
+      token: physicalToken,
       weatherMode: cubeDef.id === "weather" ? modeDef.id : null,
       lensId,
       displayLabel: modeDef.faceText,
@@ -211,6 +340,17 @@ export function resolveTraySlots(tray: TrayState): ResolvedSlot[] {
   }
 
   return slots;
+}
+
+function upstreamSourceForPrimaryLens(
+  tray: TrayState,
+  lenses: LensItem[],
+  primaryLensSlotIndex: number | null,
+): number | null {
+  if (primaryLensSlotIndex === null) return null;
+  const lensItem = lenses.find((l) => l.slotIndex === primaryLensSlotIndex);
+  if (!lensItem) return null;
+  return resolveLensSourceBinding(lensItem, tray).sourceSlotIndex;
 }
 
 export function buildTrayCompileContext(tray: TrayState): TrayCompileContext {
@@ -235,23 +375,33 @@ export function buildTrayCompileContext(tray: TrayState): TrayCompileContext {
     }));
 
   const momentSlot = resolved.find((s) => s.role === "moment") ?? null;
+  const primaryLensSlotIndex = primaryLens?.slotIndex ?? null;
+  const boundSourceIndex = upstreamSourceForPrimaryLens(
+    tray,
+    lenses,
+    primaryLensSlotIndex,
+  );
+  const fallbackSourceIndex =
+    resolved.find(
+      (s) => s.role === "source" && isWeatherSourceToken(s.token ?? ""),
+    )?.slotIndex ?? null;
 
   return {
     slots: resolved,
     placeSlotIndex: resolved.find((s) => s.role === "place")?.slotIndex ?? null,
     momentSlotIndex: momentSlot?.slotIndex ?? null,
     sourceSlotIndex:
-      resolved.find((s) => s.role === "source")?.slotIndex ?? null,
+      primaryLensSlotIndex !== null ? boundSourceIndex : fallbackSourceIndex,
     lenses,
     controls,
-    primaryLensSlotIndex: primaryLens?.slotIndex ?? null,
+    primaryLensSlotIndex,
     secondaryLensSlotIndex: secondaryLens?.slotIndex ?? null,
     activeLens: primaryLens?.lensId ?? null,
     activeMomentId: momentSlot?.modeId ?? null,
     timerIntent: resolveTimerIntent(tray, controls),
     chainToSlot: [],
     trayCoreInstanceId: TRAY_CORE_INSTANCE,
-    defaultPlaceToken: "identity/hallway",
+    defaultPlaceToken: "place/home",
     contextSlotIndex: momentSlot?.slotIndex ?? null,
   };
 }
