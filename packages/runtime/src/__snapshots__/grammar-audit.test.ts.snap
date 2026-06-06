@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Grammar audit — compact snapshots > London → Wheel → Weather → LCD snapshot 1`] = `
+{
+  "chain": [
+    "identity/london",
+    "control/dial",
+    "identity/weather",
+    "output/lcd",
+  ],
+  "chimeCount": 0,
+  "lcdTexts": {
+    "audit-3-output-lcd": "London
+RAIN > 85%
+45% · closed",
+  },
+  "lightBrightness": 0.02,
+  "powered": true,
+  "recipe": "manual composition",
+  "viewportRendered": [
+    "London
+RAIN > 85%
+45% · closed",
+  ],
+  "weatherFace": {
+    "detail": "> 85%",
+    "headline": "RAIN",
+    "latched": true,
+    "mode": "threshold",
+    "placeLabel": null,
+  },
+}
+`;

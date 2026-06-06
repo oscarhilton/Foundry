@@ -77,6 +77,15 @@ import {
   latestKey,
   type SignalMessage,
 } from "./signal-router.js";
+import type { TrayState } from "@foundry/cube-defs";
+import {
+  compileTrayState,
+  buildTrayWeatherFact,
+  resolveTrayTranslation,
+  type TraySlotText,
+  type TrayCompileContext,
+  type TrayTranslation,
+} from "./tray-compile.js";
 import { perlin1D, perlin2D, perlinNormalized1D } from "./perlin.js";
 
 export interface FoundryEngineOptions {
@@ -185,6 +194,12 @@ export class FoundryEngine {
   private tempTimer?: ReturnType<typeof setInterval>;
   private timerTick?: ReturnType<typeof setInterval>;
   private timerFaceIndex = 0;
+  private trayState: TrayState | null = null;
+  private trayContext: TrayCompileContext | null = null;
+  private traySlotTexts: TraySlotText[] = Array.from({ length: 5 }, () => ({
+    kind: "empty" as const,
+  }));
+  private trayTranslation: TrayTranslation | null = null;
 
   constructor(options: FoundryEngineOptions = {}) {
     this.dialPosition = options.dialDefault ?? 0.65;
@@ -256,7 +271,40 @@ export class FoundryEngine {
 
   setChain(cubes: ChainCubeInput[]): void {
     this.chain = cubes;
+    this.trayState = null;
+    this.trayContext = null;
     this.rebind();
+  }
+
+  setTrayState(tray: TrayState): void {
+    this.trayState = tray;
+    const compiled = compileTrayState(tray);
+    this.trayContext = compiled.trayContext;
+    this.chain = compiled.chainCubes;
+    this.rebind();
+    this.syncTrayDisplay();
+  }
+
+  getTraySlotTexts(): TraySlotText[] {
+    return this.traySlotTexts.map((s) => ({ ...s }));
+  }
+
+  getTrayTranslation(): TrayTranslation {
+    if (!this.trayTranslation) {
+      return {
+        slots: this.getTraySlotTexts(),
+        localTranslations: this.traySlotTexts.map((s) =>
+          s.kind === "text" ? s.value : null,
+        ),
+        finalOutput: null,
+        finalOutputTone: "invalid",
+      };
+    }
+    return {
+      ...this.trayTranslation,
+      slots: this.trayTranslation.slots.map((s) => ({ ...s })),
+      localTranslations: [...this.trayTranslation.localTranslations],
+    };
   }
 
   getChain(): ChainCubeInput[] {
@@ -615,6 +663,7 @@ export class FoundryEngine {
       this.outputState.placeId = null;
       this.outputState.placeTimezone = null;
       this.resetOutputs();
+      this.syncTrayDisplay();
       return;
     }
 
@@ -804,6 +853,24 @@ export class FoundryEngine {
     this.syncModifierNoise();
     this.syncLcdFromChain();
     this.syncWeatherFace(resolved);
+    this.syncTrayDisplay();
+  }
+
+  private syncTrayDisplay(): void {
+    if (!this.trayState || !this.trayContext) return;
+    const pipeline = this.parsed?.powered ? this.pipelineWeather() : null;
+    const fact = buildTrayWeatherFact(
+      this.trayState,
+      this.trayContext,
+      pipeline,
+    );
+    this.trayTranslation = resolveTrayTranslation(
+      this.trayState,
+      fact,
+      this.trayContext,
+      { nowMs: Date.now() },
+    );
+    this.traySlotTexts = this.trayTranslation.slots;
   }
 
   /** Commit Weather cube face when powered; latched across unpowered (e-ink). */
@@ -1193,3 +1260,59 @@ export type {
   RecipeContext,
   PlaceProfile,
 };
+export type { TraySlotText, TrayCompileContext, TrayTranslation, FinalOutputTone } from "./tray-compile.js";
+export {
+  compileTrayState,
+  buildTrayWeatherFact,
+  resolveTraySlotTexts,
+  resolveTrayTranslation,
+  createTrayFromPlacements,
+  getDefaultFaceId,
+  getDefaultModeId,
+  detectHeroMoment,
+} from "./tray-compile.js";
+export type {
+  LensItem,
+  ControlItem,
+  TimerIntentCandidate,
+  RunningTimerState,
+  ResolvedSlot,
+} from "./intent-resolver.js";
+export {
+  buildTrayCompileContext,
+  resolveTraySlots,
+  getSlotSignature,
+  getBoundSignature,
+  shouldCancelRunningTimer,
+} from "./intent-resolver.js";
+export type { TrayEvent, TrayRuntimeState } from "./event-reducer.js";
+export {
+  reduceTrayEvent,
+  rebuildRuntimeStateFromTray,
+  createInitialRuntimeState,
+} from "./event-reducer.js";
+export {
+  composeFinalOutput,
+  buildTrayTranslation,
+} from "./tray-compose.js";
+export {
+  translatePlaceSlot,
+  translateMomentSlot,
+  translateControlSlot,
+  translateSourceSlot,
+  translateWeatherSourceSlot,
+  translateLensSlot,
+  translateWearLens,
+  translateTimeSourceSlot,
+} from "./tray-translate.js";
+export type { WeatherFact, WeatherLens } from "./weather-lens.js";
+export {
+  buildWeatherFact,
+  buildWeatherFactFromSnapshot,
+  renderWeatherLens,
+  renderWeatherSourceSummary,
+  renderWeatherSourceSummaryRainEmphasis,
+  renderNeutralWeather,
+  formatPlaceDisplayLabel,
+  weatherLensFromFaceToken,
+} from "./weather-lens.js";

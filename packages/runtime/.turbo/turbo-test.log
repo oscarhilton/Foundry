@@ -5,21 +5,39 @@
 
  RUN  v2.1.9 /Users/oscarhilts/Documents/scratch/Foundry/packages/runtime
 
- ✓ src/weather-face.test.ts (6 tests) 3ms
- ✓ src/grammar-hints.test.ts (4 tests) 5ms
- ✓ src/capability-graph.test.ts (5 tests) 10ms
- ✓ src/place-profile.test.ts (6 tests) 22ms
- ✓ src/roadmap-grammar.test.ts (6 tests) 50ms
- ✓ src/grammar.test.ts (23 tests) 58ms
- ✓ src/index.test.ts (100 tests) 132ms
- ✓ src/output-formatters.test.ts (7 tests) 3ms
+ ✓ src/grammar-hints.test.ts (4 tests) 3ms
+ ✓ src/capability-graph.test.ts (5 tests) 6ms
+ ✓ src/place-profile.test.ts (6 tests) 18ms
+ ✓ src/roadmap-grammar.test.ts (6 tests) 38ms
+ ✓ src/grammar.test.ts (23 tests) 42ms
+ ✓ src/index.test.ts (100 tests) 66ms
+ ✓ src/weather-face.test.ts (6 tests) 4ms
+ ✓ src/output-formatters.test.ts (7 tests) 2ms
+ ✓ src/chain-parser-dial.test.ts (3 tests) 3ms
  ✓ src/perlin.test.ts (3 tests) 3ms
- ✓ src/signal-router.test.ts (1 test) 3ms
- ✓ src/chain-parser-dial.test.ts (3 tests) 5ms
- ✓ src/weather-light.test.ts (4 tests) 1ms
+ ✓ src/signal-router.test.ts (1 test) 1ms
+ ✓ src/weather-light.test.ts (4 tests) 3ms
+stdout | src/grammar-audit.test.ts > Grammar audit — generated matrix > passes grammar matrix length 1
+grammar matrix length 1: 9 chains in 1ms
 
- Test Files  12 passed (12)
-      Tests  168 passed (168)
-   Start at  17:38:34
-   Duration  1.24s (transform 517ms, setup 0ms, collect 1.73s, tests 294ms, environment 2ms, prepare 1.48s)
+stdout | src/grammar-audit.test.ts > Grammar audit — generated matrix > passes grammar matrix length 2
+grammar matrix length 2: 72 chains in 25ms
+
+stdout | src/grammar-audit.test.ts > Grammar audit — generated matrix > passes grammar matrix length 3
+grammar matrix length 3: 504 chains in 84ms
+
+stdout | src/grammar-audit.test.ts > Grammar audit — generated matrix > passes grammar matrix length 4
+grammar matrix length 4: 3024 chains in 343ms
+
+stdout | src/grammar-audit.test.ts > Grammar audit — generated matrix > passes grammar matrix length 5
+grammar matrix length 5: 15120 chains in 1860ms
+
+ ✓ src/grammar-audit.test.ts (42 tests) 2393ms
+   ✓ Grammar audit — generated matrix > passes grammar matrix length 4 343ms
+   ✓ Grammar audit — generated matrix > passes grammar matrix length 5 1861ms
+
+ Test Files  13 passed (13)
+      Tests  210 passed (210)
+   Start at  17:55:26
+   Duration  3.09s (transform 494ms, setup 0ms, collect 1.33s, tests 2.58s, environment 5ms, prepare 938ms)
 

@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "turbo run dev --filter=@foundry/simulator",
+    "dev:tray-lab": "turbo run dev --filter=@foundry/tray-lab",
     "dev:marketing": "turbo run dev --filter=@foundry/marketing",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
