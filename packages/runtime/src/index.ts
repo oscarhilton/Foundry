@@ -1320,3 +1320,12 @@ export {
   formatPlaceDisplayLabel,
   weatherLensFromFaceToken,
 } from "./weather-lens.js";
+export type { AxisLayout } from "./axis-layout.js";
+export { extractAxisLayout, hasWeatherPackLayout } from "./axis-layout.js";
+export type { DomainRenderer, RenderResult } from "./domain-registry.js";
+export {
+  renderDomainLayout,
+  registerDomainRenderer,
+} from "./domain-registry.js";
+export { WeatherPackRenderer } from "./weather-pack-renderer.js";
+import "./weather-pack-renderer.js";

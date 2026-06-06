@@ -6,7 +6,7 @@ import { DiePool } from "./DiePool";
 import { STARTER_CUBES } from "@foundry/cube-defs";
 
 describe("WordDieView", () => {
-  const weather = getTrayWordCube("weather")!;
+  const phenomenon = getTrayWordCube("phenomenon")!;
   const home = getTrayWordCube("home")!;
 
   afterEach(() => {
@@ -14,15 +14,15 @@ describe("WordDieView", () => {
   });
 
   it("renders only the primary label at default orientation", () => {
-    render(<WordDieView die={weather} activeModeId="full" />);
-    expect(screen.getByText("WEATHER")).toBeInTheDocument();
-    expect(screen.queryByText("weather")).not.toBeInTheDocument();
+    render(<WordDieView die={phenomenon} activeModeId="wind" />);
+    expect(screen.getByText("WIND")).toBeInTheDocument();
+    expect(screen.queryByText("wind")).not.toBeInTheDocument();
   });
 
-  it("renders active face large and die word tiny when rotated", () => {
-    render(<WordDieView die={weather} activeModeId="rain" />);
+  it("rotated phenomenon shows RAIN large when rain mode active", () => {
+    render(<WordDieView die={phenomenon} activeModeId="rain" />);
     expect(screen.getByText("RAIN")).toBeInTheDocument();
-    expect(screen.getByText("weather")).toBeInTheDocument();
+    expect(screen.getByText("wind")).toBeInTheDocument();
   });
 
   it("shows OUTSIDE large when home die is rotated to outside", () => {

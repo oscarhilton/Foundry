@@ -14,7 +14,7 @@ function primaryFaceLabel(
 ): string {
   if (!isRotated) return die.word;
   if (active.faceText !== die.word) return active.faceText;
-  return active.label.toUpperCase();
+  return die.word;
 }
 
 /** Cube face labels — active face owns visual hierarchy (TRAY-110). */

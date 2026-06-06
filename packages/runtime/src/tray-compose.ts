@@ -1,7 +1,7 @@
 import type { TrayCompileContext, RunningTimerState } from "./intent-resolver.js";
 import type { TraySlotText } from "./tray-compile.js";
 import type { WeatherFact } from "./weather-lens.js";
-import { composeLensFinal } from "./tray-translate.js";
+import type { RenderResult } from "./domain-registry.js";
 
 export type FinalOutputTone =
   | "answer"
@@ -24,41 +24,6 @@ function slotLocalText(slot: TraySlotText | undefined): string | null {
   return slot.value;
 }
 
-function momentPhrase(ctx: TrayCompileContext): string | null {
-  if (ctx.momentSlotIndex === null) return null;
-  const slot = ctx.slots[ctx.momentSlotIndex];
-  if (!slot?.modeId) return null;
-  switch (slot.modeId) {
-    case "now":
-      return "right now";
-    case "later":
-      return "later";
-    case "evening":
-      return "this evening";
-    case "morning":
-    default:
-      return "this morning";
-  }
-}
-
-function ambientPhrase(ctx: TrayCompileContext): string | null {
-  if (ctx.placeSlotIndex !== null) {
-    const placeMode = ctx.slots[ctx.placeSlotIndex]?.modeId;
-    if (placeMode === "work") return "for work";
-  }
-  return momentPhrase(ctx);
-}
-
-function primaryLensLocal(
-  slots: TraySlotText[],
-  ctx: TrayCompileContext,
-): string | null {
-  if (ctx.primaryLensSlotIndex === null) return null;
-  const slot = slots[ctx.primaryLensSlotIndex];
-  if (!slot || slot.kind !== "text") return null;
-  return slot.value;
-}
-
 function formatTimerRemaining(remainingMs: number): string {
   const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
   const min = Math.floor(totalSec / 60);
@@ -67,41 +32,25 @@ function formatTimerRemaining(remainingMs: number): string {
 }
 
 export function resolveDominantHint(
-  ctx: TrayCompileContext,
+  _ctx: TrayCompileContext,
   hintSlot: Extract<TraySlotText, { kind: "hint" }>,
 ): string {
-  const lensIds = ctx.lenses.map((l) => l.lensId);
-  const hasRain = lensIds.includes("rain");
-  const hasUmbrella = lensIds.includes("umbrella");
-  const hasWear = lensIds.includes("wear");
-  const weatherLensCount = [hasRain, hasUmbrella, hasWear].filter(Boolean).length;
-
-  if (weatherLensCount >= 3) {
-    return "Choose rain, umbrella, or clothing.";
-  }
-  if (hasUmbrella && hasWear) {
-    return "Choose umbrella or clothing.";
-  }
-  if (hasRain && hasUmbrella) {
-    return "Choose rain or umbrella.";
-  }
-  if (hasRain && hasWear) {
-    return "Choose rain or clothing.";
-  }
   return hintSlot.value;
 }
 
 export function composeFinalOutput(
   ctx: TrayCompileContext,
-  fact: WeatherFact | null,
+  _fact: WeatherFact | null,
   slots: TraySlotText[],
   options?: {
     runningTimer?: RunningTimerState | null;
     nowMs?: number;
+    matrixResult?: RenderResult | null;
   },
 ): Pick<TrayTranslation, "finalOutput" | "finalOutputTone" | "warnings"> {
   const runningTimer = options?.runningTimer ?? null;
   const nowMs = options?.nowMs ?? Date.now();
+  const matrixResult = options?.matrixResult ?? null;
 
   if (runningTimer?.state === "running") {
     const remaining = runningTimer.durationMs - (nowMs - runningTimer.startedAtMs);
@@ -126,44 +75,12 @@ export function composeFinalOutput(
     return { finalOutput: null, finalOutputTone: "invalid" };
   }
 
-  const lensLocal = primaryLensLocal(slots, ctx);
-  const primarySlot =
-    ctx.primaryLensSlotIndex !== null
-      ? ctx.slots[ctx.primaryLensSlotIndex]
-      : null;
-  const primaryCubeId = primarySlot?.cubeId ?? null;
-  const primaryModeId = primarySlot?.modeId ?? "any";
-
-  if (lensLocal && primaryCubeId && fact) {
-    const isWeatherLens = ["rain", "umbrella", "wear"].includes(primaryCubeId);
-    if (isWeatherLens) {
-      return {
-        finalOutput: composeLensFinal(
-          primaryCubeId,
-          primaryModeId,
-          fact,
-          ambientPhrase(ctx),
-        ),
-        finalOutputTone: "answer",
-      };
-    }
-  }
-
-  if (lensLocal) {
-    const moment = ambientPhrase(ctx);
+  if (matrixResult) {
     return {
-      finalOutput: moment
-        ? `${lensLocal.replace(/\.$/, "")} ${moment}.`
-        : `${lensLocal.replace(/\.$/, "")}.`,
-      finalOutputTone: "answer",
+      finalOutput: matrixResult.finalOutput,
+      finalOutputTone: matrixResult.finalOutputTone,
+      warnings: matrixResult.warnings,
     };
-  }
-
-  if (
-    ctx.sourceSlotIndex !== null &&
-    slots[ctx.sourceSlotIndex]?.kind === "text"
-  ) {
-    return { finalOutput: null, finalOutputTone: "invalid" };
   }
 
   return { finalOutput: null, finalOutputTone: "invalid" };
@@ -176,6 +93,7 @@ export function buildTrayTranslation(
   options?: {
     runningTimer?: RunningTimerState | null;
     nowMs?: number;
+    matrixResult?: RenderResult | null;
   },
 ): TrayTranslation {
   const localTranslations = slots.map((slot) => slotLocalText(slot));

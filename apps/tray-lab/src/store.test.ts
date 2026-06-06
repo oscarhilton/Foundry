@@ -42,9 +42,9 @@ describe("tray-lab store", () => {
     );
   });
 
-  it("pool has eight starter cubes in grammar order", () => {
+  it("pool has six starter cubes in grammar order", () => {
     initTrayLab({ silentMode: true, showcaseMode: false });
-    expect(useTrayLabStore.getState().poolDice).toHaveLength(8);
-    expect(useTrayLabStore.getState().poolDice[3]?.id).toBe("rain");
+    expect(useTrayLabStore.getState().poolDice).toHaveLength(6);
+    expect(useTrayLabStore.getState().poolDice[2]?.id).toBe("phenomenon");
   });
 });

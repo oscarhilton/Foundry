@@ -14,9 +14,15 @@ const LEGACY_TOKEN_MAP: Record<string, string> = {
   "place/london": "identity/london",
   "source/weather": "identity/weather",
   "moment/morning": "moment/morning",
+  "moment/afternoon": "moment/afternoon",
+  "moment/evening": "moment/evening",
+  "moment/night": "moment/night",
   "moment/now": "moment/now",
   "moment/later": "moment/later",
-  "moment/evening": "moment/evening",
+  "phenomenon/wind": "identity/weather",
+  "phenomenon/rain": "identity/weather",
+  "phenomenon/sun": "identity/weather",
+  "phenomenon/snow": "identity/weather",
 };
 
 export function toLegacyParserToken(physicalToken: string): string {
@@ -34,5 +40,9 @@ export function compileTrayTokensForLegacyParser(
 }
 
 export function isWeatherSourceToken(token: string): boolean {
-  return token === "source/weather" || token === "identity/weather";
+  return (
+    token === "source/weather" ||
+    token === "identity/weather" ||
+    token.startsWith("phenomenon/")
+  );
 }

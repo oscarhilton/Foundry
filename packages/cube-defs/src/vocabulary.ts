@@ -3,8 +3,12 @@
 export type TrayWordRole =
   | "place"
   | "moment"
+  | "phenomenon"
+  | "response"
   | "control"
+  /** @deprecated Legacy chain-parser roles — not used in weather starter kit */
   | "source"
+  /** @deprecated Legacy chain-parser roles — not used in weather starter kit */
   | "lens"
   | "output";
 
@@ -47,7 +51,7 @@ function cube(
   return def;
 }
 
-/** Starter kit — one physical die per word (tray-lab pool v2). */
+/** Starter kit — orthogonal weather matrix + controls (TRAY-115). */
 export const STARTER_CUBES: TrayWordCube[] = [
   cube({
     id: "home",
@@ -66,15 +70,15 @@ export const STARTER_CUBES: TrayWordCube[] = [
     runtimeToken: "place/home",
   }),
   cube({
-    id: "morning",
+    id: "moment",
     label: "Temporal Context",
     word: "MORNING",
     role: "moment",
     modes: [
       mode("morning", "Morning", "MORNING", "moment/morning"),
-      mode("now", "Now", "NOW", "moment/now"),
-      mode("later", "Later", "LATER", "moment/later"),
+      mode("afternoon", "Afternoon", "AFTERNOON", "moment/afternoon"),
       mode("evening", "Evening", "EVENING", "moment/evening"),
+      mode("night", "Night", "NIGHT", "moment/night"),
     ],
     starter: true,
     pack: "starter",
@@ -82,83 +86,43 @@ export const STARTER_CUBES: TrayWordCube[] = [
     runtimeToken: "moment/morning",
   }),
   cube({
-    id: "weather",
-    label: "Weather",
-    word: "WEATHER",
-    role: "source",
+    id: "phenomenon",
+    label: "Atmospheric Source",
+    word: "WIND",
+    role: "phenomenon",
     modes: [
-      mode("full", "Full", "WEATHER", "source/weather"),
-      mode("temp", "Temp", "WEATHER", "source/weather"),
-      mode("rain", "Rain", "WEATHER", "source/weather"),
-      mode("wind", "Wind", "WEATHER", "source/weather"),
+      mode("wind", "Wind", "WIND", "phenomenon/wind", "windSpeed"),
+      mode("rain", "Rain", "RAIN", "phenomenon/rain", "rainChance"),
+      mode("sun", "Sun", "SUN", "phenomenon/sun", "uvIndex"),
+      mode("snow", "Snow", "SNOW", "phenomenon/snow", "snowAccumulation"),
     ],
     starter: true,
     pack: "starter",
     provides: ["weather"],
-    runtimeToken: "source/weather",
+    runtimeToken: "phenomenon/wind",
   }),
   cube({
-    id: "rain",
-    label: "Rain",
-    word: "RAIN",
-    role: "lens",
+    id: "response",
+    label: "Utility Response",
+    word: "JACKET",
+    role: "response",
     modes: [
-      mode("any", "Any", "RAIN"),
-      mode("later", "Later", "RAIN"),
-      mode("today", "Today", "RAIN"),
-      mode("now", "Now", "RAIN"),
+      mode("jacket", "Jacket", "JACKET", "response/jacket"),
+      mode("umbrella", "Umbrella", "UMBRELLA", "response/umbrella"),
+      mode("sunglasses", "Sunglasses", "SUNGLASSES", "response/sunglasses"),
+      mode("gloves", "Gloves", "GLOVES", "response/gloves"),
     ],
     starter: true,
     pack: "starter",
-    requires: ["source"],
-    provides: ["rain-outlook"],
-    runtimeToken: "lens/rain",
-  }),
-  cube({
-    id: "umbrella",
-    label: "Umbrella",
-    word: "UMBRELLA",
-    role: "lens",
-    modes: [
-      mode("any", "Any", "UMBRELLA"),
-      mode("heavy", "Heavy", "UMBRELLA"),
-      mode("today", "Today", "UMBRELLA"),
-      mode("now", "Now", "UMBRELLA"),
-    ],
-    starter: true,
-    pack: "starter",
-    requires: ["source"],
-    provides: ["umbrella-decision"],
-    runtimeToken: "lens/umbrella",
-  }),
-  cube({
-    id: "wear",
-    label: "Wear",
-    word: "WEAR",
-    role: "lens",
-    modes: [
-      mode("light", "Light", "WEAR"),
-      mode("warm", "Warm", "WEAR"),
-      mode("coat", "Coat", "WEAR"),
-      mode("smart", "Smart", "WEAR"),
-    ],
-    starter: true,
-    pack: "starter",
-    requires: ["source"],
-    provides: ["wear-advice"],
-    runtimeToken: "lens/coat",
+    provides: ["response"],
+    runtimeToken: "response/jacket",
   }),
   cube({
     id: "button",
     label: "Button",
     word: "BUTTON",
     role: "control",
-    modes: [
-      mode("press", "Press", "BUTTON"),
-      mode("hold", "Hold", "BUTTON"),
-      mode("toggle", "Toggle", "BUTTON"),
-      mode("quiet", "Quiet", "BUTTON"),
-    ],
+    modes: [mode("button", "Button", "BUTTON")],
     starter: true,
     pack: "starter",
     provides: ["trigger"],
@@ -229,14 +193,12 @@ export function defaultModeId(cubeId: string): string {
   return getTrayWordCube(cubeId)?.modes[0]?.id ?? "";
 }
 
-/** Grammar-biased tray-lab pool order (8 starter cubes). */
+/** Grammar-biased tray-lab pool order (6 starter cubes). */
 export const STARTER_POOL_ORDER = [
   "home",
-  "morning",
-  "weather",
-  "rain",
-  "umbrella",
-  "wear",
+  "moment",
+  "phenomenon",
+  "response",
   "button",
   "timer",
 ] as const;

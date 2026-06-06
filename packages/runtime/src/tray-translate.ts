@@ -13,12 +13,12 @@ export function translatePlaceSlot(modeLabel: string): string {
 
 export function translateMomentSlot(modeId: string): string {
   switch (modeId) {
-    case "now":
-      return "Now";
-    case "later":
-      return "Later";
+    case "afternoon":
+      return "Afternoon";
     case "evening":
       return "Evening";
+    case "night":
+      return "Tonight";
     case "morning":
     default:
       return "Morning";
@@ -27,18 +27,7 @@ export function translateMomentSlot(modeId: string): string {
 
 export function translateControlSlot(cubeId: string, modeId: string): string {
   if (cubeId === "button") {
-    switch (modeId) {
-      case "press":
-        return "Press to ask";
-      case "hold":
-        return "Hold to ask";
-      case "toggle":
-        return "Toggle ask";
-      case "quiet":
-        return "Quiet ask";
-      default:
-        return "Press to ask";
-    }
+    return "Press to ask";
   }
   if (cubeId === "timer") {
     if (modeId === "timer") return "Timer";
@@ -52,23 +41,8 @@ export function translateControlSlot(cubeId: string, modeId: string): string {
   return modeId.charAt(0).toUpperCase() + modeId.slice(1);
 }
 
-export function translateWeatherSourceSlot(
-  fact: WeatherFact,
-  modeId: string,
-): string {
-  switch (modeId) {
-    case "temp":
-      return `${fact.temperatureC}°C`;
-    case "rain":
-      return renderWeatherSourceSummaryRainEmphasis(fact);
-    case "wind":
-      return fact.windSpeed
-        ? `${fact.windSpeed} km/h wind`
-        : "Light wind";
-    case "full":
-    default:
-      return renderWeatherSourceSummary(fact);
-  }
+export function translateWeatherSourceSlot(fact: WeatherFact): string {
+  return renderWeatherSourceSummary(fact);
 }
 
 export function translateSourceSlot(
@@ -77,7 +51,7 @@ export function translateSourceSlot(
   weatherMode?: string | null,
 ): string {
   if (weatherMode) {
-    return translateWeatherSourceSlot(fact, weatherMode);
+    return translateWeatherSourceSlot(fact);
   }
   if (primaryLens === "rain") {
     return renderWeatherSourceSummaryRainEmphasis(fact);
@@ -92,28 +66,24 @@ export function translateLensSlot(
   return renderWeatherLens(fact, lens);
 }
 
-export function translateRainLens(fact: WeatherFact, modeId: string): string {
+export function translateRainLens(fact: WeatherFact): string {
   if (fact.precipitationChance > 55) {
     return "Rain likely";
   }
   if (fact.precipitationChance > 30) {
     return "Rain possible";
   }
-  if (modeId === "later" || modeId === "today") {
-    return "Rain later";
-  }
   return "Rain unlikely";
 }
 
 export function translateWearLens(fact: WeatherFact, modeId: string): string {
   switch (modeId) {
-    case "warm":
-      return fact.temperatureC < 10 ? "Warm layer" : "No extra layer";
     case "coat":
       return fact.temperatureC < 15 ? "Heavy coat" : "Light jacket";
     case "smart":
       return renderWeatherLens(fact, "coat");
     case "light":
+    case "wear":
     default:
       return renderWeatherLens(fact, "coat");
   }
@@ -131,7 +101,7 @@ export function translateLensLocal(
 ): string {
   switch (lensCubeId) {
     case "rain":
-      return translateRainLens(fact, modeId);
+      return translateRainLens(fact);
     case "umbrella":
       return translateUmbrellaLens(fact);
     case "wear":

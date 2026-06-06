@@ -5,34 +5,39 @@ import {
   getWordDie,
   getActiveFace,
   rotateFaceId,
-  isWeatherLensToken,
   TRAY_SLOT_COUNT,
 } from "./dice.js";
 
-describe("word cubes (v2)", () => {
-  it("starter pool has eight per-word cubes with four modes each", () => {
-    expect(STARTER_CUBES).toHaveLength(8);
-    for (const cube of STARTER_CUBES) {
-      expect(cube.modes).toHaveLength(4);
-    }
+describe("word cubes (TRAY-115)", () => {
+  it("starter pool has six cubes", () => {
+    expect(STARTER_CUBES).toHaveLength(6);
   });
 
-  it("weather cube modes are Full Temp Rain Wind", () => {
-    const weather = getWordDie("weather")!;
-    const labels = weather.modes.map((m) => m.label);
-    expect(labels).toEqual(["Full", "Temp", "Rain", "Wind"]);
+  it("phenomenon cube has four weather faces", () => {
+    const phenomenon = getWordDie("phenomenon")!;
+    expect(phenomenon.modes.map((m) => m.id)).toEqual([
+      "wind",
+      "rain",
+      "sun",
+      "snow",
+    ]);
   });
 
-  it("umbrella lens maps to lens token", () => {
-    const umbrella = getWordDie("umbrella")!;
-    expect(isWeatherLensToken(umbrella.runtimeToken)).toBe(true);
+  it("response cube has four utility faces", () => {
+    const response = getWordDie("response")!;
+    expect(response.modes.map((m) => m.id)).toEqual([
+      "jacket",
+      "umbrella",
+      "sunglasses",
+      "gloves",
+    ]);
   });
 
-  it("rotates through modes of same word", () => {
-    const next = rotateFaceId("umbrella", "any");
-    expect(next).toBe("heavy");
-    const again = rotateFaceId("umbrella", "now");
-    expect(again).toBe("any");
+  it("rotates through response faces", () => {
+    const next = rotateFaceId("response", "jacket");
+    expect(next).toBe("umbrella");
+    const again = rotateFaceId("response", "gloves");
+    expect(again).toBe("jacket");
   });
 
   it("empty tray has five slots", () => {
@@ -47,14 +52,5 @@ describe("word cubes (v2)", () => {
     });
     expect(face?.label).toBe("LONDON");
     expect(face?.token).toBe("place/london");
-  });
-
-  it("never exposes legacy identity tokens in mode vocabulary", () => {
-    const allModeTokens = STARTER_CUBES.flatMap((cube) =>
-      cube.modes.map((m) => m.runtimeToken).filter(Boolean),
-    );
-    expect(allModeTokens).toContain("place/home");
-    expect(allModeTokens).toContain("place/work");
-    expect(allModeTokens).not.toContain("identity/hallway");
   });
 });

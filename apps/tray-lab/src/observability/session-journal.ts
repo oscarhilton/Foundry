@@ -65,9 +65,9 @@ function isSentenceComplete(tray: TrayState): boolean {
   const { trayContext } = compileTrayState(tray);
   const hasPlace = trayContext.placeSlotIndex !== null;
   const hasMoment = trayContext.momentSlotIndex !== null;
-  const hasWeather = trayContext.sourceSlotIndex !== null;
-  const hasLens = trayContext.primaryLensSlotIndex !== null;
-  return hasPlace && hasMoment && hasWeather && hasLens;
+  const hasPhenomenon = trayContext.phenomenonSlotIndex !== null;
+  const hasResponse = trayContext.responseSlotIndex !== null;
+  return hasPlace && hasMoment && hasPhenomenon && hasResponse;
 }
 
 function hasUmbrellaDecision(translation: TrayTranslation): boolean {
@@ -110,7 +110,7 @@ export function recordDieRotated(
     fromModeId,
     toModeId,
   });
-  if (cubeId === "umbrella" || cubeId === "wear") {
+  if (cubeId === "response" || cubeId === "phenomenon") {
     hasRotatedLens = true;
   }
 }

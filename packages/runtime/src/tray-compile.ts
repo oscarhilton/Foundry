@@ -35,6 +35,9 @@ import {
   isWeatherSourceToken,
   toLegacyParserToken,
 } from "./tray-legacy-tokens.js";
+import { extractAxisLayout, hasWeatherPackLayout } from "./axis-layout.js";
+import { renderDomainLayout, type RenderResult } from "./domain-registry.js";
+import "./weather-pack-renderer.js";
 
 export type { ResolvedSlot, TrayCompileContext } from "./intent-resolver.js";
 export type { TrayTranslation, FinalOutputTone } from "./tray-compose.js";
@@ -59,7 +62,14 @@ export function compileTrayState(tray: TrayState): {
   let instanceCounter = 0;
 
   for (const slot of trayContext.slots) {
-    if (!slot.token || slot.role === "lens" || slot.role === "moment") continue;
+    if (
+      !slot.token ||
+      slot.role === "lens" ||
+      slot.role === "response" ||
+      slot.role === "moment"
+    ) {
+      continue;
+    }
     chainToSlot.push(slot.slotIndex);
     chainCubes.push({
       instanceId: `tray-${instanceCounter++}`,
@@ -110,19 +120,29 @@ export function buildTrayWeatherFact(
   ctx: TrayCompileContext,
   pipeline?: { temp: number; rain: number } | null,
 ): WeatherFact | null {
-  const weatherSource = ctx.slots.find(
+  const layout = extractAxisLayout(ctx);
+  const hasPhenomenon = ctx.phenomenonSlotIndex !== null;
+  const hasResponse = ctx.responseSlotIndex !== null;
+  const hasLegacyWeatherSource = ctx.slots.some(
     (s) => s.role === "source" && isWeatherSourceToken(s.token ?? ""),
   );
-  const hasLens = ctx.primaryLensSlotIndex !== null;
+  const hasLegacyLens = ctx.primaryLensSlotIndex !== null;
 
-  if (!weatherSource && !hasLens) {
+  if (
+    !hasPhenomenon &&
+    !hasResponse &&
+    !hasLegacyWeatherSource &&
+    !hasLegacyLens &&
+    !hasWeatherPackLayout(layout)
+  ) {
     return null;
   }
 
   const anchorIndex =
-    weatherSource?.slotIndex ??
-    ctx.primaryLensSlotIndex ??
+    ctx.phenomenonSlotIndex ??
+    ctx.responseSlotIndex ??
     ctx.sourceSlotIndex ??
+    ctx.primaryLensSlotIndex ??
     0;
   const placeSlot =
     findPlaceForSlot(ctx, anchorIndex) ??
@@ -130,7 +150,9 @@ export function buildTrayWeatherFact(
 
   const placeToken =
     placeSlot?.token ??
-    (weatherSource || hasLens ? ctx.defaultPlaceToken : null);
+    (hasPhenomenon || hasResponse || hasLegacyWeatherSource || hasLegacyLens
+      ? ctx.defaultPlaceToken
+      : null);
 
   if (!placeToken) return null;
 
@@ -143,40 +165,82 @@ export function buildTrayWeatherFact(
   return buildWeatherFact(placeLabel, temp, rain);
 }
 
+function applyMatrixLocals(
+  result: TraySlotText[],
+  ctx: TrayCompileContext,
+  matrixResult: RenderResult,
+): void {
+  if (ctx.placeSlotIndex !== null && matrixResult.localTranslations.place) {
+    result[ctx.placeSlotIndex] = {
+      kind: "text",
+      value: matrixResult.localTranslations.place,
+    };
+  }
+  if (ctx.momentSlotIndex !== null && matrixResult.localTranslations.moment) {
+    result[ctx.momentSlotIndex] = {
+      kind: "text",
+      value: matrixResult.localTranslations.moment,
+    };
+  }
+  if (
+    ctx.phenomenonSlotIndex !== null &&
+    matrixResult.localTranslations.phenomenon
+  ) {
+    result[ctx.phenomenonSlotIndex] = {
+      kind: "text",
+      value: matrixResult.localTranslations.phenomenon,
+    };
+  }
+  if (ctx.responseSlotIndex !== null && matrixResult.localTranslations.response) {
+    result[ctx.responseSlotIndex] = {
+      kind: "text",
+      value: matrixResult.localTranslations.response,
+    };
+  }
+}
+
 export function resolveTraySlotTexts(
   tray: TrayState,
   weatherFact: WeatherFact | null,
   ctx: TrayCompileContext,
+  matrixResult?: RenderResult | null,
 ): TraySlotText[] {
   const result: TraySlotText[] = Array.from({ length: TRAY_SLOT_COUNT }, () => ({
     kind: "empty",
   }));
 
-  const hasWeatherSourceInTray = ctx.slots.some(
+  const layout = extractAxisLayout(ctx);
+  const hasPhenomenon = ctx.phenomenonSlotIndex !== null;
+  const hasResponse = ctx.responseSlotIndex !== null;
+  const hasLegacyWeatherSource = ctx.slots.some(
     (s) => s.role === "source" && isWeatherSourceToken(s.token ?? ""),
   );
-  const hasLens = ctx.primaryLensSlotIndex !== null;
-  const placeMissingButNeeded =
-    ctx.placeSlotIndex === null &&
-    (hasWeatherSourceInTray || hasLens) &&
-    !(hasWeatherSourceInTray && hasLens);
+  const hasLegacyLens = ctx.primaryLensSlotIndex !== null;
+
+  if (matrixResult) {
+    applyMatrixLocals(result, ctx, matrixResult);
+  }
 
   for (const slot of ctx.slots) {
     if (!slot.role) continue;
 
     if (slot.role === "place") {
-      result[slot.slotIndex] = {
-        kind: "text",
-        value: resolvePlaceLabel(slot),
-      };
+      if (result[slot.slotIndex]?.kind === "empty") {
+        result[slot.slotIndex] = {
+          kind: "text",
+          value: resolvePlaceLabel(slot),
+        };
+      }
       continue;
     }
 
     if (slot.role === "moment") {
-      result[slot.slotIndex] = {
-        kind: "text",
-        value: translateMomentSlot(slot.modeId ?? "morning"),
-      };
+      if (result[slot.slotIndex]?.kind === "empty") {
+        result[slot.slotIndex] = {
+          kind: "text",
+          value: translateMomentSlot(slot.modeId ?? "morning"),
+        };
+      }
       continue;
     }
 
@@ -185,6 +249,39 @@ export function resolveTraySlotTexts(
         kind: "text",
         value: translateControlSlot(slot.cubeId ?? "", slot.modeId ?? ""),
       };
+      continue;
+    }
+
+    if (slot.role === "phenomenon") {
+      if (matrixResult) continue;
+      if (!weatherFact) {
+        result[slot.slotIndex] = { kind: "hint", value: "Add place" };
+      } else {
+        result[slot.slotIndex] = {
+          kind: "text",
+          value:
+            layout.phenomenon === "rain"
+              ? `${weatherFact.precipitationChance}% rain`
+              : layout.phenomenon === "wind"
+                ? `${weatherFact.windSpeed ?? 12} km/h wind`
+                : "—",
+        };
+      }
+      continue;
+    }
+
+    if (slot.role === "response") {
+      if (matrixResult) continue;
+      if (!hasPhenomenon) {
+        result[slot.slotIndex] = {
+          kind: "hint",
+          value: "Add weather condition",
+        };
+      } else if (!weatherFact) {
+        result[slot.slotIndex] = { kind: "hint", value: "Add place" };
+      } else {
+        result[slot.slotIndex] = { kind: "hint", value: "Needs phenomenon" };
+      }
       continue;
     }
 
@@ -262,21 +359,65 @@ export function resolveTraySlotTexts(
     }
   }
 
-  if (placeMissingButNeeded) {
-    result[0] = { kind: "hint", value: "Add place" };
+  if (
+    hasPhenomenon &&
+    !hasResponse &&
+    ctx.responseSlotIndex === null &&
+    !hasLegacyLens
+  ) {
+    // response cube not placed — no slot hint unless partial tray
   }
 
   if (
-    ctx.placeSlotIndex !== null &&
-    ctx.primaryLensSlotIndex !== null &&
-    ctx.sourceSlotIndex === null
+    hasResponse &&
+    !hasPhenomenon &&
+    ctx.phenomenonSlotIndex === null &&
+    !hasLegacyWeatherSource
   ) {
-    const start = ctx.placeSlotIndex + 1;
-    const end = ctx.primaryLensSlotIndex;
-    for (let i = start; i < end; i++) {
-      if (!ctx.slots[i]?.role && result[i]?.kind === "empty") {
-        result[i] = { kind: "hint", value: "Add weather" };
-        break;
+    for (const slot of ctx.slots) {
+      if (slot.role === "response" && result[slot.slotIndex]?.kind === "empty") {
+        result[slot.slotIndex] = {
+          kind: "hint",
+          value: "Add weather condition",
+        };
+      }
+    }
+  }
+
+  if (
+    ctx.placeSlotIndex === null &&
+    (hasPhenomenon || hasResponse || hasLegacyWeatherSource || hasLegacyLens) &&
+    !(hasPhenomenon && hasResponse)
+  ) {
+    const firstEmpty = result.findIndex((s) => s.kind === "empty");
+    if (firstEmpty >= 0 && firstEmpty < 2) {
+      result[firstEmpty] = { kind: "hint", value: "Add place" };
+    }
+  }
+
+  if (
+    hasPhenomenon &&
+    !hasResponse &&
+    !hasLegacyLens &&
+    !matrixResult
+  ) {
+    for (const slot of ctx.slots) {
+      if (
+        slot.role === "response" ||
+        (slot.role === null && result[slot.slotIndex]?.kind === "empty")
+      ) {
+        continue;
+      }
+    }
+    if (ctx.responseSlotIndex === null) {
+      const gapHint = ctx.slots.findIndex(
+        (s, i) =>
+          s.role === null &&
+          i > (ctx.phenomenonSlotIndex ?? -1) &&
+          result[i]?.kind === "empty",
+      );
+      if (gapHint >= 0) {
+        result[gapHint] = { kind: "hint", value: "Add response" };
       }
     }
   }
@@ -293,8 +434,23 @@ export function resolveTrayTranslation(
     nowMs?: number;
   },
 ): TrayTranslation {
-  const slots = resolveTraySlotTexts(tray, weatherFact, ctx);
-  return buildTrayTranslation(ctx, slots, weatherFact, options);
+  const layout = extractAxisLayout(ctx);
+  let matrixResult: RenderResult | null = null;
+  if (
+    layout.phenomenon &&
+    layout.response &&
+    weatherFact &&
+    ctx.phenomenonSlotIndex !== null &&
+    ctx.responseSlotIndex !== null
+  ) {
+    matrixResult = renderDomainLayout(layout, weatherFact);
+  }
+
+  const slots = resolveTraySlotTexts(tray, weatherFact, ctx, matrixResult);
+  return buildTrayTranslation(ctx, slots, weatherFact, {
+    ...options,
+    matrixResult,
+  });
 }
 
 export function createTrayFromPlacements(
@@ -329,20 +485,22 @@ export function detectHeroMoment(
   next: TraySlotText[],
   ctx: TrayCompileContext,
 ): boolean {
-  if (ctx.primaryLensSlotIndex === null || ctx.sourceSlotIndex === null) {
+  const anchorIndex =
+    ctx.phenomenonSlotIndex ?? ctx.sourceSlotIndex ?? null;
+  const decisionIndex =
+    ctx.responseSlotIndex ?? ctx.primaryLensSlotIndex ?? null;
+
+  if (anchorIndex === null || decisionIndex === null) {
     return false;
   }
 
-  const src = ctx.sourceSlotIndex;
-  const lens = ctx.primaryLensSlotIndex;
-
   const sourceStable =
-    slotTextValue(prev[src]) !== null &&
-    slotTextValue(prev[src]) === slotTextValue(next[src]);
+    slotTextValue(prev[anchorIndex]) !== null &&
+    slotTextValue(prev[anchorIndex]) === slotTextValue(next[anchorIndex]);
 
-  const lensChanged =
-    slotTextValue(prev[lens]) !== slotTextValue(next[lens]) &&
-    slotTextValue(next[lens]) !== null;
+  const decisionChanged =
+    slotTextValue(prev[decisionIndex]) !== slotTextValue(next[decisionIndex]) &&
+    slotTextValue(next[decisionIndex]) !== null;
 
   const placeStable =
     ctx.placeSlotIndex === null ||
@@ -354,7 +512,7 @@ export function detectHeroMoment(
     slotTextValue(prev[ctx.momentSlotIndex]) ===
       slotTextValue(next[ctx.momentSlotIndex]);
 
-  return sourceStable && lensChanged && placeStable && momentStable;
+  return sourceStable && decisionChanged && placeStable && momentStable;
 }
 
 /** @deprecated Use getDefaultModeId */

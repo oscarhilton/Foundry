@@ -8,22 +8,24 @@ The most important QA for the tray + dice product direction. Run after each tray
 
 The tray is a **translator** — each cube gets a local interpretation in the slot-aligned zone beneath it, plus one concise **final answer** line. Local translations show *why*; final output says *what to do*.
 
-## Vocabulary rule (v2.1)
+## Vocabulary rule (v2.2 — TRAY-115 matrix)
 
-**One die = one word.** Faces are **modes of that word**, not alternate product categories.
+**One visible word = one grammatical role.** Four rotating axes plus two control cubes.
 
-- HOME, MORNING, WEATHER, RAIN, UMBRELLA, WEAR are separate physical cubes where intent matters
-- **Place die** faces: HOME / WORK / OUTSIDE / COMMUTE (face tokens `place/*`)
-- **Moment die** faces: MORNING / NOW / LATER / EVENING (face tokens `moment/*`)
-- Rotating WEATHER cycles Full / Temp / Rain / Wind — emphasis modes, not alternate source nouns
-- Lens role is labeled **Decision** in the UI (internal name: `lens`)
+- **Place die** faces: HOME / WORK / OUTSIDE / COMMUTE (`place/*`)
+- **Moment die** faces: MORNING / AFTERNOON / EVENING / NIGHT (`moment/*`) — sole owner of temporal words
+- **Phenomenon die** faces: WIND / RAIN / SUN / SNOW (`phenomenon/*`) — the weather query, not a meta WEATHER cube
+- **Response die** faces: JACKET / UMBRELLA / SUNGLASSES / GLOVES (`response/*`) — what to bring or wear
+- **Control dies:** BUTTON static; TIMER rotates TIMER / 5 MIN / 15 MIN / 30 MIN
+
+**TRAY-115 audit:** `packages/cube-defs/src/vocabulary-audit.test.ts` enforces orthogonal axis invariants on `ALL_WORD_CUBES` and starter layout on `STARTER_CUBES`.
 
 Physical tokens stay clean in vocabulary; `tray-compile.ts` maps to legacy parser tokens at the chain boundary only.
 
 **Forgiving grammar:** not every sentence needs every role. Both umbrella paths resolve to the same final answer:
 
-- **Express:** `MORNING → WEATHER → UMBRELLA` (default home inferred)
-- **Canonical:** `HOME → MORNING → WEATHER → UMBRELLA` (explicit home anchor)
+- **Express:** `MORNING → RAIN → UMBRELLA` (default home inferred)
+- **Canonical:** `HOME → MORNING → RAIN → UMBRELLA` (explicit home anchor)
 
 Both → `No umbrella needed this morning.`
 
@@ -31,60 +33,41 @@ Both → `No umbrella needed this morning.`
 
 | Mode | URL | Tray on load | Purpose |
 |------|-----|--------------|---------|
-| **Silent test** | `?silent=1` | Empty tray, 8-cube pool | Can a stranger discover the product? |
-| **Default dev** | `/` | Empty tray, 8-cube pool | Honest grammar — no pre-docked answer |
-| **Showcase demo** | `?showcase=1` | Preloaded `HOME → MORNING → WEATHER → UMBRELLA` | Beautiful instant demo |
+| **Silent test** | `?silent=1` | Empty tray, 6-cube pool | Can a stranger discover the product? |
+| **Default dev** | `/` | Empty tray, 6-cube pool | Honest grammar — no pre-docked answer |
+| **Showcase demo** | `?showcase=1` | Preloaded `HOME → MORNING → RAIN → UMBRELLA` | Beautiful instant demo |
 
 Do not preload the silent test tray. Pre-docking teaches the answer.
 
-## Lens intent alignment (TRAY-111)
+## Matrix intent (TRAY-115)
 
-**The word you see is the question being answered.**
+**The word you see is the axis being read.**
 
-Each weather lens cube asks a different question of the same WEATHER source:
+| Axis | Question | Example local | Example final (morning, 22% rain) |
+|------|----------|---------------|-----------------------------------|
+| **PHENOMENON (RAIN)** | What's the condition? | `22% rain` | (feeds renderer) |
+| **RESPONSE (UMBRELLA)** | What should I bring? | `No umbrella` | `No umbrella needed this morning.` |
 
-| Lens | Question | Example final (`NOW`, 22% rain) |
-|------|----------|-------------------------------|
-| **RAIN** (phenomenon) | Will it rain? | `Rain unlikely right now.` |
-| **UMBRELLA** (utility) | Should I take one? | `No umbrella needed right now.` |
-| **WEAR** (comfort) | What should I wear? | `Light jacket right now.` |
+Cross-pairings are useful, not errors: `WIND → UMBRELLA` → "High winds make umbrellas unmanageable this morning." (warning tone).
 
-The silent test foil: placing **RAIN** when asked about an umbrella gives accurate weather data but not the requested action — the user discovers they need **UMBRELLA**.
-
-WEAR must not carry a rain face. RAIN is its own starter cube.
-
-## Cube display (physical language — TRAY-110)
+## Cube display (physical language — TRAY-110 / TRAY-115)
 
 **The largest word on the die is the word the runtime reads.**
 
-- **Default orientation:** identity word centered large (e.g. `WEATHER`, `HOME`, `TIMER`)
-- **Rotated orientation:** active face centered large (e.g. `OUTSIDE`, `RAIN`) with die word tiny and debossed below (e.g. `home`, `weather`)
-- The cube has not changed; the user has turned it
+- **Default orientation:** identity word centered large (e.g. `HOME`, `PHENOMENON`, `TIMER`)
+- **Rotated orientation (place/moment/phenomenon/response/timer):** active face centered large (e.g. `RAIN`, `AFTERNOON`, `UMBRELLA`) with die word tiny and debossed below
+- **Static cubes (BUTTON):** face never changes
+- The cube has not changed; the user has turned it (where rotation is allowed)
 
 **Product rule:** Dice are physical objects first, UI elements second — never a selectable dashboard. No orange selection borders, no completion badges.
 
-## Physical grammar (TRAY-109)
+## Domain renderer (TRAY-115)
 
-**A word can only use what appears before it.**
+When phenomenon + response are both present, `WeatherPackRenderer` produces slot locals and final output:
 
-- Lenses bind only to a **compatible upstream source face** to their left
-- Places and moments are **upstream context**, not data sources — OUTSIDE does not satisfy UMBRELLA
-- Downstream sources are **diagnostic only** — they produce layout hints, never power an answer
-- Source compatibility checks the **active face**, not the die category
-
-**No-lookahead example:**
-
-```
-OUTSIDE → MORNING → UMBRELLA → WEATHER
-Local:  Outside  Morning  Put WEATHER before UMBRELLA.  22% rain after 4pm
-Final:  Put WEATHER before UMBRELLA.
-```
-
-Valid canonical order still resolves normally:
-
-```
-HOME → MORNING → WEATHER → UMBRELLA  →  No umbrella needed this morning.
-```
+- **Canonical pairings:** rain→umbrella, wind→jacket, sun→sunglasses, snow→gloves
+- **Cross-pairings:** threshold logic, not pairing police
+- **Structural hints** (missing phenomenon or response) stay in compile — not in the renderer
 
 ## Final line rules (TRAY-108)
 
@@ -94,17 +77,15 @@ The final line may **answer**, **count down**, or **hint**. It must never merge 
 
 1. Running timer owns the final line
 2. Any local slot hint blocks synthetic advice — final tone becomes `hint`
-3. Normal canonical sentence assembly
+3. Domain renderer final output when matrix is complete
 
 **Hint dominance examples:**
 
 | Layout issue | Final line |
 |--------------|------------|
-| Two decision cubes (umbrella + wear) | `Choose umbrella or clothing.` |
-| Umbrella before weather (local hint) | Pass-through local hint — not synthetic advice |
+| Response without phenomenon | `Add weather condition` |
+| Phenomenon without response | `Add response` |
 | Valid canonical/express umbrella paths | Normal answer tone |
-
-If the local layer says something is wrong (e.g. `One concern at a time`), the final layer must say "not quite" — not `Take umbrella later right now.`
 
 ## Protocol
 
@@ -125,15 +106,14 @@ Optional debug logging: add `&debug=1` to log session JSON to the browser consol
 
 Run once before a major interaction change (baseline), once after (validation).
 
-## Starter kit (tray-lab pool — 8 cubes)
+## Starter kit (tray-lab pool — 6 cubes)
 
-Pool order (grammar-biased): **HOME · MORNING · WEATHER · RAIN · UMBRELLA · WEAR · BUTTON · TIMER**
+Pool order (grammar-biased): **HOME · MOMENT · PHENOMENON · RESPONSE · BUTTON · TIMER**
 
 | Class | Cubes |
 |-------|-------|
-| Context | HOME, MORNING |
-| Source | WEATHER |
-| Weather lenses | RAIN, UMBRELLA, WEAR |
+| Context | HOME, MOMENT |
+| Weather axes | PHENOMENON, RESPONSE |
 | Controls | BUTTON, TIMER |
 
 ## Canonical scenario
@@ -143,46 +123,46 @@ Pool order (grammar-biased): **HOME · MORNING · WEATHER · RAIN · UMBRELLA ·
 **Canonical sentence:**
 
 ```
-HOME → MORNING → WEATHER → UMBRELLA
+HOME → MORNING → RAIN → UMBRELLA
 ```
 
 **Expected dual-layer display:**
 
 ```
-[ HOME     MORNING    WEATHER              UMBRELLA    empty ]
-[ Home     Morning    22% rain after 4pm   No umbrella needed ]
+[ HOME     MORNING    RAIN                 UMBRELLA    empty ]
+[ Home     Morning    22% rain             No umbrella ]
 ──────────────────────────────────────────────────────────────
       No umbrella needed this morning.
 ```
 
-Grammar reading: *At home, for the morning, check weather, decide umbrella.*
+Grammar reading: *At home, for the morning, check rain, decide umbrella.*
 
 ### Hero moment
 
 ```
-HOME → MORNING → WEATHER → UMBRELLA
-Local:  Home  Morning  22% rain after 4pm  No umbrella needed
+HOME → MORNING → RAIN → UMBRELLA
+Local:  Home  Morning  22% rain  No umbrella
 Final:  No umbrella needed this morning.
 
-(rotate WEAR or UMBRELLA cube only)
+(rotate RESPONSE cube only — e.g. to JACKET)
 
-Local:  Home  Morning  22% rain after 4pm  Light jacket
-Final:  Light jacket this morning.
+Local:  Home  Morning  22% rain  Waterproof advised
+Final:  Waterproof jacket recommended this morning.
 ```
 
-Same place. Same morning. Same weather. Different concern. Different decision.
+Same place. Same morning. Same phenomenon. Different response. Different decision.
 
 ## Observer milestones (automatic, silent)
 
 | Milestone ID | Meaning |
 |--------------|---------|
 | `placement_started` | First die placed |
-| `sentence_complete` | HOME + MORNING + WEATHER + Decision cube all present |
-| `umbrella_decision_visible` | finalOutput or lens local shows umbrella decision |
-| `hero_moment` | Decision slot changed; place, moment, and weather stable |
+| `sentence_complete` | HOME + MOMENT + PHENOMENON + RESPONSE all present |
+| `umbrella_decision_visible` | finalOutput or response local shows umbrella decision |
+| `hero_moment` | Response slot changed; place, moment, and phenomenon stable |
 | `lens_rotated_before_complete` | User discovered rotation before full sentence |
 
-**Hero moment detector:** programmatic — fires when lens slot text changes while place, moment (Morning), and weather slot texts stay identical.
+**Hero moment detector:** programmatic — fires when response slot text changes while place, moment, and phenomenon slot texts stay identical.
 
 ## Session JSON export
 
@@ -195,7 +175,7 @@ Physical placement (where do cubes go?)
   ↓
 Rotation (what does turning a face do?)
   ↓
-Decision comprehension (same weather, different advice)
+Decision comprehension (same condition, different advice)
   ↓
 Product understanding (what is the tray? what are the cubes?)
   ↓
@@ -210,7 +190,7 @@ Purchase path (what's in the starter kit?)
 |-----------------------------|-------|
 | "Do I drag these in?" / "Does order matter?" | **Placement** |
 | "What happens if I turn this?" / "How do I change the mode?" | **Orientation** |
-| "Why did only this part change?" / "Same weather but different advice?" | **Decision** — breakthrough |
+| "Why did only this part change?" / "Same rain but different advice?" | **Decision** — breakthrough |
 | "What is the tray?" / "Do the cubes have batteries?" | **Product** |
 | "What do I buy?" / "What's in the box?" | **Purchase path** |
 
@@ -218,8 +198,8 @@ Purchase path (what's in the starter kit?)
 
 | Participant behaviour… | Meaning |
 |------------------------|---------|
-| Builds HOME → MORNING → WEATHER → UMBRELLA without help | **Canonical sentence clear** |
-| Rotates decision cube before asking | **Orientation discovered** |
+| Builds HOME → MORNING → RAIN → UMBRELLA without help | **Canonical sentence clear** |
+| Rotates response cube before asking | **Orientation discovered** |
 | Reads local zones then final line | **Dual-layer model understood** |
 | "When I'm leaving…" / "before work…" | **Ritual framing** |
 
@@ -234,7 +214,7 @@ Purchase path (what's in the starter kit?)
 ## Success gates
 
 1. ≥3 of 5 complete "take an umbrella" without explanation
-2. ≥2 of 5 rotate the decision cube; observer logs `hero_moment`
+2. ≥2 of 5 rotate the response cube; observer logs `hero_moment`
 3. ≥3 of 5 describe cubes as **words** and the tray as **the thing that reads them**
 4. Participant UI shows no completion badges or victory screens
 5. Stranger can read tray and understand **why** without feeling like a debugger

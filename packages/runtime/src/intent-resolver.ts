@@ -14,7 +14,16 @@ export type ResolvedSlot = {
   cubeId: string | null;
   modeId: string | null;
   modeLabel: string | null;
-  role: "place" | "moment" | "source" | "lens" | "control" | "output" | null;
+  role:
+    | "place"
+    | "moment"
+    | "phenomenon"
+    | "response"
+    | "source"
+    | "lens"
+    | "control"
+    | "output"
+    | null;
   token: string | null;
   weatherMode: string | null;
   lensId: WeatherLens | null;
@@ -75,13 +84,22 @@ export type TrayCompileContext = {
   slots: ResolvedSlot[];
   placeSlotIndex: number | null;
   momentSlotIndex: number | null;
+  phenomenonSlotIndex: number | null;
+  responseSlotIndex: number | null;
+  /** @deprecated Legacy lens/source model */
   sourceSlotIndex: number | null;
+  /** @deprecated Legacy lens model */
   lenses: LensItem[];
   controls: ControlItem[];
+  /** @deprecated Legacy lens model */
   primaryLensSlotIndex: number | null;
+  /** @deprecated Legacy lens model */
   secondaryLensSlotIndex: number | null;
+  /** @deprecated Legacy lens model */
   activeLens: WeatherLens | null;
   activeMomentId: string | null;
+  activePhenomenonId: string | null;
+  activeResponseId: string | null;
   timerIntent: TimerIntentCandidate | null;
   chainToSlot: number[];
   trayCoreInstanceId: string;
@@ -262,7 +280,7 @@ function resolveTimerIntent(
   }
 
   const buttonSlot = tray.slots[button.slotIndex];
-  const isPressMode = buttonSlot?.activeModeId === "press";
+  const isPressMode = buttonSlot?.activeModeId === "button";
 
   if (isPressMode) {
     return {
@@ -333,7 +351,10 @@ export function resolveTraySlots(tray: TrayState): ResolvedSlot[] {
       modeLabel: modeDef.label,
       role: cubeDef.role,
       token: physicalToken,
-      weatherMode: cubeDef.id === "weather" ? modeDef.id : null,
+      weatherMode:
+        cubeDef.id === "weather" || cubeDef.role === "phenomenon"
+          ? modeDef.id
+          : null,
       lensId,
       displayLabel: modeDef.faceText,
     });
@@ -375,6 +396,8 @@ export function buildTrayCompileContext(tray: TrayState): TrayCompileContext {
     }));
 
   const momentSlot = resolved.find((s) => s.role === "moment") ?? null;
+  const phenomenonSlot = resolved.find((s) => s.role === "phenomenon") ?? null;
+  const responseSlot = resolved.find((s) => s.role === "response") ?? null;
   const primaryLensSlotIndex = primaryLens?.slotIndex ?? null;
   const boundSourceIndex = upstreamSourceForPrimaryLens(
     tray,
@@ -383,13 +406,18 @@ export function buildTrayCompileContext(tray: TrayState): TrayCompileContext {
   );
   const fallbackSourceIndex =
     resolved.find(
-      (s) => s.role === "source" && isWeatherSourceToken(s.token ?? ""),
+      (s) =>
+        (s.role === "source" || s.role === "phenomenon") &&
+        (isWeatherSourceToken(s.token ?? "") ||
+          (s.token?.startsWith("phenomenon/") ?? false)),
     )?.slotIndex ?? null;
 
   return {
     slots: resolved,
     placeSlotIndex: resolved.find((s) => s.role === "place")?.slotIndex ?? null,
     momentSlotIndex: momentSlot?.slotIndex ?? null,
+    phenomenonSlotIndex: phenomenonSlot?.slotIndex ?? null,
+    responseSlotIndex: responseSlot?.slotIndex ?? null,
     sourceSlotIndex:
       primaryLensSlotIndex !== null ? boundSourceIndex : fallbackSourceIndex,
     lenses,
@@ -398,6 +426,8 @@ export function buildTrayCompileContext(tray: TrayState): TrayCompileContext {
     secondaryLensSlotIndex: secondaryLens?.slotIndex ?? null,
     activeLens: primaryLens?.lensId ?? null,
     activeMomentId: momentSlot?.modeId ?? null,
+    activePhenomenonId: phenomenonSlot?.modeId ?? null,
+    activeResponseId: responseSlot?.modeId ?? null,
     timerIntent: resolveTimerIntent(tray, controls),
     chainToSlot: [],
     trayCoreInstanceId: TRAY_CORE_INSTANCE,
