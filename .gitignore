@@ -6,3 +6,4 @@ dist/
 coverage/
 .vite/
 packages/runtime/audit-output/
+.vercel
